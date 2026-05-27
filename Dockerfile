@@ -16,12 +16,10 @@ COPY . .
 
 # Variables d'environnement de build (surchargeables via --build-arg)
 ARG VITE_API_URL=http://localhost:8080
-ARG GEMINI_API_KEY=""
 # Mode de build Vite : "staging" | "production" (défaut: production)
 ARG BUILD_MODE=production
 
 ENV VITE_API_URL=$VITE_API_URL
-ENV GEMINI_API_KEY=$GEMINI_API_KEY
 
 # Build avec le mode Vite correspondant à l'environnement
 RUN npm run build -- --mode $BUILD_MODE

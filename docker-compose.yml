@@ -16,7 +16,6 @@ services:
       args:
         # URL du backend au moment du BUILD (resolve dans Vite/axios)
         VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
-        GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     image: geoconnect-frontend:latest
     container_name: geoconnect-frontend
     restart: unless-stopped

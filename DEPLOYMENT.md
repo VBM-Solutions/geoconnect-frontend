@@ -1,188 +1,297 @@
-# Guide de déploiement Coolify — Staging & Production
+# Guide de déploiement — Staging & Production
 
-## Vue d'ensemble
-
-```
-Branche Git         →  Environnement Coolify   →  Domaine
-─────────────────────────────────────────────────────────────
-develop             →  staging                 →  staging.geoconnect.fr
-main                →  production              →  geoconnect.fr (ou app.geoconnect.fr)
-```
-
----
-
-## 1. Prérequis
-
-- Un VPS avec **Coolify** installé (cf. [coolify.io/docs](https://coolify.io/docs))
-- Un dépôt Git accessible depuis votre VPS (GitHub, GitLab, Gitea…)
-- Deux sous-domaines DNS pointant vers votre VPS :
-  - `staging.geoconnect.fr` → IP du VPS
-  - `geoconnect.fr` (ou `app.geoconnect.fr`) → IP du VPS
-
----
-
-## 2. Structure du Projet Coolify
-
-Dans Coolify, créez **1 Projet** avec **2 Environnements** :
+## Vue d'ensemble du flux
 
 ```
-Projet : GeoConnect
-  ├── Environnement : staging
-  │     ├── Service : geoconnect-frontend   ← cette app
-  │     └── Service : geoconnect-backend    ← votre API Spring Boot
-  └── Environnement : production
-        ├── Service : geoconnect-frontend   ← cette app
-        └── Service : geoconnect-backend    ← votre API Spring Boot
+push develop ──► CI (tests/sonar) ──► Build image Docker
+                                             │
+                                             ▼
+                                  ghcr.io/.../geoconnect-frontend:staging
+                                             │
+                                             ▼
+                                  Coolify pull & redémarre  ──► staging.mon-etude-de-sol.fr
+
+push main ───► CI (tests/sonar) ──► Build image Docker
+                                             │
+                                             ▼
+                                  ghcr.io/.../geoconnect-frontend:production
+                                             │
+                                             ▼
+                                  Approbation manuelle GitHub
+                                             │
+                                             ▼
+                                  Coolify pull & redémarre  ──► mon-etude-de-sol.fr
 ```
 
----
-
-## 3. Création des services Frontend
-
-### 3.1 Service Staging
-
-1. Dans Coolify → **New Resource** → **Application**
-2. Sélectionner votre dépôt Git
-3. **Branch** : `develop`
-4. **Build Pack** : `Dockerfile`
-5. **Dockerfile Path** : `./Dockerfile`
-6. **Port** : `80`
-
-#### Build Arguments (staging) :
-| Nom             | Valeur                              |
-|-----------------|-------------------------------------|
-| `VITE_API_URL`  | `https://api-staging.geoconnect.fr` |
-| `GEMINI_API_KEY`| `<votre clé staging>`               |
-| `BUILD_MODE`    | `staging`                           |
-
-#### Variables d'environnement Runtime (staging) :
-| Nom            | Valeur                                    |
-|----------------|-------------------------------------------|
-| `BACKEND_URL`  | `http://geoconnect-backend-staging:8080`  |
-
-> **Astuce** : En Coolify, si le backend est dans le même réseau Docker,
-> utilisez son nom de service interne plutôt que son URL publique.
-
-#### Domaine (staging) :
-- `https://staging.geoconnect.fr`
-- Activer **Let's Encrypt** (SSL automatique)
+> **Principe clé** : GitHub Actions construit l'image une seule fois et la pousse sur
+> le registre. Coolify ne fait que la télécharger et la démarrer — il ne build plus rien.
 
 ---
 
-### 3.2 Service Production
+## Étape 1 — DNS chez OVH
 
-Identique au staging, avec les différences suivantes :
+Allez sur **OVH → Domaine `mon-etude-de-sol.fr` → Zone DNS → Ajouter une entrée**.
 
-- **Branch** : `main`
+Créez les enregistrements de type **A** suivants (laissez le TTL par défaut) :
 
-#### Build Arguments (production) :
-| Nom             | Valeur                      |
-|-----------------|-----------------------------|
-| `VITE_API_URL`  | `https://api.geoconnect.fr` |
-| `GEMINI_API_KEY`| `<votre clé production>`    |
-| `BUILD_MODE`    | `production`                |
+| Sous-domaine      | Cible           |
+|-------------------|-----------------|
+| *(vide = racine)* | IP de votre VPS |
+| `www`             | IP de votre VPS |
+| `staging`         | IP de votre VPS |
+| `api`             | IP de votre VPS |
+| `api-staging`     | IP de votre VPS |
 
-#### Variables d'environnement Runtime (production) :
-| Nom            | Valeur                                |
-|----------------|---------------------------------------|
-| `BACKEND_URL`  | `http://geoconnect-backend:8080`      |
+> L'IP de votre VPS se trouve dans Coolify → **Servers** → cliquez sur votre serveur.
 
-#### Domaine (production) :
-- `https://geoconnect.fr` et/ou `https://app.geoconnect.fr`
-- Activer **Let's Encrypt**
+Attendez la propagation DNS (5 à 30 min) avant de continuer.
 
 ---
 
-## 4. Auto-déploiement (Webhooks Git)
+## Étape 2 — GitHub : Environments, Variables et Secrets
 
-Dans Coolify, activez le **webhook** pour chaque service :
+### 2.1 Créer les Environments
 
-1. Aller dans **Settings** du service → **Webhooks**
-2. Copier l'URL webhook fournie par Coolify
-3. Dans GitHub/GitLab → **Settings** → **Webhooks** → Ajouter l'URL
-4. Événement déclencheur : **push**
+Allez dans votre repo GitHub → **Settings → Environments → New environment**.
 
-Résultat :
-- `git push origin develop` → redéploiement automatique du **staging**
-- `git push origin main` (ou merge PR) → redéploiement automatique de la **production**
+**Environment `staging`** :
+- Pas de règle de protection
+- Cliquez **Save protection rules**
+
+**Environment `production`** :
+- Cochez **Required reviewers**
+- Ajoutez-vous vous-même comme reviewer
+- Cliquez **Save protection rules**
 
 ---
 
-## 5. Workflow Git recommandé
+### 2.2 Ajouter les Variables (non-sensibles)
+
+Dans chaque environment, ajoutez la variable `VITE_API_URL` :
+
+**Settings → Environments → staging → Add variable**
+
+| Variable       | Valeur                                      |
+|----------------|---------------------------------------------|
+| `VITE_API_URL` | `https://api-staging.mon-etude-de-sol.fr`   |
+
+**Settings → Environments → production → Add variable**
+
+| Variable       | Valeur                              |
+|----------------|-------------------------------------|
+| `VITE_API_URL` | `https://api.mon-etude-de-sol.fr`   |
+
+---
+
+### 2.3 Ajouter les Secrets Coolify
+
+Les webhooks Coolify seront créés à l'étape 4. Revenez ici pour les remplir.
+
+**Settings → Environments → staging → Add secret**
+
+| Secret                    | Valeur                          |
+|---------------------------|---------------------------------|
+| `COOLIFY_WEBHOOK_STAGING` | *(URL copiée depuis Coolify)*   |
+
+**Settings → Environments → production → Add secret**
+
+| Secret                      | Valeur                          |
+|-----------------------------|---------------------------------|
+| `COOLIFY_WEBHOOK_PRODUCTION` | *(URL copiée depuis Coolify)*  |
+
+---
+
+## Étape 3 — Créer un Personal Access Token GitHub (pour Coolify)
+
+Coolify a besoin d'un token pour télécharger l'image depuis `ghcr.io`.
+
+1. GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**
+2. **Repository access** : sélectionnez votre repo `geoconnect-frontend`
+3. **Permissions** → *Packages* → **Read-only**
+4. Cliquez **Generate token**
+5. **Copiez le token** — vous en aurez besoin à l'étape 4.
+
+---
+
+## Étape 4 — Coolify : Configuration initiale
+
+### 4.1 Ajouter le registre ghcr.io
+
+Dans Coolify → **Settings → Container Registries → Add**
+
+| Champ            | Valeur                            |
+|------------------|-----------------------------------|
+| **Name**         | `GitHub Container Registry`       |
+| **Registry URL** | `ghcr.io`                         |
+| **Username**     | votre username GitHub             |
+| **Password**     | le PAT créé à l'étape 3           |
+
+Cliquez **Save**.
+
+---
+
+### 4.2 Créer le Projet et les Environnements
+
+Coolify → **Projects → New Project**
+- **Name** : `GeoConnect`
+
+Dans le projet, créez deux environnements :
+- `staging`
+- `production`
+
+---
+
+### 4.3 Créer le service Frontend — Staging (Docker Compose)
+
+Dans l'environnement `staging` → **New Resource → Docker Compose**
+
+**General :**
+- **Name** : `geoconnect-frontend-staging`
+- **Domains** : `https://staging.mon-etude-de-sol.fr`
+
+**Compose File :**
+
+```yaml
+services:
+  frontend:
+    image: ghcr.io/<votre-github-username>/geoconnect-frontend:staging
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://geoconnect-backend-staging:8080
+    ports:
+      - "80:80"
+```
+
+> Important : utilisez bien `image:` (pas `build:`) pour que Coolify fasse uniquement un pull de l'image GHCR.
+
+**Onglet Webhooks :**
+1. Activez le webhook de déploiement
+2. **Copiez l'URL** → retournez dans GitHub et collez-la dans le secret `COOLIFY_WEBHOOK_STAGING` (étape 2.3)
+
+---
+
+### 4.4 Créer le service Frontend — Production (Docker Compose)
+
+Dans l'environnement `production` → **New Resource → Docker Compose**
+
+**General :**
+- **Name** : `geoconnect-frontend`
+- **Domains** : `https://mon-etude-de-sol.fr`
+
+**Compose File :**
+
+```yaml
+services:
+  frontend:
+    image: ghcr.io/<votre-github-username>/geoconnect-frontend:production
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://geoconnect-backend:8080
+    ports:
+      - "80:80"
+```
+
+> Important : utilisez bien `image:` (pas `build:`) pour que Coolify fasse uniquement un pull de l'image GHCR.
+
+**Onglet Webhooks :**
+1. Activez le webhook de déploiement
+2. **Copiez l'URL** → retournez dans GitHub et collez-la dans le secret `COOLIFY_WEBHOOK_PRODUCTION` (étape 2.3)
+
+---
+
+## Étape 5 — Premier déploiement
+
+Une fois tout configuré, déclenchez le premier build :
 
 ```bash
-# Développement quotidien
+# Déployer sur staging
 git checkout develop
-git pull origin develop
-# ... vos modifications ...
-git push origin develop        # → déploie automatiquement sur staging
+git push origin develop
+# → GitHub Actions lance CI + build image + push ghcr.io + notifie Coolify
 
-# Mise en production
+# Déployer en production (après validation sur staging)
 git checkout main
-git merge develop              # ou via Pull Request
-git push origin main           # → déploie automatiquement en production
-git tag v1.x.y && git push --tags  # bonne pratique : tagger chaque release
+git merge develop
+git push origin main
+# → GitHub Actions lance CI + build image + push ghcr.io
+# → Vous recevez une notification GitHub pour approuver
+# → Après approbation : Coolify redémarre avec la nouvelle image
 ```
 
 ---
 
-## 6. Variables Vite par mode (optionnel, avancé)
+## Workflow Git quotidien
 
-Si vous avez des comportements différents entre staging et production
-(feature flags, messages de debug, etc.), utilisez les fichiers `.env` de Vite :
+```bash
+# Feature
+git checkout -b feature/ma-fonctionnalite
+# ... développement ...
+git push origin feature/ma-fonctionnalite
+# → Ouvrir une PR vers develop (les tests CI tournent automatiquement)
 
-```
-.env                  ← partagé tous modes (valeurs non-secrètes)
-.env.staging          ← staging uniquement  (NE PAS committer si contient des secrets)
-.env.production       ← production          (NE PAS committer si contient des secrets)
-.env.staging.example  ← template à committer ✓
-.env.production.example ← template à committer ✓
-```
+# Merge vers staging
+git checkout develop && git merge feature/ma-fonctionnalite
+git push origin develop
+# → Déploiement automatique staging ✅
 
-Exemple de `.env.staging` (local uniquement, non commité) :
-```env
-VITE_SHOW_DEBUG_BANNER=true
-VITE_ENV_LABEL=STAGING
-```
-
-Utilisation dans le code :
-```ts
-const isStaging = import.meta.env.MODE === 'staging';
-const label = import.meta.env.VITE_ENV_LABEL ?? '';
+# Mise en production (après validation sur staging)
+git checkout main && git merge develop
+git push origin main
+git tag v1.x.y && git push --tags
+# → Approbation requise → déploiement production ✅
 ```
 
 ---
 
-## 7. Checklist avant premier déploiement
+## Checklist complète avant premier déploiement
 
-- [ ] DNS configurés (`staging.geoconnect.fr` et `geoconnect.fr` → IP VPS)
+**OVH / DNS**
+- [ ] Enregistrements A créés pour la racine, `www`, `staging`, `api`, `api-staging`
+- [ ] DNS propagé (vérifier sur [dnschecker.org](https://dnschecker.org))
+
+**GitHub**
+- [ ] Environment `staging` créé
+- [ ] Environment `production` créé avec reviewer obligatoire
+- [ ] Variable `VITE_API_URL` ajoutée dans chaque environment
+- [ ] PAT GitHub créé avec scope `read:packages`
 - [ ] Branche `develop` créée et pushée
-- [ ] Service staging créé dans Coolify avec les bons build args
-- [ ] Service production créé dans Coolify avec les bons build args
-- [ ] Backend staging déployé et `BACKEND_URL` staging correcte
-- [ ] Backend production déployé et `BACKEND_URL` production correcte
+
+**Coolify**
+- [ ] Registre `ghcr.io` configuré avec le PAT
+- [ ] Projet `GeoConnect` créé avec 2 environnements
+- [ ] Service frontend staging configuré en Docker Compose (image tag: `staging`, port: `80`)
+- [ ] Service frontend production configuré en Docker Compose (image tag: `production`, port: `80`)
+- [ ] `BACKEND_URL` renseignée dans chaque service
 - [ ] SSL Let's Encrypt activé sur les deux services
-- [ ] Webhooks Git configurés
-- [ ] Test de la route `/api/...` en staging (vérifier le proxy Nginx)
+- [ ] Webhooks copiés dans les secrets GitHub
+
+**Test final**
+- [ ] Premier `push origin develop` → vérifier que le pipeline GitHub passe ✅
+- [ ] Image visible dans GitHub → **Packages** du repo
+- [ ] Frontend staging accessible sur `https://staging.mon-etude-de-sol.fr`
+- [ ] Route `/api/...` fonctionne (proxy Nginx → backend)
 
 ---
 
-## 8. En cas de problème
+## Dépannage
 
 ### Voir les logs d'un conteneur
-Dans Coolify UI → Service → **Logs** tab
+Coolify UI → Service → onglet **Logs**
 
-### Vérifier les variables injectées au runtime
+### Vérifier la variable BACKEND_URL injectée
 ```bash
-# Depuis le terminal Coolify ou via SSH sur le VPS
-docker exec geoconnect-frontend printenv | grep -E "BACKEND_URL"
+# SSH sur le VPS ou terminal Coolify
+docker exec <container_name> printenv BACKEND_URL
 ```
 
 ### Vérifier la config Nginx générée
 ```bash
-docker exec geoconnect-frontend cat /etc/nginx/conf.d/app.conf
+docker exec <container_name> cat /etc/nginx/conf.d/app.conf
 ```
 
-### Re-builder sans cache
-Dans Coolify → Service → **Deploy** → cocher **Force Rebuild**
+### Forcer le re-pull de l'image sans cache
+Coolify → Service → **Deploy** → activer **Force Rebuild**
 
+### L'image n'est pas trouvée (401 Unauthorized)
+Vérifiez que le PAT GitHub a bien le scope `read:packages` et qu'il n'a pas expiré.
+Coolify → **Settings → Container Registries** → modifiez le registre ghcr.io.
