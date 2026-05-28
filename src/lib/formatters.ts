@@ -2,8 +2,6 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { DocumentRef, EtudeDetailDTO } from '../types';
 
-// ...existing code...
-
 /**
  * Construit la liste des documents disponibles pour une étude donnée,
  * à partir des IDs présents dans l'EtudeDetailDTO.

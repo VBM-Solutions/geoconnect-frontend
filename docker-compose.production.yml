@@ -1,0 +1,40 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# docker-compose.production.yml — Déploiement Coolify (production)
+#
+# ⚠️  Ce fichier est destiné à Coolify UNIQUEMENT — ne pas utiliser en local.
+#     Pour le développement local, utiliser docker-compose.yml (avec build:).
+#
+# Principe :
+#   GitHub Actions construit l'image et la pousse sur ghcr.io avec le tag
+#   "production". Coolify utilise ce fichier pour simplement pull + run l'image,
+#   sans rien compiler.
+#
+# Variables attendues dans Coolify (onglet Environment Variables) :
+#   BACKEND_URL  →  http://geoconnect-backend:8080
+# ──────────────────────────────────────────────────────────────────────────────
+
+services:
+  frontend:
+    image: ghcr.io/achillemonod/geoconnect-frontend:production
+    container_name: geoconnect-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      # URL du backend au moment du RUNTIME (resolve dans Nginx proxy_pass)
+      # À définir dans Coolify → Service → Environment Variables
+      BACKEND_URL: ${BACKEND_URL:-http://geoconnect-backend:8080}
+    networks:
+      - geoconnect-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  geoconnect-net:
+    name: geoconnect-net
+    external: true   # Le réseau est partagé avec le service backend production
+
