@@ -55,6 +55,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      actions: write   # nécessaire pour le cache type=gha
     outputs:
       image: ${{ steps.meta.outputs.tags }}
     steps:
@@ -76,6 +77,9 @@ jobs:
             type=raw,value=staging
             type=sha,prefix=staging-
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -86,8 +90,8 @@ jobs:
           build-args: |
             VITE_API_URL=${{ vars.VITE_API_URL }}
             BUILD_MODE=staging
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging
-          cache-to: type=inline
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   # ──────────────────────────────────────────────────────────────
   # Job 3a : Déploiement Staging → Coolify pull l'image
@@ -118,6 +122,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      actions: write   # nécessaire pour le cache type=gha
     steps:
       - uses: actions/checkout@v4
 
@@ -138,6 +143,9 @@ jobs:
             type=raw,value=latest
             type=sha,prefix=prod-
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -148,8 +156,8 @@ jobs:
           build-args: |
             VITE_API_URL=${{ vars.VITE_API_URL }}
             BUILD_MODE=production
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:production
-          cache-to: type=inline
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   # ──────────────────────────────────────────────────────────────
   # Job 3b : Déploiement Production → Coolify pull l'image
