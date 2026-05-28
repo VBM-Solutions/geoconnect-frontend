@@ -23,7 +23,7 @@ export const getAllBureauEtude = async (): Promise<BureauEtudesDTO[]> => {
 
 /**
  * Retourne le profil bureau d'études de l'utilisateur connecté via GET /bureauEtude/me.
- * Le paramètre userId est conservé pour compatibilité de signature mais n'est plus utilisé :
+ * Le paramètre userId est conservé pour compatibilité de signature, mais n'est plus utilisé :
  * l'identité est lue depuis le JWT côté backend.
  */
 export const getBureauByUserId = async (_userId: number): Promise<BureauEtudesDTO | null> => {
