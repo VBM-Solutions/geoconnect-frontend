@@ -16,8 +16,8 @@ services:
     image: ghcr.io/achillemonod/geoconnect-frontend:staging
     container_name: geoconnect-frontend-staging
     restart: unless-stopped
-    ports:
-      - "80:80"
+    expose:
+      - "80"
     environment:
       # URL interne Docker → utilisée par le proxy Nginx pour proxy_pass
       # Le backend est joignable via son container_name sur le réseau "coolify"
