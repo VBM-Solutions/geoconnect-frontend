@@ -4,13 +4,11 @@
 # ⚠️  Ce fichier est destiné à Coolify UNIQUEMENT — ne pas utiliser en local.
 #     Pour le développement local, utiliser docker-compose.yml (avec build:).
 #
-# Principe :
-#   GitHub Actions construit l'image et la pousse sur ghcr.io avec le tag
-#   "staging". Coolify utilise ce fichier pour simplement pull + run l'image,
-#   sans rien compiler.
-#
-# Variables attendues dans Coolify (onglet Environment Variables) :
-#   BACKEND_URL  →  http://geoconnect-backend-staging:8080
+# Architecture réseau (voir resources-backend/NETWORKING.md) :
+#   - Le frontend rejoint le réseau "coolify" (partagé par toutes les apps Coolify)
+#   - Le backend est joignable via son container_name : geoconnect-staging-backend
+#   - VITE_API_URL (URL publique) est baked au build par GitHub Actions
+#   - BACKEND_URL (URL interne) est utilisée par le proxy Nginx au runtime
 # ──────────────────────────────────────────────────────────────────────────────
 
 services:
@@ -21,11 +19,11 @@ services:
     ports:
       - "80:80"
     environment:
-      # URL du backend au moment du RUNTIME (resolve dans Nginx proxy_pass)
-      # À définir dans Coolify → Service → Environment Variables
-      BACKEND_URL: ${BACKEND_URL:-http://geoconnect-backend-staging:8080}
+      # URL interne Docker → utilisée par le proxy Nginx pour proxy_pass
+      # Le backend est joignable via son container_name sur le réseau "coolify"
+      BACKEND_URL: ${BACKEND_URL:-http://geoconnect-staging-backend:8080}
     networks:
-      - geoconnect-net
+      - coolify
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/"]
       interval: 30s
@@ -34,7 +32,5 @@ services:
       start_period: 10s
 
 networks:
-  geoconnect-net:
-    name: geoconnect-net
-    external: true   # Le réseau est partagé avec le service backend staging
-
+  coolify:
+    external: true   # Réseau partagé géré par Coolify — ne pas modifier
