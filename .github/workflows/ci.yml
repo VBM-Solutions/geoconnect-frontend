@@ -1,4 +1,4 @@
-name: CI
+name: CI / CD
 
 on:
   push:
@@ -6,16 +6,12 @@ on:
   pull_request:
     branches: [ "main", "develop" ]
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: achillemonod/geoconnect-frontend
-
 jobs:
-  # ─────────────────────────────────────────────────────────────
-  # Job 1 : Lint / Tests / Sonar
-  # ──────────────────────────────────────────────────────────────
-  ci:
-    name: Lint / Build / Test / Sonar
+  # ─────────────────────────────────────────────
+  # 1. Lint / Build / Tests
+  # ─────────────────────────────────────────────
+  build:
+    name: Build & Tests (Node 20)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,144 +33,142 @@ jobs:
       - name: Run Tests with coverage
         run: npm run test:coverage
 
+  # ─────────────────────────────────────────────
+  # 2. Analyse SonarCloud
+  # ─────────────────────────────────────────────
+  sonar:
+    name: SonarCloud Analysis
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Tests with coverage (pour SonarCloud)
+        run: npm run test:coverage
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  # ──────────────────────────────────────────────────────────────
-  # Job 2a : Build & Push image Docker — Staging (develop)
-  # ──────────────────────────────────────────────────────────────
-  build-staging:
-    name: Build image → ghcr.io (staging)
-    needs: ci
+  # ─────────────────────────────────────────────
+  # 3. Build image Docker → push sur GHCR
+  # Seulement sur push (pas les PRs).
+  # develop → tag "staging"   + BUILD_MODE=staging
+  # main    → tag "production" + BUILD_MODE=production
+  # ─────────────────────────────────────────────
+  build-images:
+    name: Build & Push Docker image (GHCR)
+    needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    environment: staging
+    if: github.event_name == 'push'
     permissions:
       contents: read
       packages: write
-      actions: write   # nécessaire pour le cache type=gha
-    outputs:
-      image: ${{ steps.meta.outputs.tags }}
+      actions: write
+
     steps:
       - uses: actions/checkout@v4
 
+      - name: Déterminer le tag, le mode et l'owner lowercase
+        id: meta
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "tag=production" >> $GITHUB_OUTPUT
+            echo "build_mode=production" >> $GITHUB_OUTPUT
+          else
+            echo "tag=staging" >> $GITHUB_OUTPUT
+            echo "build_mode=staging" >> $GITHUB_OUTPUT
+          fi
+          echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: Log in to GitHub Container Registry
+      - name: Déterminer VITE_API_URL
+        id: vite
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "api_url=${{ vars.VITE_API_URL_PRODUCTION }}" >> $GITHUB_OUTPUT
+          else
+            echo "api_url=${{ vars.VITE_API_URL_STAGING }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Login → GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=staging
-            type=sha,prefix=staging-
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push
+      - name: Build & Push frontend
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ghcr.io/${{ steps.meta.outputs.owner }}/geoconnect-frontend:${{ steps.meta.outputs.tag }}
           build-args: |
-            VITE_API_URL=${{ vars.VITE_API_URL }}
-            BUILD_MODE=staging
+            VITE_API_URL=${{ steps.vite.outputs.api_url }}
+            BUILD_MODE=${{ steps.meta.outputs.build_mode }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ──────────────────────────────────────────────────────────────
-  # Job 3a : Déploiement Staging → Coolify pull l'image
-  # ──────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────
+  # 4. Déploiement Staging (branche develop)
+  # ─────────────────────────────────────────────
   deploy-staging:
     name: Deploy → Staging
-    needs: build-staging
+    needs: build-images
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     environment:
       name: staging
-      url: https://staging.mon-etude-de-sol.fr
+      url: ${{ vars.STAGING_URL }}
     steps:
-      - name: Trigger Coolify redeploy (staging)
+      - name: Trigger Coolify Staging Deploy
         run: |
-          curl --silent --show-error --fail \
+          if [ -z "${{ secrets.COOLIFY_STAGING_WEBHOOK_URL }}" ] || [ -z "${{ secrets.COOLIFY_STAGING_TOKEN }}" ]; then
+            echo "⚠️  COOLIFY_STAGING_WEBHOOK_URL ou COOLIFY_STAGING_TOKEN non configurés — déploiement ignoré."
+            exit 0
+          fi
+          curl --silent --fail --show-error \
             --request GET \
-            --url "${{ secrets.COOLIFY_WEBHOOK_STAGING }}"
+            "${{ secrets.COOLIFY_STAGING_WEBHOOK_URL }}" \
+            --header "Authorization: Bearer ${{ secrets.COOLIFY_STAGING_TOKEN }}"
 
-  # ──────────────────────────────────────────────────────────────
-  # Job 2b : Build & Push image Docker — Production (main)
-  # ──────────────────────────────────────────────────────────────
-  build-production:
-    name: Build image → ghcr.io (production)
-    needs: ci
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    environment: production
-    permissions:
-      contents: read
-      packages: write
-      actions: write   # nécessaire pour le cache type=gha
-    steps:
-      - uses: actions/checkout@v4
-
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=production
-            type=raw,value=latest
-            type=sha,prefix=prod-
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            VITE_API_URL=${{ vars.VITE_API_URL }}
-            BUILD_MODE=production
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # ──────────────────────────────────────────────────────────────
-  # Job 3b : Déploiement Production → Coolify pull l'image
-  # (nécessite une approbation manuelle via GitHub Environment)
-  # ──────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────
+  # 5. Déploiement Production (branche main)
+  # Requiert une approbation manuelle.
+  # ─────────────────────────────────────────────
   deploy-production:
     name: Deploy → Production
-    needs: build-production
+    needs: [ build-images, sonar ]
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: production
-      url: https://mon-etude-de-sol.fr
+      url: ${{ vars.PRODUCTION_URL }}
     steps:
-      - name: Trigger Coolify redeploy (production)
+      - name: Trigger Coolify Production Deploy
         run: |
-          curl --silent --show-error --fail \
+          if [ -z "${{ secrets.COOLIFY_PRODUCTION_WEBHOOK_URL }}" ] || [ -z "${{ secrets.COOLIFY_PRODUCTION_TOKEN }}" ]; then
+            echo "⚠️  COOLIFY_PRODUCTION_WEBHOOK_URL ou COOLIFY_PRODUCTION_TOKEN non configurés — déploiement ignoré."
+            exit 0
+          fi
+          curl --silent --fail --show-error \
             --request GET \
-            --url "${{ secrets.COOLIFY_WEBHOOK_PRODUCTION }}"
+            "${{ secrets.COOLIFY_PRODUCTION_WEBHOOK_URL }}" \
+            --header "Authorization: Bearer ${{ secrets.COOLIFY_PRODUCTION_TOKEN }}"

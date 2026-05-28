@@ -72,39 +72,47 @@ Allez dans votre repo GitHub → **Settings → Environments → New environment
 
 ### 2.2 Ajouter les Variables (non-sensibles)
 
-Ces variables sont injectées comme `build-arg` dans le `Dockerfile` (`VITE_API_URL`).
+Ces variables sont lues par le workflow `ci.yml` selon la branche buildée.
 
 **Settings → Environments → staging → Environment variables → Add variable**
 
-| Variable       | Valeur                                    |
-|----------------|-------------------------------------------|
-| `VITE_API_URL` | `https://api-staging.mon-etude-de-sol.fr` |
+| Variable              | Valeur                                    |
+|-----------------------|-------------------------------------------|
+| `VITE_API_URL_STAGING`| `https://api-staging.mon-etude-de-sol.fr` |
+| `STAGING_URL`         | `https://staging.mon-etude-de-sol.fr`     |
 
 **Settings → Environments → production → Environment variables → Add variable**
 
-| Variable       | Valeur                              |
-|----------------|-------------------------------------|
-| `VITE_API_URL` | `https://api.mon-etude-de-sol.fr`   |
+| Variable                  | Valeur                              |
+|---------------------------|-------------------------------------|
+| `VITE_API_URL_PRODUCTION` | `https://api.mon-etude-de-sol.fr`   |
+| `PRODUCTION_URL`          | `https://mon-etude-de-sol.fr`       |
+
+> `VITE_API_URL_STAGING` et `VITE_API_URL_PRODUCTION` sont injectées comme `build-arg` dans le `Dockerfile` au moment du build Docker.  
+> Elles sont résolues dans le workflow via un step `if/else` selon la branche (`main` ou `develop`).
 
 ---
 
 ### 2.3 Ajouter les Secrets Coolify
 
-Les webhooks Coolify seront créés à l'étape 4. Revenez ici pour les remplir.
+Les webhooks et tokens Coolify seront créés à l'étape 4. Revenez ici pour les remplir.
 
 **Settings → Environments → staging → Add secret**
 
-| Secret                    | Valeur                        |
-|---------------------------|-------------------------------|
-| `COOLIFY_WEBHOOK_STAGING` | *(URL webhook copiée depuis Coolify)* |
+| Secret                       | Valeur                                    |
+|------------------------------|-------------------------------------------|
+| `COOLIFY_STAGING_WEBHOOK_URL`| *(URL webhook copiée depuis Coolify)*     |
+| `COOLIFY_STAGING_TOKEN`      | *(Token API Coolify pour ce service)*     |
 
 **Settings → Environments → production → Add secret**
 
-| Secret                       | Valeur                              |
-|------------------------------|-------------------------------------|
-| `COOLIFY_WEBHOOK_PRODUCTION` | *(URL webhook copiée depuis Coolify)* |
+| Secret                          | Valeur                                    |
+|---------------------------------|-------------------------------------------|
+| `COOLIFY_PRODUCTION_WEBHOOK_URL`| *(URL webhook copiée depuis Coolify)*     |
+| `COOLIFY_PRODUCTION_TOKEN`      | *(Token API Coolify pour ce service)*     |
 
-> Le secret `GITHUB_TOKEN` est automatiquement fourni par GitHub Actions (pas besoin de le créer).
+> Le secret `GITHUB_TOKEN` est automatiquement fourni par GitHub Actions (pas besoin de le créer).  
+> Le webhook Coolify est appelé avec un header `Authorization: Bearer <token>` — le token est distinct de l'URL.
 
 ---
 
@@ -244,27 +252,35 @@ networks:
 
 ## Étape 5 — Comprendre le pipeline `ci.yml`
 
-Le fichier `.github/workflows/ci.yml` contient **4 jobs** :
+Le fichier `.github/workflows/ci.yml` contient **5 jobs** :
 
-| Job               | Branche    | Rôle                                                                  |
-|-------------------|------------|-----------------------------------------------------------------------|
-| `ci`              | toutes     | Install, build Vite, tests avec coverage, analyse SonarCloud          |
-| `build-staging`   | `develop`  | Build image Docker (`BUILD_MODE=staging`) + push GHCR `:staging`      |
-| `deploy-staging`  | `develop`  | Appel webhook Coolify → redémarrage automatique staging               |
-| `build-production`| `main`     | ⏸ Approbation manuelle → build image (`BUILD_MODE=production`) + push GHCR `:production` |
-| `deploy-production`| `main`    | Appel webhook Coolify → redémarrage production                        |
+| Job                | Branche    | Rôle                                                                                      |
+|--------------------|------------|-------------------------------------------------------------------------------------------|
+| `build`            | toutes     | Install, build Vite, tests avec coverage                                                  |
+| `sonar`            | toutes     | Analyse SonarCloud (parallèle au reste après `build`)                                    |
+| `build-images`     | toutes*    | Détermine le tag (`staging`/`production`), build image Docker, push GHCR                 |
+| `deploy-staging`   | `develop`  | Appel webhook Coolify avec `Authorization: Bearer` → redémarrage staging                 |
+| `deploy-production`| `main`     | ⏸ Approbation manuelle → appel webhook Coolify → redémarrage production                  |
+
+*`build-images` tourne uniquement sur les `push` (pas les PR).
 
 ### Variables injectées au build Docker
 
-Le `Dockerfile` attend deux `build-args` :
+| Step                  | Variable            | Source GitHub                  |
+|-----------------------|---------------------|--------------------------------|
+| `Déterminer VITE_API_URL` | `VITE_API_URL`  | `vars.VITE_API_URL_STAGING` (develop) ou `vars.VITE_API_URL_PRODUCTION` (main) |
+| `build-args`          | `BUILD_MODE`        | `staging` (develop) ou `production` (main) — codé dans le workflow |
 
-| ARG            | Valeur (staging)                          | Valeur (production)              |
-|----------------|-------------------------------------------|----------------------------------|
-| `VITE_API_URL` | `https://api-staging.mon-etude-de-sol.fr` | `https://api.mon-etude-de-sol.fr`|
-| `BUILD_MODE`   | `staging`                                 | `production`                     |
+### Format du webhook Coolify
 
-`VITE_API_URL` est lue depuis la variable d'environment GitHub (étape 2.2).  
-`BUILD_MODE` est codé en dur dans le `ci.yml` selon la branche.
+```bash
+curl --request GET \
+  "https://<coolify>/api/v1/deploy/webhook?uuid=xxx" \
+  --header "Authorization: Bearer <token>"
+```
+
+Le **token** est séparé de l'URL — c'est le token API du service Coolify,  
+à copier depuis **Coolify → Service → Webhooks → API Token**.
 
 ---
 
@@ -326,7 +342,8 @@ git tag v1.x.y && git push --tags
 **GitHub**
 - [ ] Environment `staging` créé (sans protection)
 - [ ] Environment `production` créé avec reviewer obligatoire
-- [ ] Variable `VITE_API_URL` définie dans chaque environment
+- [ ] Variables `VITE_API_URL_STAGING`, `STAGING_URL` définies dans l'environment staging
+- [ ] Variables `VITE_API_URL_PRODUCTION`, `PRODUCTION_URL` définies dans l'environment production
 - [ ] PAT GitHub créé avec permission `Packages: Read-only`
 - [ ] Branche `develop` créée et pushée
 - [ ] Secret `SONAR_TOKEN` ajouté dans les secrets du repo (si SonarCloud activé)
@@ -338,7 +355,8 @@ git tag v1.x.y && git push --tags
 - [ ] Service production : Docker Compose avec `image: ...frontend:production`, domaine configuré, port `80`
 - [ ] `BACKEND_URL` renseignée dans le Compose de chaque service
 - [ ] SSL Let's Encrypt activé sur les deux services
-- [ ] Secrets `COOLIFY_WEBHOOK_STAGING` et `COOLIFY_WEBHOOK_PRODUCTION` copiés dans GitHub
+- [ ] Secrets `COOLIFY_STAGING_WEBHOOK_URL` + `COOLIFY_STAGING_TOKEN` copiés dans l'environment staging GitHub
+- [ ] Secrets `COOLIFY_PRODUCTION_WEBHOOK_URL` + `COOLIFY_PRODUCTION_TOKEN` copiés dans l'environment production GitHub
 
 **Test final**
 - [ ] `push origin develop` → les 3 jobs (`ci`, `build-staging`, `deploy-staging`) passent ✅
