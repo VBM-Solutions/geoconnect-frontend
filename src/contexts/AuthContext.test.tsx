@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import React from 'react';
 import { AuthProvider, useAuth } from './AuthContext';
+import { LAST_ACTIVITY_AT_KEY, SESSION_STARTED_AT_KEY } from '../lib/authSessionStorage';
 
 vi.mock('../api/auth', () => ({
   logoutCall: vi.fn().mockResolvedValue(undefined),
@@ -100,6 +101,8 @@ describe('AuthContext', () => {
     const stored = JSON.parse(sessionStorage.getItem('user')!);
     expect(stored.userId).toBe(42);
     expect(stored.token).toBeUndefined();
+    expect(localStorage.getItem(SESSION_STARTED_AT_KEY)).toBeTruthy();
+    expect(localStorage.getItem(LAST_ACTIVITY_AT_KEY)).toBeTruthy();
     expect(screen.getByTestId('userId').textContent).toBe('42');
   });
 
@@ -119,6 +122,8 @@ describe('AuthContext', () => {
     act(() => { getByText('logout').click(); });
 
     expect(sessionStorage.getItem('user')).toBeNull();
+    expect(localStorage.getItem(SESSION_STARTED_AT_KEY)).toBeNull();
+    expect(localStorage.getItem(LAST_ACTIVITY_AT_KEY)).toBeNull();
     expect(screen.getByTestId('userId').textContent).toBe('none');
     expect(logoutCall).toHaveBeenCalledOnce();
   });
