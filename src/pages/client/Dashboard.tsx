@@ -258,7 +258,11 @@ export default function ClientDashboard() {
           />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-6 gap-4">
-            {etudesEnCours.map(etude => <EtudeCard key={etude.id} etude={etude} />)}
+            {etudesEnCours.map((etude, index) => (
+              <React.Fragment key={etude.id ?? `etude-${index}`}>
+                <EtudeCard etude={etude} />
+              </React.Fragment>
+            ))}
           </div>
         )
       )}
@@ -273,7 +277,11 @@ export default function ClientDashboard() {
           />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-6 gap-4">
-            {etudesArchivees.map(etude => <EtudeCard key={etude.id} etude={etude} archived />)}
+            {etudesArchivees.map((etude, index) => (
+              <React.Fragment key={etude.id ?? `archive-${index}`}>
+                <EtudeCard etude={etude} archived />
+              </React.Fragment>
+            ))}
           </div>
         )
       )}

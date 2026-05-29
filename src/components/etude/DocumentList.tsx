@@ -33,10 +33,10 @@ export function DocumentList({ documents, showCard = true }: DocumentListProps) 
 
   if (documents.length === 0) return null;
 
-  const handle = async (action: () => Promise<void>, docId: number) => {
+  const handle = async (action: () => void | Promise<void>, docId: number) => {
     setLoadingId(docId);
     try {
-      await action();
+      await Promise.resolve(action());
     } catch {
       toastError('Impossible d\'ouvrir/télécharger ce document. Veuillez réessayer.');
     } finally {

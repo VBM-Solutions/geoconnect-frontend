@@ -9,6 +9,7 @@ import { ToastProvider } from './contexts/ToastContext';
 import MainLayout from './components/layout/MainLayout';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import { ApiInterceptorSetup } from './components/layout/ApiInterceptorSetup';
+import { SessionTimeoutGuard } from './components/layout/SessionTimeoutGuard';
 
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -41,6 +42,7 @@ export default function App() {
       <AuthProvider>
         <Router>
           <ApiInterceptorSetup />
+          <SessionTimeoutGuard />
           <Routes>
           <Route element={<MainLayout />}>
             <Route path="/" element={<RootRedirect />} />
