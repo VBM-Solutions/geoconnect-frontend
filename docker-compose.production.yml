@@ -24,12 +24,6 @@ services:
       BACKEND_URL: ${BACKEND_URL:-http://geoconnect-production-backend:8080}
     networks:
       - coolify
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
 
 networks:
   coolify:

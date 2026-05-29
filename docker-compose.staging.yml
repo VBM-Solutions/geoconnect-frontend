@@ -24,13 +24,16 @@ services:
       BACKEND_URL: ${BACKEND_URL:-http://geoconnect-staging-backend:8080}
     networks:
       - coolify
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`staging.mon-etude-de-sol.fr`)"
+      - "traefik.http.routers.frontend.entrypoints=https"
+      - "traefik.http.routers.frontend.tls=true"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.frontend-spa.redirectregex.regex=^{.*}"
+      - "traefik.http.middlewares.frontend-spa.redirectregex.replacement=/index.html"
+      - "traefik.http.routers.frontend.middlewares=frontend-spa"
 networks:
   coolify:
     external: true   # Réseau partagé géré par Coolify — ne pas modifier
