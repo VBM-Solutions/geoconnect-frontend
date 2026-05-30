@@ -1,1 +1,52 @@
 @import "tailwindcss";
+
+:root {
+  --gc-duration-fast: 150ms;
+  --gc-duration-base: 180ms;
+  --gc-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --gc-shadow-soft: 0 18px 45px -24px rgba(15, 23, 42, 0.22);
+  --gc-shadow-hover: 0 22px 55px -28px rgba(37, 99, 235, 0.24);
+  --gc-surface-border: rgba(148, 163, 184, 0.18);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+	radial-gradient(circle at top, rgba(59, 130, 246, 0.09), transparent 32%),
+	linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  color: #0f172a;
+}
+
+::selection {
+  background: rgba(37, 99, 235, 0.18);
+}
+
+.gc-motion-fast {
+  transition-duration: var(--gc-duration-fast);
+  transition-timing-function: var(--gc-ease-standard);
+}
+
+.gc-motion-base {
+  transition-duration: var(--gc-duration-base);
+  transition-timing-function: var(--gc-ease-standard);
+}
+
+.gc-surface-card {
+  border-color: var(--gc-surface-border);
+  box-shadow: var(--gc-shadow-soft);
+}
+
+.gc-surface-card:hover {
+  box-shadow: var(--gc-shadow-hover);
+}
+
+.gc-surface-panel {
+  border: 1px solid rgba(226, 232, 240, 0.92);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: var(--gc-shadow-soft);
+  backdrop-filter: blur(12px);
+}
+

@@ -11,14 +11,14 @@ interface DashboardEmptyStateProps {
 /**
  * État vide générique pour les onglets du tableau de bord client.
  */
-export function DashboardEmptyState({ icon, title, description, action }: DashboardEmptyStateProps) {
+export function DashboardEmptyState({ icon, title, description, action }: Readonly<DashboardEmptyStateProps>) {
   return (
-    <Card className="text-center py-12">
+    <Card className="border-dashed border-slate-300/90 bg-gradient-to-b from-white to-slate-50/60 py-12 text-center shadow-inner">
       <CardContent>
-        <div className="mx-auto w-16 h-16 bg-slate-100 flex items-center justify-center rounded-full mb-4">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm">
           {icon}
         </div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-2">{title}</h3>
+        <h3 className="mb-2 text-lg font-semibold text-slate-900">{title}</h3>
         <p className={`text-slate-500 ${action ? 'mb-6' : ''}`}>{description}</p>
         {action}
       </CardContent>

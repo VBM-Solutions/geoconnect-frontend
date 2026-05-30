@@ -57,15 +57,16 @@ export default function MainLayout() {
     navigate('/login');
   };
 
-  const navItems = user?.role === 'CLIENT'
-    ? [{ label: 'Mes demandes', path: '/client/dashboard' }]
-    : user?.role === 'BUREAU_ETUDE'
-    ? [{ label: 'Marketplace', path: '/be/dashboard' }]
-    : [];
+  let navItems: Array<{ label: string; path: string }> = [];
+  if (user?.role === 'CLIENT') {
+    navItems = [{ label: 'Mes demandes', path: '/client/dashboard' }];
+  } else if (user?.role === 'BUREAU_ETUDE') {
+    navItems = [{ label: 'Marketplace', path: '/be/dashboard' }];
+  }
 
   return (
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900 font-sans flex flex-col overflow-hidden">
-      <nav className="h-14 bg-slate-900 text-white flex items-center justify-between px-6 flex-shrink-0">
+      <nav className="h-14 bg-slate-900 text-white flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center font-bold text-xl italic">G</div>
@@ -132,11 +133,11 @@ export default function MainLayout() {
         </div>
       </nav>
 
-      <main className="flex-1 w-full max-w-[1200px] mx-auto px-4 sm:px-6 py-6 pb-20 md:pb-6 overflow-auto">
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 xl:px-10 py-6 pb-20 md:pb-6 overflow-auto">
         <Outlet />
       </main>
 
-      <footer className="h-6 bg-slate-100 border-t border-slate-200 px-4 flex items-center justify-between text-[10px] text-slate-500 flex-shrink-0 z-10 w-full fixed bottom-0 md:relative">
+      <footer className="h-6 bg-slate-100 border-t border-slate-200 px-4 flex items-center justify-between text-[10px] text-slate-500 shrink-0 z-10 w-full fixed bottom-0 md:relative">
         <div className="flex gap-4">
           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Serveur Opérationnel</span>
         </div>
