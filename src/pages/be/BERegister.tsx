@@ -5,18 +5,20 @@ import { registerCall } from '../../api/auth';
 import { createBureauEtude } from '../../api/bureauEtude';
 import { useAuth } from '../../contexts/AuthContext';
 import { Building2, FileText, Upload } from 'lucide-react';
-import { codePostalRules, phoneRules } from '../../lib/validators';
+import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules } from '../../lib/validators';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { PasswordRequirementsHint } from '../../components/ui/PasswordRequirementsHint';
 
 export default function BERegister() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, getValues, watch, formState: { errors } } = useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
   const [success, setSuccess] = useState(false);
+  const passwordValue = watch('password', '');
 
   const onSubmit = async (data: any) => {
     setIsSubmitting(true);
@@ -127,20 +129,22 @@ export default function BERegister() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Input
-                        label="Mot de passe *"
-                        type="password"
-                        {...register('password', { required: true })}
-                        error={errors.password ? "Requis" : undefined}
-                      />
+                      <div>
+                        <Input
+                          label="Mot de passe *"
+                          type="password"
+                          {...register('password', passwordRules)}
+                          error={errors.password ? (errors.password.message as string) : undefined}
+                          showPasswordToggle
+                        />
+                        <PasswordRequirementsHint password={passwordValue} />
+                      </div>
                       <Input
                         label="Confirmation du mot de passe *"
                         type="password"
-                        {...register('confirmPassword', { 
-                          required: true,
-                          validate: (val: string, values: any) => val === values.password || "Les mots de passe ne correspondent pas"
-                        })}
+                        {...register('confirmPassword', createConfirmPasswordRules(() => getValues('password')))}
                         error={errors.confirmPassword ? (errors.confirmPassword.message as string) : undefined}
+                        showPasswordToggle
                       />
                   </div>
               </div>

@@ -54,7 +54,7 @@ export interface DemandeDevisDTO {
   referencesCadastrales?: string[];
   superficie?: number;
   description?: string;
-  docsDevisId?: number;
+  docsDevisIds?: number[];
 }
 
 export type StatutProposition = 'EN_ATTENTE' | 'ACCEPTEE' | 'REFUSEE';
@@ -147,7 +147,7 @@ export interface DemandeDevisDetail {
   referencesCadastrales?: string[];
   superficie?: number;
   description?: string;
-  docsDevisId?: number;
+  docsDevisIds?: number[];
   adresseProjet?: AdresseDTO;
   client?: ClientDetail;
 }

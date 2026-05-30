@@ -1,5 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { CODE_POSTAL_PATTERN, PHONE_FR_PATTERN, codePostalRules, phoneRules } from './validators';
+import {
+  CODE_POSTAL_PATTERN,
+  PASSWORD_DIGIT_PATTERN,
+  PASSWORD_LOWERCASE_PATTERN,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_SPECIAL_CHAR_PATTERN,
+  PASSWORD_UPPERCASE_PATTERN,
+  PHONE_FR_PATTERN,
+  PASSWORD_REQUIREMENTS,
+  codePostalRules,
+  createConfirmPasswordRules,
+  getMissingPasswordRequirementLabels,
+  getPasswordRequirementStatuses,
+  passwordRules,
+  phoneRules,
+  validatePasswordStrength,
+} from './validators';
 
 // ─── CODE POSTAL ──────────────────────────────────────────────────────────────
 
@@ -122,6 +138,85 @@ describe('phoneRules', () => {
   it('contient un pattern correspondant à PHONE_FR_PATTERN', () => {
     expect(phoneRules.pattern.value).toBe(PHONE_FR_PATTERN);
     expect(typeof phoneRules.pattern.message).toBe('string');
+  });
+});
+
+describe('passwordRules', () => {
+  it('contient une règle required avec message', () => {
+    expect(passwordRules.required).toBe('Requis');
+  });
+
+  it('valide un mot de passe robuste', () => {
+    expect(passwordRules.validate('MotDePasse!123')).toBe(true);
+  });
+
+  it('retourne un message détaillé si des critères sont manquants', () => {
+    expect(passwordRules.validate('motdepasse')).toBe(
+      'Le mot de passe doit contenir : une majuscule, un chiffre, un caractère spécial.'
+    );
+  });
+});
+
+describe('règles de robustesse du mot de passe', () => {
+  it('expose les 5 critères attendus', () => {
+    expect(PASSWORD_MIN_LENGTH).toBe(8);
+    expect(PASSWORD_REQUIREMENTS).toHaveLength(5);
+  });
+
+  it('détecte correctement chaque type de caractère requis', () => {
+    expect(PASSWORD_UPPERCASE_PATTERN.test('A')).toBe(true);
+    expect(PASSWORD_UPPERCASE_PATTERN.test('a')).toBe(false);
+    expect(PASSWORD_LOWERCASE_PATTERN.test('a')).toBe(true);
+    expect(PASSWORD_LOWERCASE_PATTERN.test('A')).toBe(false);
+    expect(PASSWORD_DIGIT_PATTERN.test('1')).toBe(true);
+    expect(PASSWORD_DIGIT_PATTERN.test('a')).toBe(false);
+    expect(PASSWORD_SPECIAL_CHAR_PATTERN.test('!')).toBe(true);
+    expect(PASSWORD_SPECIAL_CHAR_PATTERN.test('A')).toBe(false);
+    expect(PASSWORD_SPECIAL_CHAR_PATTERN.test(' ')).toBe(false);
+  });
+
+  it('retourne les statuts détaillés des critères', () => {
+    expect(getPasswordRequirementStatuses('Abcdefgh')).toEqual([
+      expect.objectContaining({ key: 'minLength', isMet: true }),
+      expect.objectContaining({ key: 'uppercase', isMet: true }),
+      expect.objectContaining({ key: 'lowercase', isMet: true }),
+      expect.objectContaining({ key: 'digit', isMet: false }),
+      expect.objectContaining({ key: 'specialChar', isMet: false }),
+    ]);
+  });
+
+  it('liste uniquement les critères manquants', () => {
+    expect(getMissingPasswordRequirementLabels('Abcdefgh')).toEqual([
+      'un chiffre',
+      'un caractère spécial',
+    ]);
+  });
+
+  it('valide un mot de passe complet', () => {
+    expect(validatePasswordStrength('Abcdef!1')).toBe(true);
+  });
+
+  it('explique clairement les critères manquants', () => {
+    expect(validatePasswordStrength('abcdefghi')).toBe(
+      'Le mot de passe doit contenir : une majuscule, un chiffre, un caractère spécial.'
+    );
+  });
+});
+
+describe('createConfirmPasswordRules', () => {
+  it('retourne une règle required avec message', () => {
+    const rules = createConfirmPasswordRules(() => 'MotDePasse!123');
+    expect(rules.required).toBe('Requis');
+  });
+
+  it('accepte une confirmation identique', () => {
+    const rules = createConfirmPasswordRules(() => 'MotDePasse!123');
+    expect(rules.validate('MotDePasse!123')).toBe(true);
+  });
+
+  it('retourne le message attendu si les mots de passe diffèrent', () => {
+    const rules = createConfirmPasswordRules(() => 'MotDePasse!123');
+    expect(rules.validate('AutreMotDePasse!123')).toBe('Les mots de passe ne correspondent pas');
   });
 });
 

@@ -9,6 +9,8 @@ import { BackButton } from '../../components/ui/BackButton';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { MapPin, Clock, Building2, CheckCircle2, FileText } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
+import { buildDemandeDocuments } from '../../lib/formatters';
+import { DocumentList } from '../../components/etude/DocumentList';
 
 export default function ClientRequestDetail() {
   const { id } = useParams<{ id: string }>();
@@ -82,6 +84,7 @@ export default function ClientRequestDetail() {
   }
 
   const acceptedProp = propositions.find(p => p.statut === 'ACCEPTEE');
+  const demandeDocuments = buildDemandeDocuments(demande);
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
@@ -127,6 +130,7 @@ export default function ClientRequestDetail() {
                   {demande.description || '...'}
                 </p>
               </div>
+              <DocumentList documents={demandeDocuments} />
             </CardContent>
           </Card>
         </div>

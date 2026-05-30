@@ -1,8 +1,29 @@
 import { describe, it, expect } from 'vitest';
-import { formatDateShort, formatDateLong, buildEtudeDocuments } from './formatters';
+import { formatDateShort, formatDateLong, buildDemandeDocuments, buildEtudeDocuments } from './formatters';
 import { EtudeDetailDTO } from '../types';
 
 // ...existing code...
+
+describe('buildDemandeDocuments', () => {
+  it('retourne un tableau vide si aucun document de demande n\'est présent', () => {
+    expect(buildDemandeDocuments()).toEqual([]);
+    expect(buildDemandeDocuments({ docsDevisIds: [] })).toEqual([]);
+  });
+
+  it('construit un document par id dans le même ordre', () => {
+    expect(buildDemandeDocuments({ docsDevisIds: [20, 21] })).toEqual([
+      { id: 20, label: 'Document de la demande #1' },
+      { id: 21, label: 'Document de la demande #2' },
+    ]);
+  });
+
+  it('ignore les ids null ou undefined', () => {
+    expect(buildDemandeDocuments({ docsDevisIds: [20, undefined as unknown as number, 21] })).toEqual([
+      { id: 20, label: 'Document de la demande #1' },
+      { id: 21, label: 'Document de la demande #2' },
+    ]);
+  });
+});
 
 describe('buildEtudeDocuments', () => {
   it('retourne un tableau vide si aucun document n\'est présent', () => {
@@ -17,13 +38,14 @@ describe('buildEtudeDocuments', () => {
     expect(docs[0]).toEqual({ id: 10, label: 'Devis (proposition)' });
   });
 
-  it('inclut les docs de la demande si docsDevisId est renseigné', () => {
+  it('inclut les docs de la demande si docsDevisIds est renseigné', () => {
     const etude: EtudeDetailDTO = {
-      propositionDevis: { demandeDevis: { docsDevisId: 20 } },
+      propositionDevis: { demandeDevis: { docsDevisIds: [20, 21] } },
     };
     const docs = buildEtudeDocuments(etude);
-    expect(docs).toHaveLength(1);
-    expect(docs[0]).toEqual({ id: 20, label: 'Documents de la demande' });
+    expect(docs).toHaveLength(2);
+    expect(docs[0]).toEqual({ id: 20, label: 'Document de la demande #1' });
+    expect(docs[1]).toEqual({ id: 21, label: 'Document de la demande #2' });
   });
 
   it('inclut le devis signé si devisSigneId est renseigné', () => {
@@ -46,12 +68,12 @@ describe('buildEtudeDocuments', () => {
       rapportId: 40,
       propositionDevis: {
         devisPdfId: 10,
-        demandeDevis: { docsDevisId: 20 },
+        demandeDevis: { docsDevisIds: [20, 21] },
       },
     };
     const docs = buildEtudeDocuments(etude);
-    expect(docs).toHaveLength(4);
-    expect(docs.map(d => d.id)).toEqual([10, 20, 30, 40]);
+    expect(docs).toHaveLength(5);
+    expect(docs.map(d => d.id)).toEqual([10, 20, 21, 30, 40]);
   });
 
   it('n\'inclut pas les entrées avec des IDs null ou undefined', () => {
