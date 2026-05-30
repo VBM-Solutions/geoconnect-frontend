@@ -35,6 +35,11 @@ services:
       - "traefik.http.middlewares.frontend-spa.redirectregex.regex=^{.*}"
       - "traefik.http.middlewares.frontend-spa.redirectregex.replacement=/index.html"
       - "traefik.http.routers.frontend.middlewares=frontend-spa"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 networks:
   coolify:
     external: true   # Réseau partagé géré par Coolify — ne pas modifier
