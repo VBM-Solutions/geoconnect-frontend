@@ -278,10 +278,11 @@ export function BEStepActions({ etat, dateIntervention, isLoading, onProposerDat
           )}
           <div className="flex flex-wrap gap-2 items-end">
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              <label htmlFor="dateIntervention" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                 Date d'intervention
               </label>
               <input
+                id="dateIntervention"
                 type="date"
                 value={dateInput}
                 min={today}
@@ -327,10 +328,11 @@ export function BEStepActions({ etat, dateIntervention, isLoading, onProposerDat
       return (
         <div className="space-y-3 bg-slate-50 border border-slate-200 rounded-lg p-3">
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+            <label htmlFor="rapportFinal" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
               Rapport final (PDF)
             </label>
             <input
+              id="rapportFinal"
               type="file"
               accept="application/pdf"
               onChange={e => setRapportFile(e.target.files?.[0] ?? null)}

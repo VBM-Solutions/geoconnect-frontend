@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { registerCall } from '../api/auth';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { CadastralReferencesField } from '../components/ui/CadastralReferencesField';
+import { PasswordRequirementsHint } from '../components/ui/PasswordRequirementsHint';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../components/ui/Card';
 import { useForm } from 'react-hook-form';
 import { createClient, getClientByUserId } from '../api/client';
@@ -12,7 +14,8 @@ import { uploadDocument } from '../api/document';
 import { useTypesEtude } from '../hooks/useTypesEtude';
 import { MapPin, Briefcase, Mail, Paperclip } from 'lucide-react';
 import { TypeDemandeDevis } from '../types';
-import { codePostalRules, phoneRules } from '../lib/validators';
+import { normalizeReferencesCadastrales } from '../lib/cadastralReferences';
+import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules } from '../lib/validators';
 
 export default function Home() {
   const [step, setStep] = useState(0);
@@ -51,13 +54,15 @@ function QuoteTunnel() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [docFile, setDocFile] = useState<File | null>(null);
+  const [referencesCadastrales, setReferencesCadastrales] = useState<string[]>(['']);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { typesEtude, loading: loadingTypes } = useTypesEtude();
   const navigate = useNavigate();
   const { login } = useAuth();
 
 
-  const { register: formRegister, handleSubmit, formState: { errors } } = useForm();
+  const { register: formRegister, handleSubmit, getValues, watch, formState: { errors } } = useForm();
+  const passwordValue = watch('password', '');
 
   const handleNext = (data: any) => {
     setFormData({ ...formData, ...data });
@@ -120,7 +125,7 @@ function QuoteTunnel() {
         type: data.type as TypeDemandeDevis,
         description: data.description,
         nombreLot: data.nombreLot ? Number(data.nombreLot) : undefined,
-        referenceCadastrale: data.referenceCadastrale || undefined,
+        referencesCadastrales: normalizeReferencesCadastrales(referencesCadastrales),
         superficie: data.superficie ? Number(data.superficie) : undefined,
         docsDevisId,
         adresseProjet: {
@@ -174,8 +179,9 @@ function QuoteTunnel() {
             <CardContent className="space-y-4">
               {/* Type de mission */}
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-slate-700">Type de mission *</label>
+                <label htmlFor="type-step1" className="block text-sm font-medium text-slate-700">Type de mission *</label>
                 <select
+                  id="type-step1"
                   {...formRegister('type', { required: true })}
                   disabled={loadingTypes}
                   className="w-full flex h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
@@ -229,18 +235,18 @@ function QuoteTunnel() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-slate-700">Description du projet *</label>
+                <label htmlFor="description-step2" className="block text-sm font-medium text-slate-700">Description du projet *</label>
                 <textarea
+                  id="description-step2"
                   {...formRegister('description', { required: true })}
                   className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
                   placeholder="Décrivez votre besoin, contraintes particulières..."
                 />
                 {errors.description && <span className="text-red-500 text-xs">Requis</span>}
               </div>
-              <Input
-                label="Référence cadastrale"
-                placeholder="Ex : AB 0042"
-                {...formRegister('referenceCadastrale')}
+              <CadastralReferencesField
+                value={referencesCadastrales}
+                onChange={setReferencesCadastrales}
               />
               <div className="grid grid-cols-2 gap-4">
                 <Input
@@ -266,7 +272,7 @@ function QuoteTunnel() {
 
               {/* Document joint */}
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-slate-700">
+                <label htmlFor="docFile-step2" className="block text-sm font-medium text-slate-700">
                   Document joint (plans, cahier des charges…)
                 </label>
                 <div
@@ -288,6 +294,7 @@ function QuoteTunnel() {
                   )}
                 </div>
                 <input
+                  id="docFile-step2"
                   ref={fileInputRef}
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"
@@ -319,8 +326,9 @@ function QuoteTunnel() {
               )}
               {/* Civilité */}
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-slate-700">Civilité *</label>
+                <label htmlFor="civilite" className="block text-sm font-medium text-slate-700">Civilité *</label>
                 <select
+                  id="civilite"
                   {...formRegister('civilite', { required: true })}
                   className="w-full flex h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
@@ -375,11 +383,22 @@ function QuoteTunnel() {
                 {...formRegister('login', { required: true })}
                 error={errors.login ? 'Requis' : undefined}
               />
+              <div>
+                <Input
+                  type="password"
+                  label="Mot de passe *"
+                  {...formRegister('password', passwordRules)}
+                  error={errors.password ? (errors.password.message as string) : undefined}
+                  showPasswordToggle
+                />
+                <PasswordRequirementsHint password={passwordValue} />
+              </div>
               <Input
                 type="password"
-                label="Mot de passe *"
-                {...formRegister('password', { required: true, minLength: 6 })}
-                error={errors.password ? 'Minimum 6 caractères' : undefined}
+                label="Confirmation du mot de passe *"
+                {...formRegister('confirmPassword', createConfirmPasswordRules(() => getValues('password')))}
+                error={errors.confirmPassword ? (errors.confirmPassword.message as string) : undefined}
+                showPasswordToggle
               />
             </CardContent>
             <CardFooter className="flex justify-between">

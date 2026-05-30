@@ -6,11 +6,13 @@ import { createDemandeDevis } from '../../api/demandeDevis';
 import { getClientByUserId } from '../../api/client';
 import { uploadDocument } from '../../api/document';
 import { useTypesEtude } from '../../hooks/useTypesEtude';
-import { MapPin, Paperclip, Plus, Trash2 } from 'lucide-react';
+import { MapPin, Paperclip } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { CadastralReferencesField } from '../../components/ui/CadastralReferencesField';
 import { TypeDemandeDevis } from '../../types';
+import { normalizeReferencesCadastrales } from '../../lib/cadastralReferences';
 import { codePostalRules } from '../../lib/validators';
 
 export default function NewRequest() {
@@ -49,7 +51,7 @@ export default function NewRequest() {
         type: data.type as TypeDemandeDevis,
         description: data.description,
         nombreLot: data.nombreLot ? Number(data.nombreLot) : undefined,
-        referencesCadastrales: referencesCadastrales.filter((r) => r.trim() !== ''),
+        referencesCadastrales: normalizeReferencesCadastrales(referencesCadastrales),
         superficie: data.superficie ? Number(data.superficie) : undefined,
         docsDevisId,
         adresseProjet: {
@@ -94,10 +96,11 @@ export default function NewRequest() {
             <div className="space-y-4">
               {/* Type de mission */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                <label htmlFor="type-new-request" className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
                   Type de mission *
                 </label>
                 <select
+                  id="type-new-request"
                   className="w-full h-11 px-3 py-2 bg-white border border-slate-200 rounded-md text-sm outline-none focus:border-slate-400 transition-colors disabled:opacity-50"
                   disabled={loadingTypes}
                   {...formRegister('type', { required: true })}
@@ -121,51 +124,10 @@ export default function NewRequest() {
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Références cadastrales — liste dynamique */}
-                <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-                    Références cadastrales
-                  </label>
-                  <div className="space-y-2">
-                    {referencesCadastrales.map((ref, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={ref}
-                          onChange={(e) => {
-                            const updated = [...referencesCadastrales];
-                            updated[index] = e.target.value;
-                            setReferencesCadastrales(updated);
-                          }}
-                          placeholder="Ex : AB 0042"
-                          className="flex-1 h-11 px-3 py-2 bg-white border border-slate-200 rounded-md text-sm outline-none focus:border-slate-400 transition-colors"
-                        />
-                        {referencesCadastrales.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setReferencesCadastrales(
-                                referencesCadastrales.filter((_, i) => i !== index)
-                              )
-                            }
-                            className="p-2 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setReferencesCadastrales([...referencesCadastrales, ''])}
-                      className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 px-3 py-1.5 rounded-md transition-colors border border-dashed border-slate-300"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Ajouter une référence
-                    </button>
-                  </div>
-                </div>
+                <CadastralReferencesField
+                  value={referencesCadastrales}
+                  onChange={setReferencesCadastrales}
+                />
 
                 <Input
                   label="Superficie (m²)"
@@ -211,7 +173,7 @@ export default function NewRequest() {
 
               {/* Document joint */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                <label htmlFor="docFile-new-request" className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
                   Document joint (plans, cahier des charges…)
                 </label>
                 <div
@@ -233,6 +195,7 @@ export default function NewRequest() {
                   )}
                 </div>
                 <input
+                  id="docFile-new-request"
                   ref={fileInputRef}
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"
