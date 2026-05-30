@@ -22,7 +22,7 @@ interface EtudeCardProps {
   archived?: boolean;
 }
 
-function EtudeCard({ etude, archived = false }: EtudeCardProps) {
+function EtudeCard({ etude, archived = false }: Readonly<EtudeCardProps>) {
   const prop     = etude.propositionDevis;
   const demande  = prop?.demandeDevis;
   const bureau   = prop?.bureauEtude;
@@ -194,8 +194,7 @@ export default function ClientDashboard() {
           <DashboardEmptyState
             icon={<FileText className="w-8 h-8 text-slate-400" />}
             title="Aucune demande trouvée"
-            description="Vous n'avez pas encore publié de demande de devis."
-            action={<Link to="/"><Button>Créer une demande</Button></Link>}
+            description="Vous n'avez pas encore publié de demande de devis. Utilisez le bouton « Nouvelle demande » en haut de page pour en créer une."
           />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-6 gap-4">
