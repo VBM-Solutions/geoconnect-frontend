@@ -14,6 +14,24 @@ export const uploadDocument = async (file: File): Promise<DocumentDTO> => {
   return data;
 };
 
+/**
+ * Upload plusieurs documents et retourne la liste des ids créés.
+ * L'ordre retourné suit l'ordre de sélection des fichiers.
+ */
+export const uploadDocuments = async (files: File[]): Promise<number[]> => {
+  const documentIds: number[] = [];
+
+  for (const file of files) {
+    const uploaded = await uploadDocument(file);
+    if (uploaded.id == null) {
+      throw new Error(`Document uploadé sans identifiant pour le fichier "${file.name}".`);
+    }
+    documentIds.push(uploaded.id);
+  }
+
+  return documentIds;
+};
+
 export const getAllDocuments = async (): Promise<DocumentDTO[]> => {
   const { data } = await api.get('/documents');
   return data;

@@ -117,7 +117,7 @@ describe('Home — tunnel utilisateur', () => {
     (clientApi.createClient as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 10 });
     (clientApi.getClientByUserId as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 10 });
     (demandeDevisApi.createDemandeDevis as ReturnType<typeof vi.fn>).mockResolvedValue({});
-    (documentApi.uploadDocument as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 99 });
+    (documentApi.uploadDocuments as ReturnType<typeof vi.fn>).mockResolvedValue([]);
   });
 
   it('envoie plusieurs références cadastrales dans le même format que la nouvelle demande', async () => {
@@ -145,6 +145,7 @@ describe('Home — tunnel utilisateur', () => {
       expect(demandeDevisApi.createDemandeDevis).toHaveBeenCalledWith(
         expect.objectContaining({
           clientId: 10,
+          docsDevisIds: [],
           referencesCadastrales: ['AB 0042', 'CD 0099'],
         })
       );
@@ -190,6 +191,145 @@ describe('Home — tunnel utilisateur', () => {
     expect(authApi.registerCall).not.toHaveBeenCalled();
     expect(demandeDevisApi.createDemandeDevis).not.toHaveBeenCalled();
   });
-});
+
+  it('upload plusieurs documents et transmet docsDevisIds dans la demande', async () => {
+    const user = userEvent.setup();
+    const files = [
+      new File(['plan'], 'plan.pdf', { type: 'application/pdf' }),
+      new File(['photo'], 'photo.png', { type: 'image/png' }),
+    ];
+    (documentApi.uploadDocuments as ReturnType<typeof vi.fn>).mockResolvedValue([99, 100]);
+
+    await startTunnel(user);
+    await completeStep1(user);
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(fileInput, files);
+
+    await completeStep2(user);
+    await fillStep3Required(user);
+    await user.click(screen.getByRole('button', { name: /publier ma demande/i }));
+
+    await waitFor(() => {
+      expect(documentApi.uploadDocuments).toHaveBeenCalledWith(files);
+      expect(demandeDevisApi.createDemandeDevis).toHaveBeenCalledWith(
+        expect.objectContaining({
+          clientId: 10,
+          docsDevisIds: [99, 100],
+        })
+      );
+    });
+  });
+
+  it('affiche le bouton + pour ajouter des fichiers après sélection dans le tunnel', async () => {
+    const user = userEvent.setup();
+    (documentApi.uploadDocuments as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    await startTunnel(user);
+    await completeStep1(user);
+
+    const file = new File(['content'], 'plan.pdf', { type: 'application/pdf' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(fileInput, file);
+
+    await waitFor(() => {
+      expect(screen.getByText('plan.pdf')).toBeTruthy();
+      expect(screen.getByRole('button', { name: /ajouter d\'autres fichiers/i })).toBeTruthy();
+    });
+  });
+
+  it('ajoute des fichiers supplémentaires dans le tunnel via le bouton +', async () => {
+    const user = userEvent.setup();
+    (documentApi.uploadDocuments as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    await startTunnel(user);
+    await completeStep1(user);
+
+    const file1 = new File(['content1'], 'plan.pdf', { type: 'application/pdf' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(fileInput, file1);
+
+    await waitFor(() => {
+      expect(screen.getByText('plan.pdf')).toBeTruthy();
+    });
+
+    const file2 = new File(['content2'], 'photo.png', { type: 'image/png' });
+    const addButtons = screen.getAllByRole('button', { name: /ajouter d\'autres fichiers/i });
+    await user.click(addButtons[0]);
+    await user.upload(fileInput, file2);
+
+    await waitFor(() => {
+      expect(screen.getByText('plan.pdf')).toBeTruthy();
+      expect(screen.getByText('photo.png')).toBeTruthy();
+    });
+  });
+
+  it('supprime un fichier au clic sur le bouton ✕ individuel dans le tunnel', async () => {
+    const user = userEvent.setup();
+    (documentApi.uploadDocuments as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    await startTunnel(user);
+    await completeStep1(user);
+
+    const file1 = new File(['content1'], 'plan.pdf', { type: 'application/pdf' });
+    const file2 = new File(['content2'], 'photo.png', { type: 'image/png' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(fileInput, file1);
+
+    await waitFor(() => {
+      expect(screen.getByText('plan.pdf')).toBeTruthy();
+    });
+
+    const addButtons = screen.getAllByRole('button', { name: /ajouter d\'autres fichiers/i });
+    await user.click(addButtons[0]);
+    await user.upload(fileInput, file2);
+
+    await waitFor(() => {
+      expect(screen.getByText('plan.pdf')).toBeTruthy();
+      expect(screen.getByText('photo.png')).toBeTruthy();
+    });
+
+    const deleteButtons = screen.getAllByLabelText(/^Supprimer /);
+    expect(deleteButtons.length).toBeGreaterThanOrEqual(2);
+
+    await user.click(deleteButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.queryByText('plan.pdf')).toBeNull();
+      expect(screen.getByText('photo.png')).toBeTruthy();
+    });
+  });
+
+  it('permet de re-ajouter un fichier après suppression dans le tunnel', async () => {
+    const user = userEvent.setup();
+    (documentApi.uploadDocuments as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    await startTunnel(user);
+    await completeStep1(user);
+
+    const file = new File(['content'], 'plan.pdf', { type: 'application/pdf' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+    // Ajouter un fichier
+    await user.upload(fileInput, file);
+    await waitFor(() => expect(screen.getByText('plan.pdf')).toBeTruthy());
+
+    // Supprimer le fichier
+    const deleteButton = screen.getByLabelText('Supprimer plan.pdf');
+    await user.click(deleteButton);
+    await waitFor(() => expect(screen.queryByText('plan.pdf')).toBeNull());
+
+    // Re-ajouter le même fichier (doit fonctionner)
+    // Après suppression du dernier fichier, on revient au bouton initial
+    const addFileDiv = screen.getByText(/Joindre un ou plusieurs fichiers/i);
+    await user.click(addFileDiv);
+    await user.upload(fileInput, file);
+
+    // Vérifier que le fichier apparaît à nouveau
+    await waitFor(() => {
+      expect(screen.getByText('plan.pdf')).toBeTruthy();
+    });
+  });
+ });
 
 

@@ -128,6 +128,7 @@ describe('NewRequest — soumission du formulaire', () => {
     (referentielApi.getTypesEtude as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_TYPES);
     (clientApi.getClientByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CLIENT);
     (demandeDevisApi.createDemandeDevis as ReturnType<typeof vi.fn>).mockResolvedValue({});
+    (documentApi.uploadDocuments as ReturnType<typeof vi.fn>).mockResolvedValue([]);
   });
 
   it('soumet le formulaire et navigue vers /client/dashboard', async () => {
@@ -296,18 +297,21 @@ describe('NewRequest — soumission du formulaire', () => {
     });
   });
 
-  it('upload le document joint avant de créer la demande', async () => {
+  it('upload les documents joints avant de créer la demande', async () => {
     const user = userEvent.setup();
-    (documentApi.uploadDocument as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 99 });
+    (documentApi.uploadDocuments as ReturnType<typeof vi.fn>).mockResolvedValue([99, 100]);
 
     renderNewRequest();
 
     await waitFor(() => screen.getByText('G0 — Étude préalable'));
 
-    // Sélectionner un fichier fictif
-    const file = new File(['content'], 'plan.pdf', { type: 'application/pdf' });
+    // Sélectionner plusieurs fichiers fictifs
+    const files = [
+      new File(['content'], 'plan.pdf', { type: 'application/pdf' }),
+      new File(['image'], 'photo.png', { type: 'image/png' }),
+    ];
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(fileInput, file);
+    await user.upload(fileInput, files);
 
     await user.selectOptions(screen.getByRole('combobox'), 'G0');
     await user.type(screen.getByPlaceholderText(/15 Avenue des Champs/i), '10 Rue de la Paix');
@@ -317,12 +321,136 @@ describe('NewRequest — soumission du formulaire', () => {
     await user.click(screen.getByRole('button', { name: /créer la demande/i }));
 
     await waitFor(() => {
-      expect(documentApi.uploadDocument).toHaveBeenCalledWith(file);
+      expect(documentApi.uploadDocuments).toHaveBeenCalledWith(files);
       expect(demandeDevisApi.createDemandeDevis).toHaveBeenCalledWith(
-        expect.objectContaining({ docsDevisId: 99 })
+        expect.objectContaining({ docsDevisIds: [99, 100] })
       );
     });
   });
+
+  it('envoie docsDevisIds vide si aucun document n\'est sélectionné', async () => {
+    const user = userEvent.setup();
+    renderNewRequest();
+
+    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+
+    await user.selectOptions(screen.getByRole('combobox'), 'G0');
+    await user.type(screen.getByPlaceholderText(/15 Avenue des Champs/i), '10 Rue de la Paix');
+    await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
+    await user.type(screen.getByPlaceholderText('Ex : Paris'), 'Paris');
+
+    await user.click(screen.getByRole('button', { name: /créer la demande/i }));
+
+    await waitFor(() => {
+      expect(documentApi.uploadDocuments).toHaveBeenCalledWith([]);
+      expect(demandeDevisApi.createDemandeDevis).toHaveBeenCalledWith(
+        expect.objectContaining({ docsDevisIds: [] })
+      );
+    });
+  });
+
+  it('affiche un bouton + pour ajouter d\'autres fichiers après sélection', async () => {
+    const user = userEvent.setup();
+    renderNewRequest();
+
+    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+
+    const file = new File(['content'], 'plan.pdf', { type: 'application/pdf' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(fileInput, file);
+
+    await waitFor(() => {
+      expect(screen.getByText('plan.pdf')).toBeTruthy();
+      expect(screen.getByRole('button', { name: /ajouter d\'autres fichiers/i })).toBeTruthy();
+    });
+  });
+
+  it('ajoute des fichiers supplémentaires via le bouton +', async () => {
+    const user = userEvent.setup();
+    renderNewRequest();
+
+    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+
+    const file1 = new File(['content1'], 'plan.pdf', { type: 'application/pdf' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(fileInput, file1);
+
+    await waitFor(() => {
+      expect(screen.getByText('plan.pdf')).toBeTruthy();
+    });
+
+    const file2 = new File(['content2'], 'photo.png', { type: 'image/png' });
+    await user.click(screen.getByRole('button', { name: /ajouter d\'autres fichiers/i }));
+    await user.upload(fileInput, file2);
+
+    await waitFor(() => {
+      expect(screen.getByText('plan.pdf')).toBeTruthy();
+      expect(screen.getByText('photo.png')).toBeTruthy();
+    });
+  });
+
+  it('supprime un fichier au clic sur le bouton ✕ individuel', async () => {
+    const user = userEvent.setup();
+    renderNewRequest();
+
+    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+
+    const file1 = new File(['content1'], 'plan.pdf', { type: 'application/pdf' });
+    const file2 = new File(['content2'], 'photo.png', { type: 'image/png' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(fileInput, file1);
+
+    await waitFor(() => expect(screen.getByText('plan.pdf')).toBeTruthy());
+
+    await user.click(screen.getByRole('button', { name: /ajouter d\'autres fichiers/i }));
+    await user.upload(fileInput, file2);
+
+    await waitFor(() => {
+      expect(screen.getByText('plan.pdf')).toBeTruthy();
+      expect(screen.getByText('photo.png')).toBeTruthy();
+    });
+
+    const deleteButtons = screen.getAllByLabelText(/^Supprimer /);
+    expect(deleteButtons).toHaveLength(2);
+
+    await user.click(deleteButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.queryByText('plan.pdf')).toBeNull();
+      expect(screen.getByText('photo.png')).toBeTruthy();
+    });
+  });
+
+  it('permet de re-ajouter un fichier après suppression', async () => {
+    const user = userEvent.setup();
+    renderNewRequest();
+
+    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+
+    const file = new File(['content'], 'plan.pdf', { type: 'application/pdf' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+    // Ajouter un fichier
+    await user.upload(fileInput, file);
+    await waitFor(() => expect(screen.getByText('plan.pdf')).toBeTruthy());
+
+    // Supprimer le fichier
+    const deleteButton = screen.getByLabelText('Supprimer plan.pdf');
+    await user.click(deleteButton);
+    await waitFor(() => expect(screen.queryByText('plan.pdf')).toBeNull());
+
+    // Re-ajouter le même fichier (doit fonctionner)
+    // Après suppression du dernier fichier, on revient au bouton initial
+    const addFileDiv = screen.getByText(/Joindre un ou plusieurs fichiers/i);
+    await user.click(addFileDiv);
+    await user.upload(fileInput, file);
+
+    // Vérifier que le fichier apparaît à nouveau
+    await waitFor(() => {
+      expect(screen.getByText('plan.pdf')).toBeTruthy();
+    });
+  });
+
 });
 
 

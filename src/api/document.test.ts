@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { openDocument, downloadDocument, uploadDocument, getAllDocuments, deleteDocument } from './document';
+import { openDocument, downloadDocument, uploadDocument, uploadDocuments, getAllDocuments, deleteDocument } from './document';
 
 vi.mock('./index', () => ({
   default: {
@@ -115,6 +115,33 @@ describe('uploadDocument', () => {
 
     const file = new File(['x'], 'big.pdf');
     await expect(uploadDocument(file)).rejects.toThrow('Payload too large');
+  });
+});
+
+describe('uploadDocuments', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('upload les fichiers séquentiellement et retourne les ids dans le même ordre', async () => {
+    const { default: api } = await import('./index');
+    (api.post as ReturnType<typeof vi.fn>).mockClear();
+    (api.post as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ data: { id: 11 } })
+      .mockResolvedValueOnce({ data: { id: 22 } });
+
+    const files = [
+      new File(['a'], 'plan.pdf', { type: 'application/pdf' }),
+      new File(['b'], 'photo.png', { type: 'image/png' }),
+    ];
+
+    await expect(uploadDocuments(files)).resolves.toEqual([11, 22]);
+    expect(api.post).toHaveBeenCalledTimes(2);
+  });
+
+  it('échoue si un document uploadé ne retourne pas d\'id', async () => {
+    const { default: api } = await import('./index');
+    (api.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: { nomTelechargement: 'sans-id.pdf' } });
+
+    await expect(uploadDocuments([new File(['a'], 'sans-id.pdf')])).rejects.toThrow('sans-id.pdf');
   });
 });
 
