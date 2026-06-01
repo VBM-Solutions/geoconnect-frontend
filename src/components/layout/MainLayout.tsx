@@ -39,7 +39,13 @@ export default function MainLayout() {
 
         setIdentityLabel(user.login || 'Utilisateur');
       } catch {
-        setIdentityLabel(user.role === 'BUREAU_ETUDE' ? 'Bureau d\'Études' : 'Client');
+        if (user.role === 'BUREAU_ETUDE') {
+          setIdentityLabel('Bureau d\'Études');
+        } else if (user.role === 'CLIENT') {
+          setIdentityLabel('Client');
+        } else {
+          setIdentityLabel('Administrateur');
+        }
       }
     }
 
@@ -47,6 +53,7 @@ export default function MainLayout() {
   }, [isAuthenticated, user]);
 
   const roleLabel = useMemo(() => {
+    if (user?.role === 'ADMIN') return 'Administrateur';
     if (user?.role === 'BUREAU_ETUDE') return 'Bureau d\'Études';
     if (user?.role === 'CLIENT') return 'Client';
     return 'Utilisateur';
@@ -62,6 +69,8 @@ export default function MainLayout() {
     navItems = [{ label: 'Mes demandes', path: '/client/dashboard' }];
   } else if (user?.role === 'BUREAU_ETUDE') {
     navItems = [{ label: 'Marketplace', path: '/be/dashboard' }];
+  } else if (user?.role === 'ADMIN') {
+    navItems = [{ label: 'Admin', path: '/admin/utilisateurs' }];
   }
 
   return (

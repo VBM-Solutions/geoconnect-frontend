@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
   allowedRoles?: Role[];
 }
 
-export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
+export default function ProtectedRoute({ allowedRoles }: Readonly<ProtectedRouteProps>) {
   const { user, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -23,8 +23,7 @@ export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    // Or a Not Authorized page
-    return <Navigate to="/" replace />;
+    return <Navigate to="/403" replace />;
   }
 
   return <Outlet />;

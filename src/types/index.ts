@@ -118,6 +118,20 @@ export interface AuthResponseDTO {
 
 export type Role = AuthResponseDTO['role'];
 
+export interface UtilisateurDTO {
+  id: number;
+  login: string;
+  role: Role;
+  enabled: boolean;
+  createdAt: string;
+}
+
+export interface CreerUtilisateurPayload {
+  login: string;
+  motDePasse: string;
+  role: Role;
+}
+
 // ─── Types enrichis (endpoint /etude/{id}/detail) ────────────────────────────
 
 export interface ClientDetail {
