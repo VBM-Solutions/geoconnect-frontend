@@ -111,6 +111,46 @@ export const phoneRules = {
 } as const;
 
 /**
+ * Validation e-mail volontairement simple et lineaire (sans regex complexe)
+ * pour eviter les risques de backtracking excessif.
+ */
+export function isEmailValid(value: string): boolean {
+  if (!value) return false;
+  if (value.length > 254) return false;
+
+  const atIndex = value.indexOf('@');
+  if (atIndex <= 0 || atIndex !== value.lastIndexOf('@') || atIndex === value.length - 1) {
+    return false;
+  }
+
+  const localPart = value.slice(0, atIndex);
+  const domainPart = value.slice(atIndex + 1);
+
+  if (localPart.length > 64) return false;
+  if (!domainPart.includes('.')) return false;
+  if (domainPart.startsWith('.') || domainPart.endsWith('.')) return false;
+
+  const labels = domainPart.split('.');
+  return labels.every((label) => {
+    if (label.length === 0) return false;
+    if (label.startsWith('-') || label.endsWith('-')) return false;
+
+    for (const char of label) {
+      const isLetter = (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z');
+      const isDigit = char >= '0' && char <= '9';
+      if (!isLetter && !isDigit && char !== '-') return false;
+    }
+
+    return true;
+  });
+}
+
+export const emailRules = {
+  required: 'Requis',
+  validate: (value: string) => isEmailValid(value) || 'Adresse e-mail invalide',
+} as const;
+
+/**
  * Validator pour un mot de passe utilisateur.
  */
 export const passwordRules = {

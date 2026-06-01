@@ -23,7 +23,9 @@ export default function Login() {
       });
       login(authRes);
       
-      if (authRes.role === 'BUREAU_ETUDE') {
+      if (authRes.role === 'ADMIN') {
+        navigate('/admin/utilisateurs');
+      } else if (authRes.role === 'BUREAU_ETUDE') {
         navigate('/be/dashboard');
       } else {
         navigate('/client/dashboard');

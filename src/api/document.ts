@@ -15,16 +15,34 @@ export const uploadDocument = async (file: File): Promise<DocumentDTO> => {
 };
 
 /**
+ * Renomme un fichier en ajoutant un numéro d'incrémentation avant l'extension.
+ * Par exemple : 'plan.pdf' avec index 1 → 'plan_1.pdf'
+ */
+const renameFileWithIncrement = (file: File, index: number): File => {
+  const dotIndex = file.name.lastIndexOf('.');
+  if (dotIndex === -1) {
+    // Pas d'extension
+    return new File([file], `${file.name}_${index}`, { type: file.type });
+  }
+  const baseName = file.name.substring(0, dotIndex);
+  const extension = file.name.substring(dotIndex);
+  const newName = `${baseName}_${index}${extension}`;
+  return new File([file], newName, { type: file.type });
+};
+
+/**
  * Upload plusieurs documents et retourne la liste des ids créés.
+ * Les fichiers sont automatiquement renommés avec un numéro d'incrémentation (1, 2, 3, ...).
  * L'ordre retourné suit l'ordre de sélection des fichiers.
  */
 export const uploadDocuments = async (files: File[]): Promise<number[]> => {
   const documentIds: number[] = [];
 
-  for (const file of files) {
-    const uploaded = await uploadDocument(file);
+  for (let i = 0; i < files.length; i++) {
+    const renamedFile = renameFileWithIncrement(files[i], i + 1);
+    const uploaded = await uploadDocument(renamedFile);
     if (uploaded.id == null) {
-      throw new Error(`Document uploadé sans identifiant pour le fichier "${file.name}".`);
+      throw new Error(`Document uploadé sans identifiant pour le fichier "${files[i].name}".`);
     }
     documentIds.push(uploaded.id);
   }

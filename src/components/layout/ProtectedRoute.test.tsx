@@ -26,6 +26,7 @@ function renderWithAuth(
           <Route path="/protected" element={<div>Contenu protégé</div>} />
         </Route>
         <Route path="/login" element={<div>Page login</div>} />
+        <Route path="/403" element={<div>Page 403</div>} />
         <Route path="/" element={<div>Page accueil</div>} />
       </Routes>
     </MemoryRouter>
@@ -48,7 +49,7 @@ describe('ProtectedRoute', () => {
     renderWithAuth({
       isLoading: false,
       isAuthenticated: true,
-      user: { userId: 1, token: 'tok', role: 'CLIENT', email: 'a@b.com' },
+      user: { userId: 1, login: 'a@b.com', role: 'CLIENT' },
     });
     expect(screen.getByText('Contenu protégé')).toBeTruthy();
   });
@@ -58,23 +59,23 @@ describe('ProtectedRoute', () => {
       {
         isLoading: false,
         isAuthenticated: true,
-        user: { userId: 1, token: 'tok', role: 'CLIENT', email: 'a@b.com' },
+        user: { userId: 1, login: 'a@b.com', role: 'CLIENT' },
       },
       ['CLIENT']
     );
     expect(screen.getByText('Contenu protégé')).toBeTruthy();
   });
 
-  it('redirige vers / si le rôle n\'est pas autorisé', () => {
+  it('redirige vers /403 si le rôle n\'est pas autorisé', () => {
     renderWithAuth(
       {
         isLoading: false,
         isAuthenticated: true,
-        user: { userId: 1, token: 'tok', role: 'CLIENT', email: 'a@b.com' },
+        user: { userId: 1, login: 'a@b.com', role: 'CLIENT' },
       },
       ['BUREAU_ETUDE']
     );
-    expect(screen.getByText('Page accueil')).toBeTruthy();
+    expect(screen.getByText('Page 403')).toBeTruthy();
   });
 });
 

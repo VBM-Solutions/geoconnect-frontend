@@ -22,6 +22,7 @@ export default function Home() {
   const { user, isAuthenticated } = useAuth();
 
   if (isAuthenticated) {
+    if (user?.role === 'ADMIN') return <Navigate to="/admin/utilisateurs" replace />;
     if (user?.role === 'CLIENT') return <Navigate to="/client/dashboard" replace />;
     if (user?.role === 'BUREAU_ETUDE') return <Navigate to="/be/dashboard" replace />;
   }

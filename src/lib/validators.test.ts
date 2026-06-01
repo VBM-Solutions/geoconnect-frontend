@@ -10,7 +10,9 @@ import {
   PASSWORD_REQUIREMENTS,
   codePostalRules,
   createConfirmPasswordRules,
+  emailRules,
   getMissingPasswordRequirementLabels,
+  isEmailValid,
   getPasswordRequirementStatuses,
   passwordRules,
   phoneRules,
@@ -138,6 +140,37 @@ describe('phoneRules', () => {
   it('contient un pattern correspondant à PHONE_FR_PATTERN', () => {
     expect(phoneRules.pattern.value).toBe(PHONE_FR_PATTERN);
     expect(typeof phoneRules.pattern.message).toBe('string');
+  });
+});
+
+describe('isEmailValid', () => {
+  it('accepte un email valide simple', () => {
+    expect(isEmailValid('utilisateur@domaine.fr')).toBe(true);
+  });
+
+  it('refuse les emails sans arobase ou avec plusieurs arobase', () => {
+    expect(isEmailValid('utilisateur.domaine.fr')).toBe(false);
+    expect(isEmailValid('a@b@c.fr')).toBe(false);
+  });
+
+  it('refuse un domaine invalide', () => {
+    expect(isEmailValid('user@domaine')).toBe(false);
+    expect(isEmailValid('user@-domaine.fr')).toBe(false);
+    expect(isEmailValid('user@domaine-.fr')).toBe(false);
+  });
+});
+
+describe('emailRules', () => {
+  it('contient une regle required avec message', () => {
+    expect(emailRules.required).toBe('Requis');
+  });
+
+  it('retourne true pour un email valide', () => {
+    expect(emailRules.validate('valide@geo-connect.fr')).toBe(true);
+  });
+
+  it('retourne un message pour un email invalide', () => {
+    expect(emailRules.validate('invalide')).toBe('Adresse e-mail invalide');
   });
 });
 
