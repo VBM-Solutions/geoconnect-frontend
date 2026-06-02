@@ -64,6 +64,13 @@ export default function MainLayout() {
     navigate('/login');
   };
 
+  let parametresPath: string | null = null;
+  if (user?.role === 'CLIENT') {
+    parametresPath = '/client/parametres';
+  } else if (user?.role === 'BUREAU_ETUDE') {
+    parametresPath = '/be/parametres';
+  }
+
   let navItems: Array<{ label: string; path: string }> = [];
   if (user?.role === 'CLIENT') {
     navItems = [{ label: 'Mes demandes', path: '/client/dashboard' }];
@@ -111,9 +118,7 @@ export default function MainLayout() {
                 <p className="text-xs font-bold leading-none">{identityLabel || roleLabel}</p>
                 <p className="text-[10px] text-slate-400">{user?.login} • {roleLabel}</p>
               </div>
-              {user?.role === 'BUREAU_ETUDE' && (
-                <ParametresButton to="/be/parametres" />
-              )}
+              {parametresPath && <ParametresButton to={parametresPath} />}
               <NotificationBell
                 unreadCount={notifications.unreadCount}
                 notifications={notifications.notifications}

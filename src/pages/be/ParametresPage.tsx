@@ -1,7 +1,10 @@
 import React from 'react';
-import { Settings } from 'lucide-react';
 import { useParametresNotifications } from '../../hooks/useParametresNotifications';
 import { SectionNotifications } from '../../components/parametres/SectionNotifications';
+import { useBureauEtudeIban } from '../../hooks/useBureauEtudeIban';
+import { SectionIban } from '../../components/parametres/SectionIban';
+import { SectionMotDePasse } from '../../components/parametres/SectionMotDePasse';
+import { ParametresPageShell } from '../../components/parametres/ParametresPageShell';
 
 /**
  * Page principale de l'onglet Paramètres pour les Bureaux d'Études.
@@ -13,30 +16,15 @@ import { SectionNotifications } from '../../components/parametres/SectionNotific
  *   - Sécurité       ← à venir
  */
 export default function BEParametresPage() {
-  const parametresState = useParametresNotifications();
+  const parametresNotifications = useParametresNotifications();
+  const parametresIban = useBureauEtudeIban();
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* En-tête */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-9 h-9 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0">
-          <Settings className="w-5 h-5 text-slate-300" aria-hidden="true" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Paramètres</h1>
-          <p className="text-xs text-slate-500">Gérez vos préférences et informations</p>
-        </div>
-      </div>
-
-      {/* Carte principale */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-8">
-        <SectionNotifications {...parametresState} />
-
-        {/* Sections futures — placeholders */}
-        {/* <SectionProfil /> */}
-        {/* <SectionSecurite /> */}
-      </div>
-    </div>
+    <ParametresPageShell title="Paramètres" subtitle="Gérez vos préférences et informations">
+      <SectionNotifications {...parametresNotifications} />
+      <SectionIban {...parametresIban} />
+      <SectionMotDePasse {...parametresIban} />
+    </ParametresPageShell>
   );
 }
 
