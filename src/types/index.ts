@@ -23,6 +23,7 @@ export interface BureauEtudesDTO {
   raisonSociale?: string;
   emailContact?: string;
   telContact?: string;
+  iban?: string | null;
   adresse?: AdresseDTO;
   utilisateurId?: number;
 }

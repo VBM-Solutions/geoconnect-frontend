@@ -22,13 +22,20 @@ export const getAllBureauEtude = async (): Promise<BureauEtudesDTO[]> => {
 };
 
 /**
+ * Retourne le profil Bureau d'Études de l'utilisateur connecté via GET /bureauEtude/me.
+ */
+export const getCurrentBureauEtude = async (): Promise<BureauEtudesDTO | null> => {
+  const { data } = await api.get('/bureauEtude/me');
+  return data ?? null;
+};
+
+/**
  * Retourne le profil bureau d'études de l'utilisateur connecté via GET /bureauEtude/me.
  * Le paramètre userId est conservé pour compatibilité de signature, mais n'est plus utilisé :
  * l'identité est lue depuis le JWT côté backend.
  */
 export const getBureauByUserId = async (_userId: number): Promise<BureauEtudesDTO | null> => {
-  const { data } = await api.get('/bureauEtude/me');
-  return data ?? null;
+  return getCurrentBureauEtude();
 };
 
 export const deleteBureauEtude = async (id: number): Promise<void> => {

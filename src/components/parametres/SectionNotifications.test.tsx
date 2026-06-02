@@ -38,6 +38,17 @@ function renderSection(overrides: Partial<typeof defaultProps> = {}) {
   return render(<SectionNotifications {...props} />);
 }
 
+function submitForm() {
+  fireEvent.click(screen.getByRole('button', { name: /enregistrer/i }));
+}
+
+function renderSelectionSection(savePreferences: ReturnType<typeof vi.fn>) {
+  renderSection({
+    preferences: { notifierTousDepartements: false, departementsSuivis: ['75'] },
+    savePreferences,
+  });
+}
+
 describe('SectionNotifications', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -103,7 +114,7 @@ describe('SectionNotifications', () => {
   it('affiche un toast d\'erreur si on soumet avec aucun dept et mode sélection', async () => {
     renderSection({ preferences: { notifierTousDepartements: false, departementsSuivis: [] } });
 
-    fireEvent.click(screen.getByRole('button', { name: /enregistrer/i }));
+    submitForm();
 
     expect(mockToastError).toHaveBeenCalledWith(
       expect.stringContaining('Aucun département sélectionné'),
@@ -126,12 +137,8 @@ describe('SectionNotifications', () => {
 
   it('appelle savePreferences avec les bonnes données et affiche un toast de succès', async () => {
     const saveMock = vi.fn().mockResolvedValue(true);
-    renderSection({
-      preferences: { notifierTousDepartements: false, departementsSuivis: ['75'] },
-      savePreferences: saveMock,
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /enregistrer/i }));
+    renderSelectionSection(saveMock);
+    submitForm();
 
     await waitFor(() => expect(saveMock).toHaveBeenCalledOnce());
     expect(saveMock).toHaveBeenCalledWith({
@@ -150,7 +157,7 @@ describe('SectionNotifications', () => {
       savePreferences: saveMock,
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /enregistrer/i }));
+    submitForm();
 
     await waitFor(() => expect(saveMock).toHaveBeenCalled());
     expect(saveMock).toHaveBeenCalledWith({
@@ -161,12 +168,8 @@ describe('SectionNotifications', () => {
 
   it('affiche un toast d\'erreur si savePreferences retourne false', async () => {
     const saveMock = vi.fn().mockResolvedValue(false);
-    renderSection({
-      preferences: { notifierTousDepartements: false, departementsSuivis: ['75'] },
-      savePreferences: saveMock,
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /enregistrer/i }));
+    renderSelectionSection(saveMock);
+    submitForm();
 
     await waitFor(() => expect(mockToastError).toHaveBeenCalled());
     expect(mockToastError).toHaveBeenCalledWith(
