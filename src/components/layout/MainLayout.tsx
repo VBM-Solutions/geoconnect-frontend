@@ -39,7 +39,13 @@ export default function MainLayout() {
 
         setIdentityLabel(user.login || 'Utilisateur');
       } catch {
-        setIdentityLabel(user.role === 'BUREAU_ETUDE' ? 'Bureau d\'Études' : 'Client');
+        if (user.role === 'BUREAU_ETUDE') {
+          setIdentityLabel('Bureau d\'Études');
+        } else if (user.role === 'CLIENT') {
+          setIdentityLabel('Client');
+        } else {
+          setIdentityLabel('Administrateur');
+        }
       }
     }
 
@@ -47,6 +53,7 @@ export default function MainLayout() {
   }, [isAuthenticated, user]);
 
   const roleLabel = useMemo(() => {
+    if (user?.role === 'ADMIN') return 'Administrateur';
     if (user?.role === 'BUREAU_ETUDE') return 'Bureau d\'Études';
     if (user?.role === 'CLIENT') return 'Client';
     return 'Utilisateur';
@@ -57,15 +64,25 @@ export default function MainLayout() {
     navigate('/login');
   };
 
-  const navItems = user?.role === 'CLIENT'
-    ? [{ label: 'Mes demandes', path: '/client/dashboard' }]
-    : user?.role === 'BUREAU_ETUDE'
-    ? [{ label: 'Marketplace', path: '/be/dashboard' }]
-    : [];
+  let parametresPath: string | null = null;
+  if (user?.role === 'CLIENT') {
+    parametresPath = '/client/parametres';
+  } else if (user?.role === 'BUREAU_ETUDE') {
+    parametresPath = '/be/parametres';
+  }
+
+  let navItems: Array<{ label: string; path: string }> = [];
+  if (user?.role === 'CLIENT') {
+    navItems = [{ label: 'Mes demandes', path: '/client/dashboard' }];
+  } else if (user?.role === 'BUREAU_ETUDE') {
+    navItems = [{ label: 'Marketplace', path: '/be/dashboard' }];
+  } else if (user?.role === 'ADMIN') {
+    navItems = [{ label: 'Admin', path: '/admin/utilisateurs' }];
+  }
 
   return (
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900 font-sans flex flex-col overflow-hidden">
-      <nav className="h-14 bg-slate-900 text-white flex items-center justify-between px-6 flex-shrink-0">
+      <nav className="h-14 bg-slate-900 text-white flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center font-bold text-xl italic">G</div>
@@ -101,9 +118,7 @@ export default function MainLayout() {
                 <p className="text-xs font-bold leading-none">{identityLabel || roleLabel}</p>
                 <p className="text-[10px] text-slate-400">{user?.login} • {roleLabel}</p>
               </div>
-              {user?.role === 'BUREAU_ETUDE' && (
-                <ParametresButton to="/be/parametres" />
-              )}
+              {parametresPath && <ParametresButton to={parametresPath} />}
               <NotificationBell
                 unreadCount={notifications.unreadCount}
                 notifications={notifications.notifications}
@@ -132,11 +147,11 @@ export default function MainLayout() {
         </div>
       </nav>
 
-      <main className="flex-1 w-full max-w-[1200px] mx-auto px-4 sm:px-6 py-6 pb-20 md:pb-6 overflow-auto">
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 xl:px-10 py-6 pb-20 md:pb-6 overflow-auto">
         <Outlet />
       </main>
 
-      <footer className="h-6 bg-slate-100 border-t border-slate-200 px-4 flex items-center justify-between text-[10px] text-slate-500 flex-shrink-0 z-10 w-full fixed bottom-0 md:relative">
+      <footer className="h-6 bg-slate-100 border-t border-slate-200 px-4 flex items-center justify-between text-[10px] text-slate-500 shrink-0 z-10 w-full fixed bottom-0 md:relative">
         <div className="flex gap-4">
           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Serveur Opérationnel</span>
         </div>

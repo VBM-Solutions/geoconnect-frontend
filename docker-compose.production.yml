@@ -1,0 +1,35 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# docker-compose.production.yml — Déploiement Coolify (production)
+#
+# ⚠️  Ce fichier est destiné à Coolify UNIQUEMENT — ne pas utiliser en local.
+#     Pour le développement local, utiliser docker-compose.yml (avec build:).
+#
+# Architecture réseau (voir resources-backend/NETWORKING.md) :
+#   - Le frontend rejoint le réseau "coolify" (partagé par toutes les apps Coolify)
+#   - Le backend est joignable via son container_name : geoconnect-production-backend
+#   - VITE_API_URL (URL publique) est baked au build par GitHub Actions
+#   - BACKEND_URL (URL interne) est utilisée par le proxy Nginx au runtime
+# ──────────────────────────────────────────────────────────────────────────────
+
+services:
+  frontend:
+    image: ghcr.io/achillemonod/geoconnect-frontend:production
+    container_name: geoconnect-frontend
+    restart: unless-stopped
+    expose:
+      - "80"
+    environment:
+      # URL interne Docker → utilisée par le proxy Nginx pour proxy_pass
+      # Le backend est joignable via son container_name sur le réseau "coolify"
+      BACKEND_URL: ${BACKEND_URL:-http://geoconnect-production-backend:8080}
+    networks:
+      - coolify
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  coolify:
+    external: true   # Réseau partagé géré par Coolify — ne pas modifier

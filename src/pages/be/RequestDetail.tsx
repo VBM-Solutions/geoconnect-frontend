@@ -15,6 +15,8 @@ import { useToast } from '../../contexts/ToastContext';
 import { useForm } from 'react-hook-form';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { TYPE_LABELS } from '../../constants/labels';
+import { buildDemandeDocuments } from '../../lib/formatters';
+import { DocumentList } from '../../components/etude/DocumentList';
 
 // ─── Sous-composants ──────────────────────────────────────────────────────────
 
@@ -251,6 +253,7 @@ export default function BERequestDetail() {
   const hasAccepted = allPropositions.some(p => p.statut === 'ACCEPTEE');
   // Le formulaire est accessible si aucune prop n'est ACCEPTEE et qu'on n'a pas de prop active (EN_ATTENTE)
   const canSubmit = !hasAccepted && !myProposition;
+  const demandeDocuments = buildDemandeDocuments(demande);
 
   // Onglet de retour : EN_ATTENTE si on a déjà soumis/resoumis, OUVERT sinon
   const backFallback =
@@ -330,6 +333,8 @@ export default function BERequestDetail() {
                   {demande.description || 'Description non fournie par le client.'}
                 </p>
               </div>
+
+              <DocumentList documents={demandeDocuments} />
             </CardContent>
           </Card>
         </div>

@@ -22,6 +22,8 @@ vi.mock('react-router-dom', async (importOriginal) => {
 // ─── Données de test ──────────────────────────────────────────────────────────
 
 const MOCK_AUTH_RESPONSE = { userId: 42, token: 'tok-be', role: 'BUREAU_ETUDE' as const, email: 'be@test.fr' };
+const VALID_PASSWORD = 'MotDePasse!123';
+const OTHER_VALID_PASSWORD = 'AutreMotDePasse!123';
 
 // ─── Helper de rendu ──────────────────────────────────────────────────────────
 
@@ -43,8 +45,8 @@ async function fillAllRequiredFields(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByPlaceholderText('Ex: GeoExpert SAS'), 'GeoExpert SAS');
   await user.type(screen.getByPlaceholderText('contact@entreprise.fr'), 'contact@geoexpert.fr');
   await user.type(screen.getByPlaceholderText('01 23 45 67 89'), '0123456789');
-  await user.type(screen.getByLabelText('Mot de passe *'), 'MotDePasse123');
-  await user.type(screen.getByLabelText('Confirmation du mot de passe *'), 'MotDePasse123');
+  await user.type(screen.getByLabelText('Mot de passe *'), VALID_PASSWORD);
+  await user.type(screen.getByLabelText('Confirmation du mot de passe *'), VALID_PASSWORD);
   await user.type(screen.getByPlaceholderText('10 rue de la Géologie'), '10 Rue de la Géologie');
   await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
   await user.type(screen.getByLabelText('Ville *'), 'Paris');
@@ -87,7 +89,7 @@ describe('BERegister — soumission réussie', () => {
     await waitFor(() => {
       expect(authApi.registerCall).toHaveBeenCalledWith({
         login: 'contact@geoexpert.fr',
-        password: 'MotDePasse123',
+        password: VALID_PASSWORD,
         role: 'BUREAU_ETUDE',
       });
       expect(bureauEtudeApi.createBureauEtude).toHaveBeenCalledWith(
@@ -128,8 +130,8 @@ describe('BERegister — validation des champs obligatoires', () => {
     // Tout remplir sauf raisonSociale
     await user.type(screen.getByPlaceholderText('contact@entreprise.fr'), 'contact@geoexpert.fr');
     await user.type(screen.getByPlaceholderText('01 23 45 67 89'), '0123456789');
-    await user.type(screen.getByLabelText('Mot de passe *'), 'MotDePasse123');
-    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), 'MotDePasse123');
+    await user.type(screen.getByLabelText('Mot de passe *'), VALID_PASSWORD);
+    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), VALID_PASSWORD);
     await user.type(screen.getByPlaceholderText('10 rue de la Géologie'), '10 Rue Test');
     await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
     await user.type(screen.getByLabelText('Ville *'), 'Paris');
@@ -147,8 +149,8 @@ describe('BERegister — validation des champs obligatoires', () => {
     await user.type(screen.getByPlaceholderText('Ex: GeoExpert SAS'), 'GeoExpert SAS');
     await user.type(screen.getByPlaceholderText('contact@entreprise.fr'), 'contact@geoexpert.fr');
     // telContact non renseigné
-    await user.type(screen.getByLabelText('Mot de passe *'), 'MotDePasse123');
-    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), 'MotDePasse123');
+    await user.type(screen.getByLabelText('Mot de passe *'), VALID_PASSWORD);
+    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), VALID_PASSWORD);
     await user.type(screen.getByPlaceholderText('10 rue de la Géologie'), '10 Rue Test');
     await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
     await user.type(screen.getByLabelText('Ville *'), 'Paris');
@@ -166,8 +168,8 @@ describe('BERegister — validation des champs obligatoires', () => {
     await user.type(screen.getByPlaceholderText('Ex: GeoExpert SAS'), 'GeoExpert SAS');
     await user.type(screen.getByPlaceholderText('contact@entreprise.fr'), 'contact@geoexpert.fr');
     await user.type(screen.getByPlaceholderText('01 23 45 67 89'), '0123456789');
-    await user.type(screen.getByLabelText('Mot de passe *'), 'MotDePasse123');
-    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), 'MotDePasse123');
+    await user.type(screen.getByLabelText('Mot de passe *'), VALID_PASSWORD);
+    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), VALID_PASSWORD);
     // rue non renseignée
     await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
     await user.type(screen.getByLabelText('Ville *'), 'Paris');
@@ -185,8 +187,8 @@ describe('BERegister — validation des champs obligatoires', () => {
     await user.type(screen.getByPlaceholderText('Ex: GeoExpert SAS'), 'GeoExpert SAS');
     await user.type(screen.getByPlaceholderText('contact@entreprise.fr'), 'contact@geoexpert.fr');
     await user.type(screen.getByPlaceholderText('01 23 45 67 89'), '0123456789');
-    await user.type(screen.getByLabelText('Mot de passe *'), 'MotDePasse123');
-    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), 'MotDePasse123');
+    await user.type(screen.getByLabelText('Mot de passe *'), VALID_PASSWORD);
+    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), VALID_PASSWORD);
     await user.type(screen.getByPlaceholderText('10 rue de la Géologie'), '10 Rue Test');
     await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
     // ville non renseignée
@@ -212,8 +214,8 @@ describe('BERegister — validation du code postal', () => {
     await user.type(screen.getByPlaceholderText('Ex: GeoExpert SAS'), 'GeoExpert SAS');
     await user.type(screen.getByPlaceholderText('contact@entreprise.fr'), 'contact@geoexpert.fr');
     await user.type(screen.getByPlaceholderText('01 23 45 67 89'), '0612345678');
-    await user.type(screen.getByLabelText('Mot de passe *'), 'MotDePasse123');
-    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), 'MotDePasse123');
+    await user.type(screen.getByLabelText('Mot de passe *'), VALID_PASSWORD);
+    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), VALID_PASSWORD);
     await user.type(screen.getByPlaceholderText('10 rue de la Géologie'), '10 Rue Test');
     // Code postal non renseigné
     await user.type(screen.getByLabelText('Ville *'), 'Paris');
@@ -232,8 +234,8 @@ describe('BERegister — validation du code postal', () => {
     await user.type(screen.getByPlaceholderText('Ex: GeoExpert SAS'), 'GeoExpert SAS');
     await user.type(screen.getByPlaceholderText('contact@entreprise.fr'), 'contact@geoexpert.fr');
     await user.type(screen.getByPlaceholderText('01 23 45 67 89'), '0612345678');
-    await user.type(screen.getByLabelText('Mot de passe *'), 'MotDePasse123');
-    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), 'MotDePasse123');
+    await user.type(screen.getByLabelText('Mot de passe *'), VALID_PASSWORD);
+    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), VALID_PASSWORD);
     await user.type(screen.getByPlaceholderText('10 rue de la Géologie'), '10 Rue Test');
     await user.type(screen.getByPlaceholderText('Ex : 75001'), '750'); // invalide
     await user.type(screen.getByLabelText('Ville *'), 'Paris');
@@ -252,8 +254,8 @@ describe('BERegister — validation du code postal', () => {
     await user.type(screen.getByPlaceholderText('Ex: GeoExpert SAS'), 'GeoExpert SAS');
     await user.type(screen.getByPlaceholderText('contact@entreprise.fr'), 'contact@geoexpert.fr');
     await user.type(screen.getByPlaceholderText('01 23 45 67 89'), '0612345678');
-    await user.type(screen.getByLabelText('Mot de passe *'), 'MotDePasse123');
-    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), 'MotDePasse123');
+    await user.type(screen.getByLabelText('Mot de passe *'), VALID_PASSWORD);
+    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), VALID_PASSWORD);
     await user.type(screen.getByPlaceholderText('10 rue de la Géologie'), '10 Rue Test');
     await user.type(screen.getByPlaceholderText('Ex : 75001'), 'ABCDE'); // invalide
     await user.type(screen.getByLabelText('Ville *'), 'Paris');
@@ -292,8 +294,8 @@ describe('BERegister — validation du téléphone', () => {
     await user.type(screen.getByPlaceholderText('Ex: GeoExpert SAS'), 'GeoExpert SAS');
     await user.type(screen.getByPlaceholderText('contact@entreprise.fr'), 'contact@geoexpert.fr');
     // telContact non renseigné
-    await user.type(screen.getByLabelText('Mot de passe *'), 'MotDePasse123');
-    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), 'MotDePasse123');
+    await user.type(screen.getByLabelText('Mot de passe *'), VALID_PASSWORD);
+    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), VALID_PASSWORD);
     await user.type(screen.getByPlaceholderText('10 rue de la Géologie'), '10 Rue Test');
     await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
     await user.type(screen.getByLabelText('Ville *'), 'Paris');
@@ -312,8 +314,8 @@ describe('BERegister — validation du téléphone', () => {
     await user.type(screen.getByPlaceholderText('Ex: GeoExpert SAS'), 'GeoExpert SAS');
     await user.type(screen.getByPlaceholderText('contact@entreprise.fr'), 'contact@geoexpert.fr');
     await user.type(screen.getByPlaceholderText('01 23 45 67 89'), '123'); // trop court
-    await user.type(screen.getByLabelText('Mot de passe *'), 'MotDePasse123');
-    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), 'MotDePasse123');
+    await user.type(screen.getByLabelText('Mot de passe *'), VALID_PASSWORD);
+    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), VALID_PASSWORD);
     await user.type(screen.getByPlaceholderText('10 rue de la Géologie'), '10 Rue Test');
     await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
     await user.type(screen.getByLabelText('Ville *'), 'Paris');
@@ -332,8 +334,8 @@ describe('BERegister — validation du téléphone', () => {
     await user.type(screen.getByPlaceholderText('Ex: GeoExpert SAS'), 'GeoExpert SAS');
     await user.type(screen.getByPlaceholderText('contact@entreprise.fr'), 'contact@geoexpert.fr');
     await user.type(screen.getByPlaceholderText('01 23 45 67 89'), '061234567'); // 9 chiffres
-    await user.type(screen.getByLabelText('Mot de passe *'), 'MotDePasse123');
-    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), 'MotDePasse123');
+    await user.type(screen.getByLabelText('Mot de passe *'), VALID_PASSWORD);
+    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), VALID_PASSWORD);
     await user.type(screen.getByPlaceholderText('10 rue de la Géologie'), '10 Rue Test');
     await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
     await user.type(screen.getByLabelText('Ville *'), 'Paris');
@@ -363,8 +365,8 @@ describe('BERegister — validation du téléphone', () => {
     await user.type(screen.getByPlaceholderText('Ex: GeoExpert SAS'), 'GeoExpert SAS');
     await user.type(screen.getByPlaceholderText('contact@entreprise.fr'), 'contact@geoexpert.fr');
     await user.type(screen.getByPlaceholderText('01 23 45 67 89'), '06 12 34 56 78');
-    await user.type(screen.getByLabelText('Mot de passe *'), 'MotDePasse123');
-    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), 'MotDePasse123');
+    await user.type(screen.getByLabelText('Mot de passe *'), VALID_PASSWORD);
+    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), VALID_PASSWORD);
     await user.type(screen.getByPlaceholderText('10 rue de la Géologie'), '10 Rue Test');
     await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
     await user.type(screen.getByLabelText('Ville *'), 'Paris');
@@ -390,8 +392,8 @@ describe('BERegister — validation de la confirmation du mot de passe', () => {
     await user.type(screen.getByPlaceholderText('Ex: GeoExpert SAS'), 'GeoExpert SAS');
     await user.type(screen.getByPlaceholderText('contact@entreprise.fr'), 'contact@geoexpert.fr');
     await user.type(screen.getByPlaceholderText('01 23 45 67 89'), '0123456789');
-    await user.type(screen.getByLabelText('Mot de passe *'), 'MotDePasse123');
-    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), 'AutreMotDePasse'); // différent
+    await user.type(screen.getByLabelText('Mot de passe *'), VALID_PASSWORD);
+    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), OTHER_VALID_PASSWORD); // différent
     await user.type(screen.getByPlaceholderText('10 rue de la Géologie'), '10 Rue Test');
     await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
     await user.type(screen.getByLabelText('Ville *'), 'Paris');
@@ -413,6 +415,30 @@ describe('BERegister — validation de la confirmation du mot de passe', () => {
     await waitFor(() => {
       expect(screen.queryByText('Les mots de passe ne correspondent pas')).toBeNull();
     });
+  });
+
+  it('affiche les critères manquants si le mot de passe est trop faible', async () => {
+    const user = userEvent.setup();
+    renderBERegister();
+
+    await user.type(screen.getByPlaceholderText('Ex: GeoExpert SAS'), 'GeoExpert SAS');
+    await user.type(screen.getByPlaceholderText('contact@entreprise.fr'), 'contact@geoexpert.fr');
+    await user.type(screen.getByPlaceholderText('01 23 45 67 89'), '0123456789');
+    await user.type(screen.getByLabelText('Mot de passe *'), 'motdepasse');
+    await user.type(screen.getByLabelText('Confirmation du mot de passe *'), 'motdepasse');
+    await user.type(screen.getByPlaceholderText('10 rue de la Géologie'), '10 Rue Test');
+    await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
+    await user.type(screen.getByLabelText('Ville *'), 'Paris');
+    await user.click(screen.getByRole('button', { name: /soumettre ma candidature/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Le mot de passe doit contenir : une majuscule, un chiffre, un caractère spécial\./i)).toBeTruthy();
+      expect(screen.getByLabelText('Critère manquant : Une majuscule')).toBeTruthy();
+      expect(screen.getByLabelText('Critère manquant : Un chiffre')).toBeTruthy();
+      expect(screen.getByLabelText('Critère manquant : Un caractère spécial')).toBeTruthy();
+    });
+
+    expect(authApi.registerCall).not.toHaveBeenCalled();
   });
 });
 

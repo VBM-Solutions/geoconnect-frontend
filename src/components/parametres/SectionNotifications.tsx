@@ -4,6 +4,8 @@ import { useToast } from '../../contexts/ToastContext';
 import { UseParametresNotificationsReturn } from '../../hooks/useParametresNotifications';
 import { DepartementMultiSelect } from './DepartementMultiSelect';
 import { NotificationPreferencesDTO } from '../../types';
+import { ParametresSectionCard } from './ParametresSectionCard';
+import { ParametresLoadErrorState, ParametresLoadingState } from './ParametresCommonUI';
 
 interface SectionNotificationsProps
   extends Pick<
@@ -63,34 +65,21 @@ export function SectionNotifications({
   // ── États de chargement / erreur ─────────────────────────────────────────────
 
   if (isLoading) {
-    return (
-      <div className="flex items-center gap-3 py-10 text-slate-500">
-        <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
-        <span className="text-sm">Chargement des paramètres…</span>
-      </div>
-    );
+    return <ParametresLoadingState />;
   }
 
   if (loadError) {
-    return (
-      <div className="flex items-center gap-2 py-6 text-red-600">
-        <AlertCircle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-        <span className="text-sm">{loadError}</span>
-      </div>
-    );
+    return <ParametresLoadErrorState message={loadError} />;
   }
 
   // ── Formulaire ───────────────────────────────────────────────────────────────
 
   return (
-    <section aria-labelledby="section-notifs-title">
-      <div className="flex items-center gap-2 mb-5">
-        <Bell className="w-5 h-5 text-blue-600" aria-hidden="true" />
-        <h2 id="section-notifs-title" className="text-base font-semibold text-slate-800">
-          Préférences de notification
-        </h2>
-      </div>
-
+    <ParametresSectionCard
+      icon={Bell}
+      title="Préférences de notification"
+      description="Choisissez les départements sur lesquels vous souhaitez être notifié."
+    >
       <form onSubmit={handleSubmit} noValidate>
         {/* Choix du mode */}
         <fieldset className="space-y-3 mb-5">
@@ -187,7 +176,7 @@ export function SectionNotifications({
           </button>
         </div>
       </form>
-    </section>
+    </ParametresSectionCard>
   );
 }
 

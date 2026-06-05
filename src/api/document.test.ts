@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { openDocument, downloadDocument, uploadDocument, getAllDocuments, deleteDocument } from './document';
+import { openDocument, downloadDocument, uploadDocument, uploadDocuments, getAllDocuments, deleteDocument } from './document';
 
 vi.mock('./index', () => ({
   default: {
@@ -115,6 +115,63 @@ describe('uploadDocument', () => {
 
     const file = new File(['x'], 'big.pdf');
     await expect(uploadDocument(file)).rejects.toThrow('Payload too large');
+  });
+});
+
+describe('uploadDocuments', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('upload les fichiers séquentiellement en les renommant avec un numéro et retourne les ids dans le même ordre', async () => {
+    const { default: api } = await import('./index');
+    (api.post as ReturnType<typeof vi.fn>).mockClear();
+    (api.post as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ data: { id: 11, nomTelechargement: 'plan_1.pdf' } })
+      .mockResolvedValueOnce({ data: { id: 22, nomTelechargement: 'photo_2.png' } });
+
+    const files = [
+      new File(['a'], 'plan.pdf', { type: 'application/pdf' }),
+      new File(['b'], 'photo.png', { type: 'image/png' }),
+    ];
+
+    await expect(uploadDocuments(files)).resolves.toEqual([11, 22]);
+    expect(api.post).toHaveBeenCalledTimes(2);
+
+    // Vérifier que les fichiers ont été renommés avec des numéros
+    const firstCall = (api.post as ReturnType<typeof vi.fn>).mock.calls[0];
+    const secondCall = (api.post as ReturnType<typeof vi.fn>).mock.calls[1];
+
+    const firstFormData = firstCall[1] as FormData;
+    const secondFormData = secondCall[1] as FormData;
+
+    const firstFile = firstFormData.get('file') as File;
+    const secondFile = secondFormData.get('file') as File;
+
+    expect(firstFile.name).toBe('plan_1.pdf');
+    expect(secondFile.name).toBe('photo_2.png');
+  });
+
+  it('renomme les fichiers sans extension correctement', async () => {
+    const { default: api } = await import('./index');
+    (api.post as ReturnType<typeof vi.fn>).mockClear();
+    (api.post as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ data: { id: 33 } });
+
+    const files = [new File(['a'], 'README', { type: 'text/plain' })];
+
+    await uploadDocuments(files);
+
+    const call = (api.post as ReturnType<typeof vi.fn>).mock.calls[0];
+    const formData = call[1] as FormData;
+    const file = formData.get('file') as File;
+
+    expect(file.name).toBe('README_1');
+  });
+
+  it('échoue si un document uploadé ne retourne pas d\'id', async () => {
+    const { default: api } = await import('./index');
+    (api.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: { nomTelechargement: 'sans-id_1.pdf' } });
+
+    await expect(uploadDocuments([new File(['a'], 'sans-id.pdf')])).rejects.toThrow('sans-id.pdf');
   });
 });
 

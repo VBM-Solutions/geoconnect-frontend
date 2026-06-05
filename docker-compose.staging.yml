@@ -1,0 +1,45 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# docker-compose.staging.yml — Déploiement Coolify (staging)
+#
+# ⚠️  Ce fichier est destiné à Coolify UNIQUEMENT — ne pas utiliser en local.
+#     Pour le développement local, utiliser docker-compose.yml (avec build:).
+#
+# Architecture réseau (voir resources-backend/NETWORKING.md) :
+#   - Le frontend rejoint le réseau "coolify" (partagé par toutes les apps Coolify)
+#   - Le backend est joignable via son container_name : geoconnect-staging-backend
+#   - VITE_API_URL (URL publique) est baked au build par GitHub Actions
+#   - BACKEND_URL (URL interne) est utilisée par le proxy Nginx au runtime
+# ──────────────────────────────────────────────────────────────────────────────
+
+services:
+  frontend:
+    image: ghcr.io/achillemonod/geoconnect-frontend:staging
+    pull_policy: always
+    container_name: geoconnect-frontend-staging
+    restart: unless-stopped
+    expose:
+      - "80"
+    environment:
+      # URL interne Docker → utilisée par le proxy Nginx pour proxy_pass
+      # Le backend est joignable via son container_name sur le réseau "coolify"
+      BACKEND_URL: ${BACKEND_URL:-http://geoconnect-staging-backend:8080}
+    networks:
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`staging.mon-etude-de-sol.fr`)"
+      - "traefik.http.routers.frontend.entrypoints=https"
+      - "traefik.http.routers.frontend.tls=true"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.frontend-spa.redirectregex.regex=^{.*}"
+      - "traefik.http.middlewares.frontend-spa.redirectregex.replacement=/index.html"
+      - "traefik.http.routers.frontend.middlewares=frontend-spa"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+networks:
+  coolify:
+    external: true   # Réseau partagé géré par Coolify — ne pas modifier

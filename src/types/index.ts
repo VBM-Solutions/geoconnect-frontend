@@ -23,6 +23,7 @@ export interface BureauEtudesDTO {
   raisonSociale?: string;
   emailContact?: string;
   telContact?: string;
+  iban?: string | null;
   adresse?: AdresseDTO;
   utilisateurId?: number;
 }
@@ -54,7 +55,7 @@ export interface DemandeDevisDTO {
   referencesCadastrales?: string[];
   superficie?: number;
   description?: string;
-  docsDevisId?: number;
+  docsDevisIds?: number[];
 }
 
 export type StatutProposition = 'EN_ATTENTE' | 'ACCEPTEE' | 'REFUSEE';
@@ -118,6 +119,20 @@ export interface AuthResponseDTO {
 
 export type Role = AuthResponseDTO['role'];
 
+export interface UtilisateurDTO {
+  id: number;
+  login: string;
+  role: Role;
+  enabled: boolean;
+  createdAt: string;
+}
+
+export interface CreerUtilisateurPayload {
+  login: string;
+  motDePasse: string;
+  role: Role;
+}
+
 // ─── Types enrichis (endpoint /etude/{id}/detail) ────────────────────────────
 
 export interface ClientDetail {
@@ -147,7 +162,7 @@ export interface DemandeDevisDetail {
   referencesCadastrales?: string[];
   superficie?: number;
   description?: string;
-  docsDevisId?: number;
+  docsDevisIds?: number[];
   adresseProjet?: AdresseDTO;
   client?: ClientDetail;
 }

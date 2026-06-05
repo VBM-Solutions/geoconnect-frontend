@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AuthResponseDTO } from '../types';
 import { logoutCall } from '../api/auth';
+import {
+  clearAuthSessionStorage,
+  ensureSessionMetadata,
+  readStoredUser,
+  seedSessionMetadata,
+  writeStoredUser,
+} from '../lib/authSessionStorage';
 
 interface AuthContextType {
   user: AuthResponseDTO | null;
@@ -12,33 +19,28 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const SESSION_KEY = 'user';
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthResponseDTO | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem(SESSION_KEY);
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored));
-      } catch {
-        console.error('Failed to parse user from local storage');
-        sessionStorage.removeItem(SESSION_KEY);
-      }
+    const storedUser = readStoredUser();
+    if (storedUser) {
+      setUser(storedUser);
+      ensureSessionMetadata();
     }
     setIsLoading(false);
   }, []);
 
   const login = (userData: AuthResponseDTO) => {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(userData));
+    writeStoredUser(userData);
+    seedSessionMetadata();
     setUser(userData);
   };
 
   const logout = () => {
     logoutCall().catch(() => {});
-    sessionStorage.removeItem(SESSION_KEY);
+    clearAuthSessionStorage();
     setUser(null);
   };
 

@@ -4,6 +4,7 @@ import {
   updateBureauEtude,
   getBureauEtudeById,
   getAllBureauEtude,
+  getCurrentBureauEtude,
   getBureauByUserId,
   deleteBureauEtude,
 } from './bureauEtude';
@@ -87,6 +88,21 @@ describe('getBureauByUserId', () => {
   it('propage l\'erreur réseau', async () => {
     (api.get as any).mockRejectedValueOnce(new Error('Unauthorized'));
     await expect(getBureauByUserId(1)).rejects.toThrow('Unauthorized');
+  });
+});
+
+describe('getCurrentBureauEtude', () => {
+  it('appelle GET /bureauEtude/me et retourne le bureau', async () => {
+    (api.get as any).mockResolvedValueOnce({ data: fakeBureau });
+    const result = await getCurrentBureauEtude();
+    expect(api.get).toHaveBeenCalledWith('/bureauEtude/me');
+    expect(result).toEqual(fakeBureau);
+  });
+
+  it('retourne null si data est null/undefined', async () => {
+    (api.get as any).mockResolvedValueOnce({ data: null });
+    const result = await getCurrentBureauEtude();
+    expect(result).toBeNull();
   });
 });
 

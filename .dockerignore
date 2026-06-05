@@ -27,9 +27,9 @@ coverage/
 *.swo
 
 # Fichiers Docker eux-mêmes (inutiles dans le contexte)
+# ⚠️  Ne pas ajouter docker-entrypoint.sh ici — il est COPY dans l'image (Dockerfile ligne 45)
 Dockerfile
 docker-compose*.yml
-docker-entrypoint.sh
 .dockerignore
 
 # Documentation / ressources non embarquées
