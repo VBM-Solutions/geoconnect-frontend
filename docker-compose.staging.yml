@@ -35,7 +35,7 @@ services:
       - "traefik.http.middlewares.frontend-spa.redirectregex.regex=^{.*}"
       - "traefik.http.middlewares.frontend-spa.redirectregex.replacement=/index.html"
       - "traefik.http.routers.frontend.middlewares=frontend-spa"
-      - "traefik.docker.network = coolify"
+      - "traefik.docker.network=coolify"
     logging:
       driver: "json-file"
       options:
