@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { openDocument, downloadDocument, uploadDocument, uploadDocuments, getAllDocuments, deleteDocument } from './document';
+import { openDocument, downloadDocument, uploadDocument, uploadDocuments, deleteDocument } from './document';
 
 vi.mock('./index', () => ({
   default: {
@@ -172,30 +172,6 @@ describe('uploadDocuments', () => {
     (api.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: { nomTelechargement: 'sans-id_1.pdf' } });
 
     await expect(uploadDocuments([new File(['a'], 'sans-id.pdf')])).rejects.toThrow('sans-id.pdf');
-  });
-});
-
-// ─── getAllDocuments ──────────────────────────────────────────────────────────
-
-describe('getAllDocuments', () => {
-  afterEach(() => vi.restoreAllMocks());
-
-  it('appelle GET /documents et retourne la liste', async () => {
-    const fakeList = [{ id: 1, nomTelechargement: 'a.pdf' }, { id: 2, nomTelechargement: 'b.pdf' }];
-    const { default: api } = await import('./index');
-    (api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: fakeList });
-
-    const result = await getAllDocuments();
-
-    expect(api.get).toHaveBeenCalledWith('/documents');
-    expect(result).toEqual(fakeList);
-  });
-
-  it('propage l\'erreur réseau', async () => {
-    const { default: api } = await import('./index');
-    (api.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Network error'));
-
-    await expect(getAllDocuments()).rejects.toThrow('Network error');
   });
 });
 

@@ -21,9 +21,9 @@ import { useEtudeDetail } from '../../hooks/useEtudeDetail';
 import { formatDateLong } from '../../lib/formatters';
 import { useToast } from '../../contexts/ToastContext';
 
-export default function BEEtudeDetail() {
+export default function BureauEtudeDetail() {
   const { id } = useParams<{ id: string }>();
-  const { etude, isLoading, actionLoading, actionKey, error, withAction } = useEtudeDetail(id);
+  const { etude, documents, isLoading, actionLoading, actionKey, error, withAction } = useEtudeDetail(id);
   const { toastSuccess } = useToast();
 
   const [dateRenduPrevueInput, setDateRenduPrevueInput] = useState('');
@@ -150,6 +150,7 @@ export default function BEEtudeDetail() {
   return (
     <EtudeDetailLayout
       etude={etude}
+      documents={documents}
       error={error}
       backTo={backTo}
       headerLabel="Gestion d'étude"

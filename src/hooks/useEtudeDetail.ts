@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { getEtudeDetailById } from '../api/etude';
-import { EtudeDetailDTO } from '../types';
+import { getEtudeDetailById, getEtudeDocuments } from '../api/etude';
+import { EtudeDetailDTO, EtudeDocumentsDTO } from '../types';
 import { useToast } from '../contexts/ToastContext';
 
 /**
@@ -10,6 +10,7 @@ import { useToast } from '../contexts/ToastContext';
 export function useEtudeDetail(id: string | undefined) {
   const { toastError } = useToast();
   const [etude, setEtude] = useState<EtudeDetailDTO | null>(null);
+  const [documents, setDocuments] = useState<EtudeDocumentsDTO | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionKey, setActionKey] = useState<string | null>(null);
@@ -20,8 +21,12 @@ export function useEtudeDetail(id: string | undefined) {
   const fetchEtude = useCallback(async () => {
     if (!id) return;
     try {
-      const data = await getEtudeDetailById(Number(id));
-      setEtude(data);
+      const [etudeData, docsData] = await Promise.all([
+        getEtudeDetailById(Number(id)),
+        getEtudeDocuments(Number(id)),
+      ]);
+      setEtude(etudeData);
+      setDocuments(docsData);
     } catch {
       setError("Impossible de charger les données de l'étude.");
     } finally {
@@ -42,8 +47,12 @@ export function useEtudeDetail(id: string | undefined) {
     setError(null);
     try {
       await fn();
-      const refreshed = await getEtudeDetailById(Number(id));
+      const [refreshed, refreshedDocs] = await Promise.all([
+        getEtudeDetailById(Number(id)),
+        getEtudeDocuments(Number(id)),
+      ]);
       setEtude(refreshed);
+      setDocuments(refreshedDocs);
     } catch (e: any) {
       const msg = e?.response?.data?.message ?? e?.message ?? 'Une erreur est survenue.';
       setError(msg);
@@ -53,6 +62,6 @@ export function useEtudeDetail(id: string | undefined) {
     }
   }, [id]);
 
-  return { etude, isLoading, actionLoading, actionKey, error, withAction };
+  return { etude, documents, isLoading, actionLoading, actionKey, error, withAction };
 }
 

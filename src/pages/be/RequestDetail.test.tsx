@@ -68,7 +68,6 @@ describe('BERequestDetail — rendu initial', () => {
     (bureauEtudeApi.getBureauByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_BUREAU);
     (demandeDevisApi.getDemandeDevisById as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_DEMANDE);
     (propositionDevisApi.getPropositionDevisByDemandeId as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    (documentApi.getAllDocuments as ReturnType<typeof vi.fn>).mockResolvedValue([]);
   });
 
   it('affiche le formulaire de proposition quand aucune offre n\'existe', async () => {
@@ -94,16 +93,12 @@ describe('BERequestDetail — rendu initial', () => {
       ...MOCK_DEMANDE,
       docsDevisIds: [12, 13],
     });
-    (documentApi.getAllDocuments as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: 12, nomTelechargement: 'MARTIN_JEAN-G1_ELAN-DOCS_CLIENT.pdf' },
-      { id: 13, nomTelechargement: 'MARTIN_JEAN-G1_ELAN-DOCS_CLIENT-2.pdf' },
-    ]);
 
     renderRequestDetail();
 
     await waitFor(() => {
-      expect(screen.getByText('MARTIN_JEAN-G1_ELAN-DOCS_CLIENT.pdf')).toBeTruthy();
-      expect(screen.getByText('MARTIN_JEAN-G1_ELAN-DOCS_CLIENT-2.pdf')).toBeTruthy();
+      expect(screen.getByText('Document de la demande #1')).toBeTruthy();
+      expect(screen.getByText('Document de la demande #2')).toBeTruthy();
     });
   });
 });

@@ -1,5 +1,5 @@
 import api from './index';
-import { EtudeDTO, EtudeDetailDTO } from '../types';
+import { EtudeDTO, EtudeDetailDTO, EtudeDocumentsDTO } from '../types';
 
 // ─── Transitions d'état ───────────────────────────────────────────────────────
 
@@ -84,6 +84,11 @@ export const getEtudesByClientId = async (clientId: number): Promise<EtudeDTO[]>
 
 export const getEtudeDetailById = async (id: number): Promise<EtudeDetailDTO> => {
   const { data } = await api.get(`/etude/${id}/detail`);
+  return data;
+};
+
+export const getEtudeDocuments = async (id: number): Promise<EtudeDocumentsDTO> => {
+  const { data } = await api.get(`/etude/${id}/documents`);
   return data;
 };
 

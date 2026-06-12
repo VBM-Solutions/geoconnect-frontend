@@ -13,7 +13,7 @@ import { useEtudeDetail } from '../../hooks/useEtudeDetail';
 
 export default function ClientEtudeDetail() {
   const { id } = useParams<{ id: string }>();
-  const { etude, isLoading, actionLoading, actionKey, error, withAction } = useEtudeDetail(id);
+  const { etude, documents, isLoading, actionLoading, actionKey, error, withAction } = useEtudeDetail(id);
 
   if (isLoading) return <EtudeDetailLoadingSpinner />;
   if (!etude) return <div className="text-center text-slate-500 py-12">Étude introuvable.</div>;
@@ -78,6 +78,7 @@ export default function ClientEtudeDetail() {
   return (
     <EtudeDetailLayout
       etude={etude}
+      documents={documents}
       error={error}
       backTo={backTo}
       headerLabel="Suivi d'étude"
