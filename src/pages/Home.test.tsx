@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
@@ -330,6 +330,51 @@ describe('Home — tunnel utilisateur', () => {
       expect(screen.getByText('plan.pdf')).toBeTruthy();
     });
   });
- });
+
+  it('bloque le tunnel si superficie négative', async () => {
+    const user = userEvent.setup();
+    await startTunnel(user);
+    await completeStep1(user);
+    await user.type(
+      screen.getByPlaceholderText(/décrivez votre besoin, contraintes particulières/i),
+      'Maison individuelle avec accès étroit.'
+    );
+    fireEvent.change(screen.getByPlaceholderText('Ex : 500'), { target: { value: '-10' } });
+    await user.click(screen.getByRole('button', { name: /suivant/i }));
+    await waitFor(() => {
+      expect(screen.getByText('La superficie doit être positive')).toBeTruthy();
+    });
+    expect(screen.queryByText(/vos coordonnées/i)).toBeNull();
+  });
+
+  it('bloque le tunnel si nombre de lots négatif', async () => {
+    const user = userEvent.setup();
+    await startTunnel(user);
+    await completeStep1(user);
+    await user.type(
+      screen.getByPlaceholderText(/décrivez votre besoin, contraintes particulières/i),
+      'Maison individuelle avec accès étroit.'
+    );
+    fireEvent.change(screen.getByPlaceholderText('Ex : 1'), { target: { value: '-2' } });
+    await user.click(screen.getByRole('button', { name: /suivant/i }));
+    await waitFor(() => {
+      expect(screen.getByText('Le nombre de lots doit être positif')).toBeTruthy();
+    });
+    expect(screen.queryByText(/vos coordonnées/i)).toBeNull();
+  });
+
+  it('bloque le tunnel si description > 2000 caractères', async () => {
+    const user = userEvent.setup();
+    await startTunnel(user);
+    await completeStep1(user);
+    const longDesc = 'A'.repeat(2001);
+    fireEvent.change(screen.getByPlaceholderText(/décrivez votre besoin, contraintes particulières/i), { target: { value: longDesc } });
+    await user.click(screen.getByRole('button', { name: /suivant/i }));
+    await waitFor(() => {
+      expect(screen.getByText('La description ne doit pas dépasser 2000 caractères')).toBeTruthy();
+    });
+    expect(screen.queryByText(/vos coordonnées/i)).toBeNull();
+  });
+});
 
 

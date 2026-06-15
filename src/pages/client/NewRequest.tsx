@@ -120,13 +120,19 @@ export default function NewRequest() {
                 {errors.type && <span className="text-red-500 text-xs mt-1 block">Ce champ est requis</span>}
               </div>
 
-              <Input
-                label="Description ou particularités du projet"
-                placeholder="Ex : terrain en pente, nappe phréatique connue..."
-                maxLength={2000}
-                {...formRegister('description', { maxLength: { value: 2000, message: 'La description ne doit pas dépasser 2000 caractères' } })}
-                error={errors.description ? (errors.description as { message?: string }).message : undefined}
-              />
+              <div>
+                <label htmlFor="description-new-request" className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  Description ou particularités du projet
+                </label>
+                <textarea
+                  id="description-new-request"
+                  maxLength={2000}
+                  {...formRegister('description', { maxLength: { value: 2000, message: 'La description ne doit pas dépasser 2000 caractères' } })}
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-md text-sm outline-none focus:border-slate-400 transition-colors min-h-[100px]"
+                  placeholder="Ex : terrain en pente, nappe phréatique connue..."
+                />
+                {errors.description && <span className="text-red-500 text-xs mt-1 block">{(errors.description as { message?: string }).message}</span>}
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <CadastralReferencesField

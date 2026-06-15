@@ -242,11 +242,12 @@ function QuoteTunnel() {
                 <label htmlFor="description-step2" className="block text-sm font-medium text-slate-700">Description du projet *</label>
                 <textarea
                   id="description-step2"
-                  {...formRegister('description', { required: true })}
+                  maxLength={2000}
+                  {...formRegister('description', { required: true, maxLength: { value: 2000, message: 'La description ne doit pas dépasser 2000 caractères' } })}
                   className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
                   placeholder="Décrivez votre besoin, contraintes particulières..."
                 />
-                {errors.description && <span className="text-red-500 text-xs">Requis</span>}
+                {errors.description && <span className="text-red-500 text-xs">{(errors.description as { message?: string }).message ?? 'Requis'}</span>}
               </div>
               <CadastralReferencesField
                 value={referencesCadastrales}
@@ -257,13 +258,17 @@ function QuoteTunnel() {
                   label="Superficie (m²)"
                   type="number"
                   placeholder="Ex : 500"
-                  {...formRegister('superficie')}
+                  min={0}
+                  {...formRegister('superficie', { min: { value: 0, message: 'La superficie doit être positive' } })}
+                  error={errors.superficie ? (errors.superficie as { message?: string }).message : undefined}
                 />
                 <Input
                   label="Nombre de lots"
                   type="number"
                   placeholder="Ex : 1"
-                  {...formRegister('nombreLot')}
+                  min={0}
+                  {...formRegister('nombreLot', { min: { value: 0, message: 'Le nombre de lots doit être positif' } })}
+                  error={errors.nombreLot ? (errors.nombreLot as { message?: string }).message : undefined}
                 />
               </div>
               <Input

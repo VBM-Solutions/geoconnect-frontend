@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
@@ -802,6 +802,60 @@ describe('NewRequest — validation du code postal', () => {
     await waitFor(() => {
       expect(demandeDevisApi.createDemandeDevis).toHaveBeenCalledOnce();
     });
+  });
+
+  it('bloque la soumission si superficie négative', async () => {
+    const user = userEvent.setup();
+    renderNewRequest();
+    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await user.selectOptions(screen.getByRole('combobox'), 'G0');
+    await user.type(screen.getByPlaceholderText(/15 Avenue des Champs/i), '10 Rue de la Paix');
+    await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
+    await user.type(screen.getByPlaceholderText('Ex : Paris'), 'Paris');
+    const superficieInput = screen.getByPlaceholderText('Ex : 500') as HTMLInputElement;
+    superficieInput.value = '-10';
+    fireEvent.input(superficieInput);
+    await user.click(screen.getByRole('button', { name: /créer la demande/i }));
+    await waitFor(() => {
+      expect(demandeDevisApi.createDemandeDevis).not.toHaveBeenCalled();
+    });
+  });
+
+  it('bloque la soumission si nombre de lots négatif', async () => {
+    const user = userEvent.setup();
+    renderNewRequest();
+    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await user.selectOptions(screen.getByRole('combobox'), 'G0');
+    await user.type(screen.getByPlaceholderText(/15 Avenue des Champs/i), '10 Rue de la Paix');
+    await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
+    await user.type(screen.getByPlaceholderText('Ex : Paris'), 'Paris');
+    const lotsInput = screen.getByPlaceholderText('Ex : 1') as HTMLInputElement;
+    lotsInput.value = '-2';
+    fireEvent.input(lotsInput);
+    await user.click(screen.getByRole('button', { name: /créer la demande/i }));
+    await waitFor(() => {
+      expect(demandeDevisApi.createDemandeDevis).not.toHaveBeenCalled();
+    });
+  });
+
+  it('bloque la soumission si description > 2000 caractères', async () => {
+    const user = userEvent.setup();
+    renderNewRequest();
+    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await user.selectOptions(screen.getByRole('combobox'), 'G0');
+    await user.type(screen.getByPlaceholderText(/15 Avenue des Champs/i), '10 Rue de la Paix');
+    await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
+    await user.type(screen.getByPlaceholderText('Ex : Paris'), 'Paris');
+    const descInput = screen.getByPlaceholderText(/terrain en pente/i) as HTMLTextAreaElement;
+    const longDesc = 'A'.repeat(2001);
+    descInput.value = longDesc;
+    fireEvent.input(descInput);
+    fireEvent.blur(descInput);
+    await user.click(screen.getByRole('button', { name: /créer la demande/i }));
+    await waitFor(() => {
+      expect(screen.getByText('La description ne doit pas dépasser 2000 caractères')).toBeTruthy();
+    });
+    expect(demandeDevisApi.createDemandeDevis).not.toHaveBeenCalled();
   });
 });
 
