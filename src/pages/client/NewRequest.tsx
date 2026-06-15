@@ -123,7 +123,9 @@ export default function NewRequest() {
               <Input
                 label="Description ou particularités du projet"
                 placeholder="Ex : terrain en pente, nappe phréatique connue..."
-                {...formRegister('description')}
+                maxLength={2000}
+                {...formRegister('description', { maxLength: { value: 2000, message: 'La description ne doit pas dépasser 2000 caractères' } })}
+                error={errors.description ? (errors.description as { message?: string }).message : undefined}
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -136,13 +138,17 @@ export default function NewRequest() {
                   label="Superficie (m²)"
                   type="number"
                   placeholder="Ex : 500"
-                  {...formRegister('superficie')}
+                  min={0}
+                  {...formRegister('superficie', { min: { value: 0, message: 'La superficie doit être positive' } })}
+                  error={errors.superficie ? (errors.superficie as { message?: string }).message : undefined}
                 />
                 <Input
                   label="Nombre de lots"
                   type="number"
                   placeholder="Ex : 1"
-                  {...formRegister('nombreLot')}
+                  min={0}
+                  {...formRegister('nombreLot', { min: { value: 0, message: 'Le nombre de lots doit être positif' } })}
+                  error={errors.nombreLot ? (errors.nombreLot as { message?: string }).message : undefined}
                 />
               </div>
 
