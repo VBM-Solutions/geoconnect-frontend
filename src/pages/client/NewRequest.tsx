@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
@@ -6,11 +6,12 @@ import { createDemandeDevis } from '../../api/demandeDevis';
 import { getClientByUserId } from '../../api/client';
 import { uploadDocuments } from '../../api/document';
 import { useTypesEtude } from '../../hooks/useTypesEtude';
-import { MapPin, Paperclip, Plus, X as XIcon } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { CadastralReferencesField } from '../../components/ui/CadastralReferencesField';
+import { FileUploader } from '../../components/shared/FileUploader';
 import { TypeDemandeDevis } from '../../types';
 import { normalizeReferencesCadastrales } from '../../lib/cadastralReferences';
 import { codePostalRules } from '../../lib/validators';
@@ -22,7 +23,6 @@ export default function NewRequest() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
   const [docFiles, setDocFiles] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { typesEtude, loading: loadingTypes } = useTypesEtude();
   const [referencesCadastrales, setReferencesCadastrales] = useState<string[]>(['']);
 
@@ -63,14 +63,6 @@ export default function NewRequest() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleAddFiles = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleRemoveFile = (index: number) => {
-    setDocFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -186,77 +178,12 @@ export default function NewRequest() {
                 />
               </div>
 
-               {/* Document joint */}
-               <div>
-                 <label htmlFor="docFile-new-request" className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-                   Documents joints (plans, cahier des charges…)
-                 </label>
-                 {docFiles.length === 0 ? (
-                   <div
-                     className="flex items-center gap-3 border border-dashed border-slate-300 rounded-md px-4 py-3 cursor-pointer hover:bg-slate-50 transition-colors"
-                     onClick={() => fileInputRef.current?.click()}
-                   >
-                     <Paperclip className="w-4 h-4 text-slate-400 shrink-0" />
-                     <span className="text-sm text-slate-500 truncate">
-                       Joindre un ou plusieurs fichiers (PDF, image…)
-                     </span>
-                   </div>
-                 ) : (
-                   <div className="space-y-2">
-                     <ul className="space-y-1">
-                       {docFiles.map((file, index) => (
-                         <li
-                           key={`${file.name}-${index}`}
-                           className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100"
-                         >
-                           <span className="flex items-center gap-2 text-xs font-medium text-slate-700 min-w-0">
-                             <Paperclip className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                             <span className="truncate" title={file.name}>
-                               {file.name}
-                             </span>
-                           </span>
-                           <button
-                             type="button"
-                             onClick={() => handleRemoveFile(index)}
-                             className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
-                             title="Supprimer ce fichier"
-                             aria-label={`Supprimer ${file.name}`}
-                           >
-                             <XIcon className="w-4 h-4" />
-                           </button>
-                         </li>
-                       ))}
-                     </ul>
-                     <button
-                       type="button"
-                       onClick={handleAddFiles}
-                       className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                       title="Ajouter d'autres fichiers"
-                     >
-                       <Plus className="w-4 h-4" />
-                       Ajouter d'autres fichiers
-                     </button>
-                   </div>
-                 )}
-                  <input
-                    id="docFile-new-request"
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => {
-                      const newFiles = Array.from(e.target.files ?? []);
-                      if (newFiles.length > 0) {
-                        setDocFiles(prev => [...prev, ...newFiles]);
-                        // Réinitialiser l'input pour permettre de re-sélectionner le même fichier
-                        if (fileInputRef.current) {
-                          fileInputRef.current.value = '';
-                        }
-                      }
-                    }}
-                  />
-               </div>
+              <FileUploader
+                id="docFile-new-request"
+                docFiles={docFiles}
+                setDocFiles={setDocFiles}
+                labelClassName="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2"
+              />
             </div>
           </CardContent>
           <CardFooter className="bg-slate-50 border-t border-slate-100 py-4 flex justify-end">
