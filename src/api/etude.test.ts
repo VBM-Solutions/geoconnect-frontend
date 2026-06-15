@@ -13,6 +13,8 @@ import {
   getEtudesByBureauId,
   getEtudesByClientId,
   getEtudeDetailById,
+  getEtudeDocuments,
+  definirDateRenduPrevue,
   fetchEtudeDetails,
 } from './etude';
 
@@ -110,6 +112,15 @@ describe('attacherDevisSigne', () => {
   });
 });
 
+describe('definirDateRenduPrevue', () => {
+  it('appelle PATCH /etude/{id}/date-rendu-prevue avec la date fournie', async () => {
+    (api.patch as any).mockResolvedValueOnce({ data: fakeDetail });
+    const result = await definirDateRenduPrevue(1, '2026-08-15');
+    expect(api.patch).toHaveBeenCalledWith('/etude/1/date-rendu-prevue', { dateRenduPrevue: '2026-08-15' });
+    expect(result).toEqual(fakeDetail);
+  });
+});
+
 // ─── uploaderDevisSigne ───────────────────────────────────────────────────────
 
 describe('uploaderDevisSigne', () => {
@@ -202,6 +213,24 @@ describe('getEtudeDetailById', () => {
   it('propage l\'erreur', async () => {
     (api.get as any).mockRejectedValueOnce(new Error('Not found'));
     await expect(getEtudeDetailById(999)).rejects.toThrow('Not found');
+  });
+});
+
+describe('getEtudeDocuments', () => {
+  it('appelle GET /etude/{id}/documents et retourne le DTO', async () => {
+    const fakeDocs = {
+      documentsDemandeDevis: [{ id: 1, nomTelechargement: 'doc1.pdf' }],
+      devisPdf: { id: 2, nomTelechargement: 'devis.pdf' },
+    };
+    (api.get as any).mockResolvedValueOnce({ data: fakeDocs });
+    const result = await getEtudeDocuments(1);
+    expect(api.get).toHaveBeenCalledWith('/etude/1/documents');
+    expect(result).toEqual(fakeDocs);
+  });
+
+  it('propage l\'erreur', async () => {
+    (api.get as any).mockRejectedValueOnce(new Error('Forbidden'));
+    await expect(getEtudeDocuments(999)).rejects.toThrow('Forbidden');
   });
 });
 

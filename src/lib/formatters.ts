@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { DemandeDevisDTO, DemandeDevisDetail, DocumentRef, EtudeDetailDTO } from '../types';
+import { DemandeDevisDTO, DemandeDevisDetail, DocumentRef } from '../types';
 
 type DemandeWithDocuments = Pick<DemandeDevisDTO | DemandeDevisDetail, 'docsDevisIds'>;
 
@@ -14,31 +14,6 @@ export function buildDemandeDocuments(demande?: DemandeWithDocuments | null): Do
       id: docId,
       label: `Document de la demande #${index + 1}`,
     }));
-}
-
-/**
- * Construit la liste des documents disponibles pour une étude donnée,
- * à partir des IDs présents dans l'EtudeDetailDTO.
- */
-export function buildEtudeDocuments(etude: EtudeDetailDTO): DocumentRef[] {
-  const docs: DocumentRef[] = [];
-
-  const devisPdfId = etude.propositionDevis?.devisPdfId;
-  if (devisPdfId != null) {
-    docs.push({ id: devisPdfId, label: 'Devis (proposition)' });
-  }
-
-  docs.push(...buildDemandeDocuments(etude.propositionDevis?.demandeDevis));
-
-  if (etude.devisSigneId != null) {
-    docs.push({ id: etude.devisSigneId, label: 'Devis signé' });
-  }
-
-  if (etude.rapportId != null) {
-    docs.push({ id: etude.rapportId, label: 'Rapport final' });
-  }
-
-  return docs;
 }
 
 /**

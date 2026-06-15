@@ -50,11 +50,6 @@ export const uploadDocuments = async (files: File[]): Promise<number[]> => {
   return documentIds;
 };
 
-export const getAllDocuments = async (): Promise<DocumentDTO[]> => {
-  const { data } = await api.get('/documents');
-  return data;
-};
-
 /**
  * Déclenche le téléchargement du fichier dans le navigateur.
  * Passer nomTelechargement (issu du DocumentDTO) comme nom — aucune logique de nommage côté front.

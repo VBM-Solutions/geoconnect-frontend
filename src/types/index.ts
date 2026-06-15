@@ -109,6 +109,13 @@ export interface DocumentDTO {
   expireAt?: string;
 }
 
+export interface EtudeDocumentsDTO {
+  documentsDemandeDevis: DocumentDTO[];
+  devisPdf?: DocumentDTO;
+  devisSigne?: DocumentDTO;
+  rapport?: DocumentDTO;
+}
+
 export interface AuthResponseDTO {
   /** @deprecated Le JWT est désormais posé en cookie HttpOnly par le backend — absent du body. */
   token?: string;

@@ -1,6 +1,6 @@
 import React from 'react';
-import { EtudeDetailDTO } from '../../types';
-import { buildEtudeDocuments, formatDateLong } from '../../lib/formatters';
+import { EtudeDetailDTO, EtudeDocumentsDTO, DocumentDTO } from '../../types';
+import { formatDateLong } from '../../lib/formatters';
 import { DocumentList } from './DocumentList';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { BackButton } from '../ui/BackButton';
@@ -11,6 +11,7 @@ import { TYPE_LABELS } from '../../constants/labels';
 
 interface EtudeDetailLayoutProps {
   etude: EtudeDetailDTO;
+  documents?: EtudeDocumentsDTO;
   error: string | null;
   /** URL de retour vers le tableau de bord */
   backTo: string;
@@ -35,6 +36,7 @@ interface EtudeDetailLayoutProps {
  */
 export function EtudeDetailLayout({
   etude,
+  documents,
   error,
   backTo,
   headerLabel,
@@ -201,7 +203,60 @@ export function EtudeDetailLayout({
             </Card>
           )}
 
-          <DocumentList documents={buildEtudeDocuments(etude)} />
+          {/* Carte Documents de l'étude */}
+          {documents && (
+            <div className="space-y-3">
+              {documents.documentsDemandeDevis.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2 border-b border-slate-100">
+                    <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                      <FileText className="w-3 h-3" /> Documents de la demande
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-3">
+                    <DocumentList documents={documents.documentsDemandeDevis} showCard={false} />
+                  </CardContent>
+                </Card>
+              )}
+              {documents.devisPdf && (
+                <Card>
+                  <CardHeader className="pb-2 border-b border-slate-100">
+                    <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                      <FileText className="w-3 h-3" /> Devis (proposition)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-3">
+                    <DocumentList documents={[documents.devisPdf]} showCard={false} />
+                  </CardContent>
+                </Card>
+              )}
+              {documents.devisSigne && (
+                <Card>
+                  <CardHeader className="pb-2 border-b border-slate-100">
+                    <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                      <FileText className="w-3 h-3" /> Devis signé
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-3">
+                    <DocumentList documents={[documents.devisSigne]} showCard={false} />
+                  </CardContent>
+                </Card>
+              )}
+              {documents.rapport && (
+                <Card>
+                  <CardHeader className="pb-2 border-b border-slate-100">
+                    <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                      <FileText className="w-3 h-3" /> Rapport final
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-3">
+                    <DocumentList documents={[documents.rapport]} showCard={false} />
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Colonne droite : stepper */}

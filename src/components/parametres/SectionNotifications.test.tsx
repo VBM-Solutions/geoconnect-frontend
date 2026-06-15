@@ -42,7 +42,7 @@ function submitForm() {
   fireEvent.click(screen.getByRole('button', { name: /enregistrer/i }));
 }
 
-function renderSelectionSection(savePreferences: ReturnType<typeof vi.fn>) {
+function renderSelectionSection(savePreferences: any) {
   renderSection({
     preferences: { notifierTousDepartements: false, departementsSuivis: ['75'] },
     savePreferences,

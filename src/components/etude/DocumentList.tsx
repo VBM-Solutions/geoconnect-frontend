@@ -1,37 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FileText, Eye, Download, Loader2 } from 'lucide-react';
 import { DocumentRef, DocumentDTO } from '../../types';
-import { openDocument, downloadDocument, getAllDocuments } from '../../api/document';
+import { openDocument, downloadDocument } from '../../api/document';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useToast } from '../../contexts/ToastContext';
 
 interface DocumentListProps {
-  readonly documents: DocumentRef[];
+  readonly documents: (DocumentRef | DocumentDTO)[];
   /** Affiche le titre de la carte. Défaut : true */
   readonly showCard?: boolean;
+}
+
+function getDocId(doc: DocumentRef | DocumentDTO): number | undefined {
+  return 'id' in doc ? doc.id : undefined;
+}
+
+function getDocLabel(doc: DocumentRef | DocumentDTO): string {
+  if ('nomTelechargement' in doc && doc.nomTelechargement) {
+    return doc.nomTelechargement;
+  }
+  if ('label' in doc) {
+    return doc.label;
+  }
+  return 'Document';
 }
 
 export function DocumentList({ documents, showCard = true }: DocumentListProps) {
   const { toastError } = useToast();
   const [loadingId, setLoadingId] = useState<number | null>(null);
-  /** Map id → DocumentDTO pour accéder à nomTelechargement */
-  const [dtoMap, setDtoMap] = useState<Map<number, DocumentDTO>>(new Map());
 
-  useEffect(() => {
-    if (documents.length === 0) return;
-    const ids = new Set(documents.map(d => d.id));
-    getAllDocuments()
-      .then(all => {
-        const map = new Map<number, DocumentDTO>();
-        all.filter(d => d.id != null && ids.has(d.id!)).forEach(d => map.set(d.id!, d));
-        setDtoMap(map);
-      })
-      .catch(() => {
-        // Échec silencieux : les actions restent disponibles, sans nomTelechargement
-      });
-  }, [documents]);
+  const validDocs = documents.filter((d): d is (DocumentRef | DocumentDTO) & { id: number } => getDocId(d) != null);
 
-  if (documents.length === 0) return null;
+  if (validDocs.length === 0) return null;
 
   const handle = async (action: () => void | Promise<void>, docId: number) => {
     setLoadingId(docId);
@@ -46,10 +46,9 @@ export function DocumentList({ documents, showCard = true }: DocumentListProps) 
 
   const list = (
     <ul className="space-y-2">
-      {documents.map((doc) => {
+      {validDocs.map((doc) => {
         const isBusy = loadingId === doc.id;
-        const dto = dtoMap.get(doc.id);
-        const nom = dto?.nomTelechargement;
+        const label = getDocLabel(doc);
         return (
           <li
             key={doc.id}
@@ -57,9 +56,8 @@ export function DocumentList({ documents, showCard = true }: DocumentListProps) 
           >
             <span className="flex items-center gap-2 text-xs font-medium text-slate-700 min-w-0">
               <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span className="truncate" title={nom}>
-                {/* Affiche nomTelechargement (ex: DUPONT_JEAN-G1-RAPPORT.pdf) dès qu'il est chargé */}
-                {nom ?? doc.label}
+              <span className="truncate" title={label}>
+                {label}
               </span>
             </span>
             <span className="flex items-center gap-1 shrink-0">
@@ -69,14 +67,14 @@ export function DocumentList({ documents, showCard = true }: DocumentListProps) 
                 <>
                   <button
                     title="Ouvrir"
-                    onClick={() => handle(() => openDocument(doc.id, nom), doc.id)}
+                    onClick={() => handle(() => openDocument(doc.id, label), doc.id)}
                     className="p-1 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
                   >
                     <Eye className="w-3.5 h-3.5" />
                   </button>
                   <button
                     title="Télécharger"
-                    onClick={() => handle(() => downloadDocument(doc.id, nom), doc.id)}
+                    onClick={() => handle(() => downloadDocument(doc.id, label), doc.id)}
                     className="p-1 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
                   >
                     <Download className="w-3.5 h-3.5" />

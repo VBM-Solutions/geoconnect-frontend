@@ -3,12 +3,14 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import React from 'react';
 import { useEtudeDetail } from './useEtudeDetail';
 import { ToastProvider } from '../contexts/ToastContext';
+import { EtudeDocumentsDTO } from '../types';
 
 vi.mock('../api/etude', () => ({
   getEtudeDetailById: vi.fn(),
+  getEtudeDocuments: vi.fn(),
 }));
 
-import { getEtudeDetailById } from '../api/etude';
+import { getEtudeDetailById, getEtudeDocuments } from '../api/etude';
 
 const fakeEtude = {
   id: 42,
@@ -17,12 +19,19 @@ const fakeEtude = {
   demandeDevis: { id: 1, description: 'Travaux' },
 };
 
+const fakeDocuments: EtudeDocumentsDTO = {
+  documentsDemandeDevis: [],
+};
+
 // Le hook utilise useToast → on enveloppe dans ToastProvider
 const wrapper = ({ children }: { children: React.ReactNode }) =>
   React.createElement(ToastProvider, null, children);
 
 describe('useEtudeDetail', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (getEtudeDocuments as any).mockResolvedValue(fakeDocuments);
+  });
 
   it('ne charge pas si id est undefined', async () => {
     const { result } = renderHook(() => useEtudeDetail(undefined), { wrapper });
