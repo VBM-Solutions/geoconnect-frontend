@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDemandeDevisById } from '../../api/demandeDevis';
 import { getPropositionDevisByDemandeId, createPropositionDevis } from '../../api/propositionDevis';
@@ -74,12 +74,11 @@ interface OfferFormProps {
   register: ReturnType<typeof import('react-hook-form').useForm>['register'];
   errors: Record<string, unknown>;
   pdfFile: File | null;
-  fileInputRef: React.RefObject<HTMLInputElement>;
   onFileChange: (f: File | null) => void;
   onSubmitClick: () => void;
 }
 
-function OfferForm({ isResubmit, isSubmitting, register, errors, pdfFile, fileInputRef, onFileChange, onSubmitClick }: Readonly<OfferFormProps>) {
+function OfferForm({ isResubmit, isSubmitting, register, errors, pdfFile, onFileChange, onSubmitClick }: Readonly<OfferFormProps>) {
   return (
     <Card className="border-slate-200 h-full flex flex-col">
       <CardHeader className="bg-slate-50/50 pb-3 border-b border-slate-100">
@@ -122,22 +121,20 @@ function OfferForm({ isResubmit, isSubmitting, register, errors, pdfFile, fileIn
               : undefined}
           />
           <div>
-            <label htmlFor="pdf-upload" className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+            <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
               DEVIS PDF (optionnel)
-            </label>
-            <button
-              id="pdf-upload"
-              type="button"
+            </span>
+            <label
+              htmlFor="pdf-upload"
               className="flex items-center gap-2 w-full border border-dashed border-slate-300 rounded-md px-3 py-2 cursor-pointer hover:bg-slate-50 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
             >
               <Paperclip className="w-4 h-4 text-slate-400 flex-shrink-0" />
               <span className="text-xs text-slate-500 truncate">
                 {pdfFile ? pdfFile.name : 'Joindre un fichier PDF…'}
               </span>
-            </button>
+            </label>
             <input
-              ref={fileInputRef}
+              id="pdf-upload"
               type="file"
               accept="application/pdf"
               className="hidden"
@@ -171,7 +168,6 @@ export default function BERequestDetail() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { register, handleSubmit, formState: { errors } } = useForm();
 
   useEffect(() => {
@@ -385,7 +381,6 @@ export default function BERequestDetail() {
               register={register}
               errors={errors}
               pdfFile={pdfFile}
-              fileInputRef={fileInputRef}
               onFileChange={setPdfFile}
               onSubmitClick={() => setShowConfirmModal(true)}
             />
