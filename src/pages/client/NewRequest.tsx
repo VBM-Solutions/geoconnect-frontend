@@ -13,7 +13,7 @@ import { CadastralReferencesField } from '../../components/ui/CadastralReference
 import { FileUploader } from '../../components/shared/FileUploader';
 import { TypeEtudeSelect } from '../../components/project/TypeEtudeSelect';
 import { TypeDemandeDevis } from '../../types';
-import { normalizeReferencesCadastrales } from '../../lib/cadastralReferences';
+import { buildDemandePayload } from '../../lib/demandePayload';
 import { codePostalRules } from '../../lib/validators';
 import { getFieldMessage } from '../../lib/formErrors';
 
@@ -41,20 +41,18 @@ export default function NewRequest() {
         throw new Error('Compte client introuvable pour cet utilisateur.');
       }
 
-      const payload = {
+      const payload = buildDemandePayload({
         clientId: myClient.id,
-        delaiMaxSouhaite: data.delaiMaxSouhaite ? Number(data.delaiMaxSouhaite) : undefined,
+        delaiMaxSouhaite: data.delaiMaxSouhaite,
         type: data.type as TypeDemandeDevis,
-        description: data.description as string | undefined,
-        nombreLot: data.nombreLot ? Number(data.nombreLot) : undefined,
-        referencesCadastrales: normalizeReferencesCadastrales(referencesCadastrales),
-        superficie: data.superficie ? Number(data.superficie) : undefined,
-        adresseProjet: {
-          rue: data.rueProjet as string,
-          codePostal: data.codePostal as string,
-          ville: data.ville as string,
-        },
-      };
+        description: data.description as string,
+        nombreLot: data.nombreLot,
+        referencesCadastrales,
+        superficie: data.superficie,
+        rueProjet: data.rueProjet as string,
+        codePostalProjet: data.codePostal as string,
+        villeProjet: data.ville as string,
+      });
 
       await submit(payload, docFiles);
     } catch (err: unknown) {

@@ -15,6 +15,7 @@ import { useDemandeSubmission } from '../hooks/useDemandeSubmission';
 import { TypeEtudeSelect } from '../components/project/TypeEtudeSelect';
 import { MapPin, Briefcase, Mail } from 'lucide-react';
 import { TypeDemandeDevis, Civilite } from '../types';
+import { buildDemandePayload } from '../lib/demandePayload';
 import { normalizeReferencesCadastrales } from '../lib/cadastralReferences';
 import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules } from '../lib/validators';
 import { getFieldMessage } from '../lib/formErrors';
@@ -116,20 +117,18 @@ function QuoteTunnel() {
         }
       }
 
-      const payload = {
+      const payload = buildDemandePayload({
         clientId,
-        delaiMaxSouhaite: data.delaiMaxSouhaite ? Number(data.delaiMaxSouhaite) : undefined,
+        delaiMaxSouhaite: data.delaiMaxSouhaite,
         type: data.type as TypeDemandeDevis,
-        description: data.description as string | undefined,
-        nombreLot: data.nombreLot ? Number(data.nombreLot) : undefined,
-        referencesCadastrales: normalizeReferencesCadastrales(referencesCadastrales),
-        superficie: data.superficie ? Number(data.superficie) : undefined,
-        adresseProjet: {
-          rue: data.rueProjet as string,
-          codePostal: (data.codePostalProjet || data.codePostal) as string,
-          ville: (data.villeProjet || data.ville) as string,
-        },
-      };
+        description: data.description as string,
+        nombreLot: data.nombreLot,
+        referencesCadastrales,
+        superficie: data.superficie,
+        rueProjet: data.rueProjet as string,
+        codePostalProjet: (data.codePostalProjet || data.codePostal) as string,
+        villeProjet: (data.villeProjet || data.ville) as string,
+      });
 
       await submit(payload, docFiles);
     } catch (err: unknown) {
