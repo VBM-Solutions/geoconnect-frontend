@@ -233,7 +233,7 @@ describe('Home — tunnel utilisateur', () => {
 
     await waitFor(() => {
       expect(screen.getByText('plan.pdf')).toBeTruthy();
-      expect(screen.getByRole('button', { name: /ajouter d\'autres fichiers/i })).toBeTruthy();
+      expect(screen.getByText(/Ajouter d'autres fichiers/i)).toBeTruthy();
     });
   });
 
@@ -253,8 +253,8 @@ describe('Home — tunnel utilisateur', () => {
     });
 
     const file2 = new File(['content2'], 'photo.png', { type: 'image/png' });
-    const addButtons = screen.getAllByRole('button', { name: /ajouter d\'autres fichiers/i });
-    await user.click(addButtons[0]);
+    const addLink = screen.getByText(/Ajouter d'autres fichiers/i);
+    await user.click(addLink);
     await user.upload(fileInput, file2);
 
     await waitFor(() => {
@@ -279,8 +279,8 @@ describe('Home — tunnel utilisateur', () => {
       expect(screen.getByText('plan.pdf')).toBeTruthy();
     });
 
-    const addButtons = screen.getAllByRole('button', { name: /ajouter d\'autres fichiers/i });
-    await user.click(addButtons[0]);
+    const addLink = screen.getByText(/Ajouter d'autres fichiers/i);
+    await user.click(addLink);
     await user.upload(fileInput, file2);
 
     await waitFor(() => {

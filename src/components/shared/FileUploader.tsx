@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { Paperclip, Plus, X as XIcon } from 'lucide-react';
 
 interface FileUploaderProps {
@@ -20,38 +20,34 @@ export function FileUploader({
   showEmptyDropzone = true,
   dropzoneClassName = 'flex items-center gap-3 border border-dashed border-slate-300 rounded-md px-4 py-3 cursor-pointer hover:bg-slate-50 transition-colors',
 }: Readonly<FileUploaderProps>) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleAddFiles = () => fileInputRef.current?.click();
+  const handleAddFiles = (files: File[]) =>
+    setDocFiles(prev => [...prev, ...files]);
   const handleRemoveFile = (index: number) =>
     setDocFiles(prev => prev.filter((_, i) => i !== index));
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newFiles = Array.from(e.target.files ?? []);
-    if (newFiles.length > 0) {
-      setDocFiles(prev => [...prev, ...newFiles]);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    const files = e.target.files ? [...e.target.files] : [];
+    if (files.length > 0) {
+      handleAddFiles(files);
     }
+    e.target.value = '';
   };
 
   return (
     <div className="space-y-1">
-      <label htmlFor={id} className={labelClassName}>
+      <span className={labelClassName}>
         Documents joints (plans, cahier des charges…)
-      </label>
+      </span>
       {docFiles.length === 0 && showEmptyDropzone && (
-        <button
-          type="button"
+        <label
+          htmlFor={id}
           className={dropzoneClassName.replace('cursor-pointer', 'bg-white text-left w-full')}
-          onClick={handleAddFiles}
         >
           <Paperclip className="w-4 h-4 text-slate-400 shrink-0" />
           <span className="text-sm text-slate-500 truncate">
             Joindre un ou plusieurs fichiers (PDF, image…)
           </span>
-        </button>
+        </label>
       )}
 
       {docFiles.length > 0 && (
@@ -80,20 +76,17 @@ export function FileUploader({
               </li>
             ))}
           </ul>
-          <button
-            type="button"
-            onClick={handleAddFiles}
-            className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-            title="Ajouter d'autres fichiers"
+          <label
+            htmlFor={id}
+            className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Ajouter d'autres fichiers
-          </button>
+          </label>
         </div>
       )}
       <input
         id={id}
-        ref={fileInputRef}
         type="file"
         accept=".pdf,.jpg,.jpeg,.png"
         multiple

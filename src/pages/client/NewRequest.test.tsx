@@ -280,7 +280,7 @@ describe('NewRequest — soumission du formulaire', () => {
 
     await waitFor(() => {
       expect(screen.getByText('plan.pdf')).toBeTruthy();
-      expect(screen.getByRole('button', { name: /ajouter d\'autres fichiers/i })).toBeTruthy();
+      expect(screen.getByText(/Ajouter d'autres fichiers/i)).toBeTruthy();
     });
   });
 
@@ -296,7 +296,7 @@ describe('NewRequest — soumission du formulaire', () => {
     await waitFor(() => expect(screen.getByText('plan.pdf')).toBeTruthy());
 
     const file2 = new File(['content2'], 'photo.png', { type: 'image/png' });
-    await user.click(screen.getByRole('button', { name: /ajouter d\'autres fichiers/i }));
+    await user.click(screen.getByText(/Ajouter d'autres fichiers/i));
     await user.upload(fileInput, file2);
 
     await waitFor(() => {
@@ -317,7 +317,7 @@ describe('NewRequest — soumission du formulaire', () => {
     await user.upload(fileInput, file1);
     await waitFor(() => expect(screen.getByText('plan.pdf')).toBeTruthy());
 
-    await user.click(screen.getByRole('button', { name: /ajouter d\'autres fichiers/i }));
+    await user.click(screen.getByText(/Ajouter d'autres fichiers/i));
     await user.upload(fileInput, file2);
     await waitFor(() => {
       expect(screen.getByText('plan.pdf')).toBeTruthy();
