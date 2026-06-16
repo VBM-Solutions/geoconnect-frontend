@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { registerCall } from '../api/auth';
@@ -10,13 +10,14 @@ import { FileUploader } from '../components/shared/FileUploader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../components/ui/Card';
 import { useForm } from 'react-hook-form';
 import { createClient, getClientByUserId } from '../api/client';
-import { createDemandeDevis } from '../api/demandeDevis';
-import { uploadDocuments } from '../api/document';
 import { useTypesEtude } from '../hooks/useTypesEtude';
+import { useDemandeSubmission } from '../hooks/useDemandeSubmission';
+import { TypeEtudeSelect } from '../components/project/TypeEtudeSelect';
 import { MapPin, Briefcase, Mail } from 'lucide-react';
-import { TypeDemandeDevis } from '../types';
+import { TypeDemandeDevis, Civilite } from '../types';
 import { normalizeReferencesCadastrales } from '../lib/cadastralReferences';
 import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules } from '../lib/validators';
+import { getFieldMessage } from '../lib/formErrors';
 
 export default function Home() {
   const [step, setStep] = useState(0);
@@ -52,20 +53,24 @@ export default function Home() {
 
 function QuoteTunnel() {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [docFiles, setDocFiles] = useState<File[]>([]);
   const [referencesCadastrales, setReferencesCadastrales] = useState<string[]>(['']);
   const { typesEtude, loading: loadingTypes } = useTypesEtude();
-   const navigate = useNavigate();
-   const { login } = useAuth();
-
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
   const { register: formRegister, handleSubmit, getValues, watch, formState: { errors } } = useForm();
   const passwordValue = watch('password', '');
 
-  const handleNext = (data: any) => {
+  const { submit } = useDemandeSubmission({
+    onSuccess: () => navigate('/success'),
+    onError: (msg) => { setError(msg); setIsLoading(false); },
+  });
+
+  const handleNext = (data: Record<string, unknown>) => {
     setFormData({ ...formData, ...data });
     if (step < 3) {
       setStep(step + 1);
@@ -74,31 +79,29 @@ function QuoteTunnel() {
     }
   };
 
-  const submitTunnel = async (data: any) => {
+  const submitTunnel = async (data: Record<string, unknown>) => {
     setIsLoading(true);
     setError(null);
     try {
-      // 1. Register User
       const authRes = await registerCall({
-        login: data.login,
-        password: data.password,
+        login: data.login as string,
+        password: data.password as string,
         role: 'CLIENT',
       });
 
       login(authRes);
 
-      // 2. Create Client Profile
       let client = await createClient({
-        civilite: data.civilite,
-        nom: data.nom,
-        prenom: data.prenom,
-        emailContact: data.login,
-        telContact: data.telContact,
+        civilite: data.civilite as 'MR' | 'MME' | 'AUTRE',
+        nom: data.nom as string,
+        prenom: data.prenom as string,
+        emailContact: data.login as string,
+        telContact: data.telContact as string,
         utilisateurId: authRes.userId,
         adresseFacturation: {
-          rue: data.rue,
-          ville: data.ville,
-          codePostal: data.codePostal,
+          rue: data.rue as string,
+          ville: data.ville as string,
+          codePostal: data.codePostal as string,
         },
       });
 
@@ -113,27 +116,24 @@ function QuoteTunnel() {
         }
       }
 
-      const docsDevisIds = await uploadDocuments(docFiles);
-
-      await createDemandeDevis({
+      const payload = {
         clientId,
         delaiMaxSouhaite: data.delaiMaxSouhaite ? Number(data.delaiMaxSouhaite) : undefined,
         type: data.type as TypeDemandeDevis,
-        description: data.description,
+        description: data.description as string | undefined,
         nombreLot: data.nombreLot ? Number(data.nombreLot) : undefined,
         referencesCadastrales: normalizeReferencesCadastrales(referencesCadastrales),
         superficie: data.superficie ? Number(data.superficie) : undefined,
-        docsDevisIds,
         adresseProjet: {
-          rue: data.rueProjet,
-          codePostal: data.codePostalProjet || data.codePostal,
-          ville: data.villeProjet || data.ville,
+          rue: data.rueProjet as string,
+          codePostal: (data.codePostalProjet || data.codePostal) as string,
+          ville: (data.villeProjet || data.ville) as string,
         },
-      });
+      };
 
-      navigate('/success');
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Une erreur est survenue');
+      await submit(payload, docFiles);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
       setIsLoading(false);
     }
   };
@@ -173,26 +173,18 @@ function QuoteTunnel() {
               <CardDescription>Qualifions rapidement votre projet géotechnique.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Type de mission */}
-              <div className="space-y-1">
-                <label htmlFor="type-step1" className="block text-sm font-medium text-slate-700">Type de mission *</label>
-                <select
-                  id="type-step1"
-                  {...formRegister('type', { required: true })}
-                  disabled={loadingTypes}
-                  className="w-full flex h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                >
-                  <option value="">{loadingTypes ? 'Chargement…' : 'Sélectionnez un type'}</option>
-                  {typesEtude.map((t) => (
-                    <option key={t.code} value={t.code}>
-                      {t.libelle}
-                    </option>
-                  ))}
-                </select>
-                {errors.type && <span className="text-red-500 text-xs">Requis</span>}
-              </div>
+              <TypeEtudeSelect
+                id="type-step1"
+                register={formRegister}
+                types={typesEtude}
+                loading={loadingTypes}
+                error={errors.type ? 'Requis' : undefined}
+                label="Type de mission *"
+                labelClassName="block text-sm font-medium text-slate-700"
+                selectClassName="w-full flex h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                placeholder="Sélectionnez un type"
+              />
 
-              {/* Adresse du projet */}
               <Input
                 label="Rue du projet *"
                 placeholder="Ex : 15 Avenue des Champs-Élysées"
@@ -204,7 +196,7 @@ function QuoteTunnel() {
                   label="Code Postal *"
                   placeholder="Ex : 75001"
                   {...formRegister('codePostalProjet', codePostalRules)}
-                  error={errors.codePostalProjet ? (errors.codePostalProjet as { message?: string }).message : undefined}
+                  error={getFieldMessage(errors.codePostalProjet)}
                 />
                 <Input
                   label="Ville *"
@@ -239,7 +231,7 @@ function QuoteTunnel() {
                   className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
                   placeholder="Décrivez votre besoin, contraintes particulières..."
                 />
-                {errors.description && <span className="text-red-500 text-xs">{(errors.description as { message?: string }).message ?? 'Requis'}</span>}
+                {errors.description && <span className="text-red-500 text-xs">{getFieldMessage(errors.description) ?? 'Requis'}</span>}
               </div>
               <CadastralReferencesField
                 value={referencesCadastrales}
@@ -252,7 +244,7 @@ function QuoteTunnel() {
                   placeholder="Ex : 500"
                   min={0}
                   {...formRegister('superficie', { min: { value: 0, message: 'La superficie doit être positive' } })}
-                  error={errors.superficie ? (errors.superficie as { message?: string }).message : undefined}
+                  error={getFieldMessage(errors.superficie)}
                 />
                 <Input
                   label="Nombre de lots"
@@ -260,7 +252,7 @@ function QuoteTunnel() {
                   placeholder="Ex : 1"
                   min={0}
                   {...formRegister('nombreLot', { min: { value: 0, message: 'Le nombre de lots doit être positif' } })}
-                  error={errors.nombreLot ? (errors.nombreLot as { message?: string }).message : undefined}
+                  error={getFieldMessage(errors.nombreLot)}
                 />
               </div>
               <Input
@@ -298,7 +290,6 @@ function QuoteTunnel() {
               {error && (
                 <div className="p-3 bg-red-50 text-red-700 text-sm rounded-md">{error}</div>
               )}
-              {/* Civilité */}
               <div className="space-y-1">
                 <label htmlFor="civilite" className="block text-sm font-medium text-slate-700">Civilité *</label>
                 <select
@@ -330,7 +321,7 @@ function QuoteTunnel() {
                 type="tel"
                 placeholder="06 00 00 00 00"
                 {...formRegister('telContact', phoneRules)}
-                error={errors.telContact ? (errors.telContact.message as string ?? 'Requis') : undefined}
+                error={getFieldMessage(errors.telContact) ?? undefined}
               />
               <Input
                 label="Rue (adresse de facturation) *"
@@ -342,7 +333,7 @@ function QuoteTunnel() {
                 <Input
                   label="Code Postal *"
                   {...formRegister('codePostal', codePostalRules)}
-                  error={errors.codePostal ? (errors.codePostal as { message?: string }).message : undefined}
+                  error={getFieldMessage(errors.codePostal)}
                 />
                 <Input
                   label="Ville *"
@@ -362,7 +353,7 @@ function QuoteTunnel() {
                   type="password"
                   label="Mot de passe *"
                   {...formRegister('password', passwordRules)}
-                  error={errors.password ? (errors.password.message as string) : undefined}
+                  error={getFieldMessage(errors.password)}
                   showPasswordToggle
                 />
                 <PasswordRequirementsHint password={passwordValue} />
@@ -371,7 +362,7 @@ function QuoteTunnel() {
                 type="password"
                 label="Confirmation du mot de passe *"
                 {...formRegister('confirmPassword', createConfirmPasswordRules(() => getValues('password')))}
-                error={errors.confirmPassword ? (errors.confirmPassword.message as string) : undefined}
+                error={getFieldMessage(errors.confirmPassword)}
                 showPasswordToggle
               />
             </CardContent>
