@@ -12,7 +12,6 @@ import { Input } from '../../components/ui/Input';
 import { CadastralReferencesField } from '../../components/ui/CadastralReferencesField';
 import { FileUploader } from '../../components/shared/FileUploader';
 import { TypeEtudeSelect } from '../../components/project/TypeEtudeSelect';
-import { TypeDemandeDevis } from '../../types';
 import { buildDemandePayload, mapFormFieldsToPayloadBase } from '../../lib/demandePayload';
 import { codePostalRules } from '../../lib/validators';
 import { getFieldMessage } from '../../lib/formErrors';
