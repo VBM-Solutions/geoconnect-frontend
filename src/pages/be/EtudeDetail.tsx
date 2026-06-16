@@ -221,6 +221,7 @@ export interface BEStepActionsProps {
 
 export function BEStepActions({ etat, dateIntervention, isLoading, onProposerDate, onInterventionEffectuee, onTerminerRapport }: Readonly<BEStepActionsProps>) {
   const [dateInput, setDateInput] = useState('');
+  const [dateError, setDateError] = useState('');
   const [rapportFile, setRapportFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showInterventionModal, setShowInterventionModal] = useState(false);
@@ -236,7 +237,12 @@ export function BEStepActions({ etat, dateIntervention, isLoading, onProposerDat
     }
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  // Date locale du navigateur au format YYYY-MM-DD
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const today = `${yyyy}-${mm}-${dd}`;
 
   // Calcul de l'écart entre aujourd'hui et la date d'intervention prévue
   const interventionDaysRemaining = (() => {
@@ -287,11 +293,35 @@ export function BEStepActions({ etat, dateIntervention, isLoading, onProposerDat
                 type="date"
                 value={dateInput}
                 min={today}
-                onChange={e => setDateInput(e.target.value)}
-                className="border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                onChange={e => {
+                  setDateInput(e.target.value);
+                  setDateError('');
+                }}
+                onBlur={e => {
+                  if (e.target.value && e.target.value < today) {
+                    setDateError('La date doit être dans le futur');
+                  } else {
+                    setDateError('');
+                  }
+                }}
+                className={`border rounded px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                  dateError ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'
+                }`}
               />
+              {dateError && <p className="text-red-500 text-[10px] mt-1">{dateError}</p>}
             </div>
-            <Button onClick={() => onProposerDate(dateInput)} disabled={!dateInput} isLoading={isLoading}>
+            <Button
+              onClick={() => {
+                if (dateInput && dateInput < today) {
+                  setDateError('La date doit être dans le futur');
+                  return;
+                }
+                setDateError('');
+                onProposerDate(dateInput);
+              }}
+              disabled={!dateInput || !!dateError}
+              isLoading={isLoading}
+            >
               Envoyer la date
             </Button>
           </div>

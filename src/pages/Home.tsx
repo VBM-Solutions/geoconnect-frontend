@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { registerCall } from '../api/auth';
@@ -6,16 +6,17 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { CadastralReferencesField } from '../components/ui/CadastralReferencesField';
 import { PasswordRequirementsHint } from '../components/ui/PasswordRequirementsHint';
+import { FileUploader } from '../components/shared/FileUploader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../components/ui/Card';
 import { useForm } from 'react-hook-form';
 import { createClient, getClientByUserId } from '../api/client';
-import { createDemandeDevis } from '../api/demandeDevis';
-import { uploadDocuments } from '../api/document';
 import { useTypesEtude } from '../hooks/useTypesEtude';
-import { MapPin, Briefcase, Mail, Paperclip, Plus, X as XIcon } from 'lucide-react';
-import { TypeDemandeDevis } from '../types';
-import { normalizeReferencesCadastrales } from '../lib/cadastralReferences';
+import { useDemandeSubmission } from '../hooks/useDemandeSubmission';
+import { TypeEtudeSelect } from '../components/project/TypeEtudeSelect';
+import { MapPin, Briefcase, Mail } from 'lucide-react';
+import { buildDemandePayload, mapFormFieldsToPayloadBase } from '../lib/demandePayload';
 import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules } from '../lib/validators';
+import { getFieldMessage } from '../lib/formErrors';
 
 export default function Home() {
   const [step, setStep] = useState(0);
@@ -51,29 +52,24 @@ export default function Home() {
 
 function QuoteTunnel() {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [docFiles, setDocFiles] = useState<File[]>([]);
   const [referencesCadastrales, setReferencesCadastrales] = useState<string[]>(['']);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { typesEtude, loading: loadingTypes } = useTypesEtude();
-   const navigate = useNavigate();
-   const { login } = useAuth();
-
-   const handleAddFiles = () => {
-     fileInputRef.current?.click();
-   };
-
-   const handleRemoveFile = (index: number) => {
-     setDocFiles(prev => prev.filter((_, i) => i !== index));
-   };
-
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
   const { register: formRegister, handleSubmit, getValues, watch, formState: { errors } } = useForm();
   const passwordValue = watch('password', '');
 
-  const handleNext = (data: any) => {
+  const { submit } = useDemandeSubmission({
+    onSuccess: () => navigate('/success'),
+    onError: (msg) => { setError(msg); setIsLoading(false); },
+  });
+
+  const handleNext = (data: Record<string, unknown>) => {
     setFormData({ ...formData, ...data });
     if (step < 3) {
       setStep(step + 1);
@@ -82,31 +78,29 @@ function QuoteTunnel() {
     }
   };
 
-  const submitTunnel = async (data: any) => {
+  const submitTunnel = async (data: Record<string, unknown>) => {
     setIsLoading(true);
     setError(null);
     try {
-      // 1. Register User
       const authRes = await registerCall({
-        login: data.login,
-        password: data.password,
+        login: data.login as string,
+        password: data.password as string,
         role: 'CLIENT',
       });
 
       login(authRes);
 
-      // 2. Create Client Profile
       let client = await createClient({
-        civilite: data.civilite,
-        nom: data.nom,
-        prenom: data.prenom,
-        emailContact: data.login,
-        telContact: data.telContact,
+        civilite: data.civilite as 'MR' | 'MME' | 'AUTRE',
+        nom: data.nom as string,
+        prenom: data.prenom as string,
+        emailContact: data.login as string,
+        telContact: data.telContact as string,
         utilisateurId: authRes.userId,
         adresseFacturation: {
-          rue: data.rue,
-          ville: data.ville,
-          codePostal: data.codePostal,
+          rue: data.rue as string,
+          ville: data.ville as string,
+          codePostal: data.codePostal as string,
         },
       });
 
@@ -121,27 +115,18 @@ function QuoteTunnel() {
         }
       }
 
-      const docsDevisIds = await uploadDocuments(docFiles);
-
-      await createDemandeDevis({
+      const payload = buildDemandePayload({
         clientId,
-        delaiMaxSouhaite: data.delaiMaxSouhaite ? Number(data.delaiMaxSouhaite) : undefined,
-        type: data.type as TypeDemandeDevis,
-        description: data.description,
-        nombreLot: data.nombreLot ? Number(data.nombreLot) : undefined,
-        referencesCadastrales: normalizeReferencesCadastrales(referencesCadastrales),
-        superficie: data.superficie ? Number(data.superficie) : undefined,
-        docsDevisIds,
-        adresseProjet: {
-          rue: data.rueProjet,
-          codePostal: data.codePostalProjet || data.codePostal,
-          ville: data.villeProjet || data.ville,
-        },
+        ...mapFormFieldsToPayloadBase(data),
+        referencesCadastrales,
+        rueProjet: data.rueProjet as string,
+        codePostalProjet: (data.codePostalProjet || data.codePostal) as string,
+        villeProjet: (data.villeProjet || data.ville) as string,
       });
 
-      navigate('/success');
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Une erreur est survenue');
+      await submit(payload, docFiles);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
       setIsLoading(false);
     }
   };
@@ -181,26 +166,18 @@ function QuoteTunnel() {
               <CardDescription>Qualifions rapidement votre projet géotechnique.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Type de mission */}
-              <div className="space-y-1">
-                <label htmlFor="type-step1" className="block text-sm font-medium text-slate-700">Type de mission *</label>
-                <select
-                  id="type-step1"
-                  {...formRegister('type', { required: true })}
-                  disabled={loadingTypes}
-                  className="w-full flex h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                >
-                  <option value="">{loadingTypes ? 'Chargement…' : 'Sélectionnez un type'}</option>
-                  {typesEtude.map((t) => (
-                    <option key={t.code} value={t.code}>
-                      {t.libelle}
-                    </option>
-                  ))}
-                </select>
-                {errors.type && <span className="text-red-500 text-xs">Requis</span>}
-              </div>
+              <TypeEtudeSelect
+                id="type-step1"
+                register={formRegister}
+                types={typesEtude}
+                loading={loadingTypes}
+                error={errors.type ? 'Requis' : undefined}
+                label="Type de mission *"
+                labelClassName="block text-sm font-medium text-slate-700"
+                selectClassName="w-full flex h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                placeholder="Sélectionnez un type"
+              />
 
-              {/* Adresse du projet */}
               <Input
                 label="Rue du projet *"
                 placeholder="Ex : 15 Avenue des Champs-Élysées"
@@ -212,7 +189,7 @@ function QuoteTunnel() {
                   label="Code Postal *"
                   placeholder="Ex : 75001"
                   {...formRegister('codePostalProjet', codePostalRules)}
-                  error={errors.codePostalProjet ? (errors.codePostalProjet as { message?: string }).message : undefined}
+                  error={getFieldMessage(errors.codePostalProjet)}
                 />
                 <Input
                   label="Ville *"
@@ -242,11 +219,12 @@ function QuoteTunnel() {
                 <label htmlFor="description-step2" className="block text-sm font-medium text-slate-700">Description du projet *</label>
                 <textarea
                   id="description-step2"
-                  {...formRegister('description', { required: true })}
+                  maxLength={2000}
+                  {...formRegister('description', { required: true, maxLength: { value: 2000, message: 'La description ne doit pas dépasser 2000 caractères' } })}
                   className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
                   placeholder="Décrivez votre besoin, contraintes particulières..."
                 />
-                {errors.description && <span className="text-red-500 text-xs">Requis</span>}
+                {errors.description && <span className="text-red-500 text-xs">{getFieldMessage(errors.description) ?? 'Requis'}</span>}
               </div>
               <CadastralReferencesField
                 value={referencesCadastrales}
@@ -257,13 +235,17 @@ function QuoteTunnel() {
                   label="Superficie (m²)"
                   type="number"
                   placeholder="Ex : 500"
-                  {...formRegister('superficie')}
+                  min={0}
+                  {...formRegister('superficie', { min: { value: 0, message: 'La superficie doit être positive' } })}
+                  error={getFieldMessage(errors.superficie)}
                 />
                 <Input
                   label="Nombre de lots"
                   type="number"
                   placeholder="Ex : 1"
-                  {...formRegister('nombreLot')}
+                  min={0}
+                  {...formRegister('nombreLot', { min: { value: 0, message: 'Le nombre de lots doit être positif' } })}
+                  error={getFieldMessage(errors.nombreLot)}
                 />
               </div>
               <Input
@@ -274,77 +256,11 @@ function QuoteTunnel() {
                 {...formRegister('delaiMaxSouhaite')}
               />
 
-               {/* Document joint */}
-               <div className="space-y-1">
-                 <label htmlFor="docFile-step2" className="block text-sm font-medium text-slate-700">
-                   Documents joints (plans, cahier des charges…)
-                 </label>
-                 {docFiles.length === 0 ? (
-                   <div
-                     className="flex items-center gap-3 border border-dashed border-slate-300 rounded-md px-4 py-3 cursor-pointer hover:bg-slate-50 transition-colors"
-                     onClick={() => fileInputRef.current?.click()}
-                   >
-                     <Paperclip className="w-4 h-4 text-slate-400 shrink-0" />
-                     <span className="text-sm text-slate-500 truncate">
-                       Joindre un ou plusieurs fichiers (PDF, image…)
-                     </span>
-                   </div>
-                 ) : (
-                   <div className="space-y-2">
-                     <ul className="space-y-1">
-                       {docFiles.map((file, index) => (
-                         <li
-                           key={`${file.name}-${index}`}
-                           className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100"
-                         >
-                           <span className="flex items-center gap-2 text-xs font-medium text-slate-700 min-w-0">
-                             <Paperclip className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                             <span className="truncate" title={file.name}>
-                               {file.name}
-                             </span>
-                           </span>
-                           <button
-                             type="button"
-                             onClick={() => handleRemoveFile(index)}
-                             className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
-                             title="Supprimer ce fichier"
-                             aria-label={`Supprimer ${file.name}`}
-                           >
-                             <XIcon className="w-4 h-4" />
-                           </button>
-                         </li>
-                       ))}
-                     </ul>
-                     <button
-                       type="button"
-                       onClick={handleAddFiles}
-                       className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                       title="Ajouter d'autres fichiers"
-                     >
-                       <Plus className="w-4 h-4" />
-                       Ajouter d'autres fichiers
-                     </button>
-                   </div>
-                 )}
-                 <input
-                   id="docFile-step2"
-                   ref={fileInputRef}
-                   type="file"
-                   accept=".pdf,.jpg,.jpeg,.png"
-                   multiple
-                   className="hidden"
-                   onChange={(e) => {
-                     const newFiles = Array.from(e.target.files ?? []);
-                     if (newFiles.length > 0) {
-                       setDocFiles(prev => [...prev, ...newFiles]);
-                       // Réinitialiser l'input pour permettre de re-sélectionner le même fichier
-                       if (fileInputRef.current) {
-                         fileInputRef.current.value = '';
-                       }
-                     }
-                   }}
-                 />
-               </div>
+              <FileUploader
+                id="docFile-step2"
+                docFiles={docFiles}
+                setDocFiles={setDocFiles}
+              />
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button type="button" variant="outline" onClick={() => setStep(1)}>
@@ -367,7 +283,6 @@ function QuoteTunnel() {
               {error && (
                 <div className="p-3 bg-red-50 text-red-700 text-sm rounded-md">{error}</div>
               )}
-              {/* Civilité */}
               <div className="space-y-1">
                 <label htmlFor="civilite" className="block text-sm font-medium text-slate-700">Civilité *</label>
                 <select
@@ -399,7 +314,7 @@ function QuoteTunnel() {
                 type="tel"
                 placeholder="06 00 00 00 00"
                 {...formRegister('telContact', phoneRules)}
-                error={errors.telContact ? (errors.telContact.message as string ?? 'Requis') : undefined}
+                error={getFieldMessage(errors.telContact) ?? undefined}
               />
               <Input
                 label="Rue (adresse de facturation) *"
@@ -411,7 +326,7 @@ function QuoteTunnel() {
                 <Input
                   label="Code Postal *"
                   {...formRegister('codePostal', codePostalRules)}
-                  error={errors.codePostal ? (errors.codePostal as { message?: string }).message : undefined}
+                  error={getFieldMessage(errors.codePostal)}
                 />
                 <Input
                   label="Ville *"
@@ -431,7 +346,7 @@ function QuoteTunnel() {
                   type="password"
                   label="Mot de passe *"
                   {...formRegister('password', passwordRules)}
-                  error={errors.password ? (errors.password.message as string) : undefined}
+                  error={getFieldMessage(errors.password)}
                   showPasswordToggle
                 />
                 <PasswordRequirementsHint password={passwordValue} />
@@ -440,7 +355,7 @@ function QuoteTunnel() {
                 type="password"
                 label="Confirmation du mot de passe *"
                 {...formRegister('confirmPassword', createConfirmPasswordRules(() => getValues('password')))}
-                error={errors.confirmPassword ? (errors.confirmPassword.message as string) : undefined}
+                error={getFieldMessage(errors.confirmPassword)}
                 showPasswordToggle
               />
             </CardContent>

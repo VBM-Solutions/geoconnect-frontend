@@ -1,76 +1,58 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
-import { createDemandeDevis } from '../../api/demandeDevis';
 import { getClientByUserId } from '../../api/client';
-import { uploadDocuments } from '../../api/document';
 import { useTypesEtude } from '../../hooks/useTypesEtude';
-import { MapPin, Paperclip, Plus, X as XIcon } from 'lucide-react';
+import { useDemandeSubmission } from '../../hooks/useDemandeSubmission';
+import { MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { CadastralReferencesField } from '../../components/ui/CadastralReferencesField';
-import { TypeDemandeDevis } from '../../types';
-import { normalizeReferencesCadastrales } from '../../lib/cadastralReferences';
+import { FileUploader } from '../../components/shared/FileUploader';
+import { TypeEtudeSelect } from '../../components/project/TypeEtudeSelect';
+import { buildDemandePayload, mapFormFieldsToPayloadBase } from '../../lib/demandePayload';
 import { codePostalRules } from '../../lib/validators';
+import { getFieldMessage } from '../../lib/formErrors';
 
 export default function NewRequest() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { register: formRegister, handleSubmit, formState: { errors } } = useForm();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
   const [docFiles, setDocFiles] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { typesEtude, loading: loadingTypes } = useTypesEtude();
   const [referencesCadastrales, setReferencesCadastrales] = useState<string[]>(['']);
 
-  const onSubmit = async (data: any) => {
-    setIsSubmitting(true);
+  const { submit, isSubmitting } = useDemandeSubmission({
+    onSuccess: () => navigate('/client/dashboard'),
+    onError: (msg) => setErrorDetails(msg),
+  });
+
+  const onSubmit = async (data: Record<string, unknown>) => {
     setErrorDetails('');
     try {
       if (!user) throw new Error("Vous n'êtes pas connecté.");
 
       const myClient = await getClientByUserId(user.userId);
-
       if (!myClient?.id) {
-        throw new Error("Compte client introuvable pour cet utilisateur.");
+        throw new Error('Compte client introuvable pour cet utilisateur.');
       }
 
-      const docsDevisIds = await uploadDocuments(docFiles);
-
-      await createDemandeDevis({
+      const payload = buildDemandePayload({
         clientId: myClient.id,
-        delaiMaxSouhaite: data.delaiMaxSouhaite ? Number(data.delaiMaxSouhaite) : undefined,
-        type: data.type as TypeDemandeDevis,
-        description: data.description,
-        nombreLot: data.nombreLot ? Number(data.nombreLot) : undefined,
-        referencesCadastrales: normalizeReferencesCadastrales(referencesCadastrales),
-        superficie: data.superficie ? Number(data.superficie) : undefined,
-        docsDevisIds,
-        adresseProjet: {
-          rue: data.rueProjet,
-          codePostal: data.codePostal,
-          ville: data.ville,
-        },
+        ...mapFormFieldsToPayloadBase(data),
+        referencesCadastrales,
+        rueProjet: data.rueProjet as string,
+        codePostalProjet: data.codePostal as string,
+        villeProjet: data.ville as string,
       });
 
-      navigate('/client/dashboard');
-    } catch (err: any) {
-      console.error(err);
-      setErrorDetails(err?.response?.data?.message || err?.message || 'Une erreur est survenue.');
-    } finally {
-      setIsSubmitting(false);
+      await submit(payload, docFiles);
+    } catch (err: unknown) {
+      setErrorDetails(err instanceof Error ? err.message : 'Une erreur est survenue.');
     }
-  };
-
-  const handleAddFiles = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleRemoveFile = (index: number) => {
-    setDocFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -97,34 +79,30 @@ export default function NewRequest() {
           </CardHeader>
           <CardContent className="pt-6 space-y-6">
             <div className="space-y-4">
-              {/* Type de mission */}
-              <div>
-                <label htmlFor="type-new-request" className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-                  Type de mission *
-                </label>
-                <select
-                  id="type-new-request"
-                  className="w-full h-11 px-3 py-2 bg-white border border-slate-200 rounded-md text-sm outline-none focus:border-slate-400 transition-colors disabled:opacity-50"
-                  disabled={loadingTypes}
-                  {...formRegister('type', { required: true })}
-                >
-                  <option value="">
-                    {loadingTypes ? 'Chargement…' : 'Sélectionner…'}
-                  </option>
-                  {typesEtude.map((t) => (
-                    <option key={t.code} value={t.code}>
-                      {t.libelle}
-                    </option>
-                  ))}
-                </select>
-                {errors.type && <span className="text-red-500 text-xs mt-1 block">Ce champ est requis</span>}
-              </div>
-
-              <Input
-                label="Description ou particularités du projet"
-                placeholder="Ex : terrain en pente, nappe phréatique connue..."
-                {...formRegister('description')}
+              <TypeEtudeSelect
+                id="type-new-request"
+                register={formRegister}
+                disabled={false}
+                types={typesEtude}
+                loading={loadingTypes}
+                error={errors.type ? 'Ce champ est requis' : undefined}
               />
+
+              <div>
+                <label htmlFor="description-new-request" className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  Description ou particularités du projet
+                </label>
+                <textarea
+                  id="description-new-request"
+                  maxLength={2000}
+                  {...formRegister('description', { maxLength: { value: 2000, message: 'La description ne doit pas dépasser 2000 caractères' } })}
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-md text-sm outline-none focus:border-slate-400 transition-colors min-h-[100px]"
+                  placeholder="Ex : terrain en pente, nappe phréatique connue..."
+                />
+                {errors.description && (
+                  <span className="text-red-500 text-xs mt-1 block">{getFieldMessage(errors.description)}</span>
+                )}
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <CadastralReferencesField
@@ -136,13 +114,17 @@ export default function NewRequest() {
                   label="Superficie (m²)"
                   type="number"
                   placeholder="Ex : 500"
-                  {...formRegister('superficie')}
+                  min={0}
+                  {...formRegister('superficie', { min: { value: 0, message: 'La superficie doit être positive' } })}
+                  error={getFieldMessage(errors.superficie)}
                 />
                 <Input
                   label="Nombre de lots"
                   type="number"
                   placeholder="Ex : 1"
-                  {...formRegister('nombreLot')}
+                  min={0}
+                  {...formRegister('nombreLot', { min: { value: 0, message: 'Le nombre de lots doit être positif' } })}
+                  error={getFieldMessage(errors.nombreLot)}
                 />
               </div>
 
@@ -157,7 +139,7 @@ export default function NewRequest() {
                   label="Code Postal *"
                   placeholder="Ex : 75001"
                   {...formRegister('codePostal', codePostalRules)}
-                  error={errors.codePostal ? (errors.codePostal as { message?: string }).message : undefined}
+                  error={getFieldMessage(errors.codePostal)}
                 />
                 <Input
                   label="Ville *"
@@ -174,77 +156,12 @@ export default function NewRequest() {
                 />
               </div>
 
-               {/* Document joint */}
-               <div>
-                 <label htmlFor="docFile-new-request" className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-                   Documents joints (plans, cahier des charges…)
-                 </label>
-                 {docFiles.length === 0 ? (
-                   <div
-                     className="flex items-center gap-3 border border-dashed border-slate-300 rounded-md px-4 py-3 cursor-pointer hover:bg-slate-50 transition-colors"
-                     onClick={() => fileInputRef.current?.click()}
-                   >
-                     <Paperclip className="w-4 h-4 text-slate-400 shrink-0" />
-                     <span className="text-sm text-slate-500 truncate">
-                       Joindre un ou plusieurs fichiers (PDF, image…)
-                     </span>
-                   </div>
-                 ) : (
-                   <div className="space-y-2">
-                     <ul className="space-y-1">
-                       {docFiles.map((file, index) => (
-                         <li
-                           key={`${file.name}-${index}`}
-                           className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100"
-                         >
-                           <span className="flex items-center gap-2 text-xs font-medium text-slate-700 min-w-0">
-                             <Paperclip className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                             <span className="truncate" title={file.name}>
-                               {file.name}
-                             </span>
-                           </span>
-                           <button
-                             type="button"
-                             onClick={() => handleRemoveFile(index)}
-                             className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
-                             title="Supprimer ce fichier"
-                             aria-label={`Supprimer ${file.name}`}
-                           >
-                             <XIcon className="w-4 h-4" />
-                           </button>
-                         </li>
-                       ))}
-                     </ul>
-                     <button
-                       type="button"
-                       onClick={handleAddFiles}
-                       className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                       title="Ajouter d'autres fichiers"
-                     >
-                       <Plus className="w-4 h-4" />
-                       Ajouter d'autres fichiers
-                     </button>
-                   </div>
-                 )}
-                  <input
-                    id="docFile-new-request"
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => {
-                      const newFiles = Array.from(e.target.files ?? []);
-                      if (newFiles.length > 0) {
-                        setDocFiles(prev => [...prev, ...newFiles]);
-                        // Réinitialiser l'input pour permettre de re-sélectionner le même fichier
-                        if (fileInputRef.current) {
-                          fileInputRef.current.value = '';
-                        }
-                      }
-                    }}
-                  />
-               </div>
+              <FileUploader
+                id="docFile-new-request"
+                docFiles={docFiles}
+                setDocFiles={setDocFiles}
+                labelClassName="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2"
+              />
             </div>
           </CardContent>
           <CardFooter className="bg-slate-50 border-t border-slate-100 py-4 flex justify-end">
