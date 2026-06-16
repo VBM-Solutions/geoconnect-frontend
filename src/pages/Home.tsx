@@ -14,9 +14,8 @@ import { useTypesEtude } from '../hooks/useTypesEtude';
 import { useDemandeSubmission } from '../hooks/useDemandeSubmission';
 import { TypeEtudeSelect } from '../components/project/TypeEtudeSelect';
 import { MapPin, Briefcase, Mail } from 'lucide-react';
-import { TypeDemandeDevis, Civilite } from '../types';
+import { TypeDemandeDevis } from '../types';
 import { buildDemandePayload } from '../lib/demandePayload';
-import { normalizeReferencesCadastrales } from '../lib/cadastralReferences';
 import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules } from '../lib/validators';
 import { getFieldMessage } from '../lib/formErrors';
 
