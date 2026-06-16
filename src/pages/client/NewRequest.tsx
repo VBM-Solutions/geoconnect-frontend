@@ -13,7 +13,7 @@ import { CadastralReferencesField } from '../../components/ui/CadastralReference
 import { FileUploader } from '../../components/shared/FileUploader';
 import { TypeEtudeSelect } from '../../components/project/TypeEtudeSelect';
 import { TypeDemandeDevis } from '../../types';
-import { buildDemandePayload } from '../../lib/demandePayload';
+import { buildDemandePayload, mapFormFieldsToPayloadBase } from '../../lib/demandePayload';
 import { codePostalRules } from '../../lib/validators';
 import { getFieldMessage } from '../../lib/formErrors';
 
@@ -43,12 +43,8 @@ export default function NewRequest() {
 
       const payload = buildDemandePayload({
         clientId: myClient.id,
-        delaiMaxSouhaite: data.delaiMaxSouhaite,
-        type: data.type as TypeDemandeDevis,
-        description: data.description as string,
-        nombreLot: data.nombreLot,
+        ...mapFormFieldsToPayloadBase(data),
         referencesCadastrales,
-        superficie: data.superficie,
         rueProjet: data.rueProjet as string,
         codePostalProjet: data.codePostal as string,
         villeProjet: data.ville as string,

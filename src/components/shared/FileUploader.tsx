@@ -41,20 +41,20 @@ export function FileUploader({
       <label htmlFor={id} className={labelClassName}>
         Documents joints (plans, cahier des charges…)
       </label>
-      {docFiles.length === 0 ? (
-        showEmptyDropzone ? (
-          <button
-            type="button"
-            className={dropzoneClassName.replace('cursor-pointer', 'bg-white text-left w-full')}
-            onClick={handleAddFiles}
-          >
-            <Paperclip className="w-4 h-4 text-slate-400 shrink-0" />
-            <span className="text-sm text-slate-500 truncate">
-              Joindre un ou plusieurs fichiers (PDF, image…)
-            </span>
-          </button>
-        ) : null
-      ) : (
+      {docFiles.length === 0 && showEmptyDropzone && (
+        <button
+          type="button"
+          className={dropzoneClassName.replace('cursor-pointer', 'bg-white text-left w-full')}
+          onClick={handleAddFiles}
+        >
+          <Paperclip className="w-4 h-4 text-slate-400 shrink-0" />
+          <span className="text-sm text-slate-500 truncate">
+            Joindre un ou plusieurs fichiers (PDF, image…)
+          </span>
+        </button>
+      )}
+
+      {docFiles.length > 0 && (
         <div className={`space-y-2 ${fileListClassName}`}>
           <ul className="space-y-1">
             {docFiles.map((file, index) => (

@@ -15,7 +15,7 @@ import { useDemandeSubmission } from '../hooks/useDemandeSubmission';
 import { TypeEtudeSelect } from '../components/project/TypeEtudeSelect';
 import { MapPin, Briefcase, Mail } from 'lucide-react';
 import { TypeDemandeDevis } from '../types';
-import { buildDemandePayload } from '../lib/demandePayload';
+import { buildDemandePayload, mapFormFieldsToPayloadBase } from '../lib/demandePayload';
 import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules } from '../lib/validators';
 import { getFieldMessage } from '../lib/formErrors';
 
@@ -118,12 +118,8 @@ function QuoteTunnel() {
 
       const payload = buildDemandePayload({
         clientId,
-        delaiMaxSouhaite: data.delaiMaxSouhaite,
-        type: data.type as TypeDemandeDevis,
-        description: data.description as string,
-        nombreLot: data.nombreLot,
+        ...mapFormFieldsToPayloadBase(data),
         referencesCadastrales,
-        superficie: data.superficie,
         rueProjet: data.rueProjet as string,
         codePostalProjet: (data.codePostalProjet || data.codePostal) as string,
         villeProjet: (data.villeProjet || data.ville) as string,

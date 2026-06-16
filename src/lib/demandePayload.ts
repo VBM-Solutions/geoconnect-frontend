@@ -14,6 +14,16 @@ export interface DemandePayloadInput {
   villeProjet: string;
 }
 
+export function mapFormFieldsToPayloadBase(data: Record<string, unknown>) {
+  return {
+    delaiMaxSouhaite: data.delaiMaxSouhaite,
+    type: data.type as TypeDemandeDevis,
+    description: data.description as string,
+    nombreLot: data.nombreLot,
+    superficie: data.superficie,
+  };
+}
+
 export function buildDemandePayload(input: DemandePayloadInput) {
   return {
     clientId: input.clientId,
