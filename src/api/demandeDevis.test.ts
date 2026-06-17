@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   createDemandeDevis,
   updateDemandeDevis,
-  getDemandeDevisByClientId,
   getDemandeDevisById,
   getAllDemandeDevis,
   deleteDemandeDevis,
@@ -60,23 +59,6 @@ describe('updateDemandeDevis', () => {
     (api.put as any).mockRejectedValueOnce(new Error('Serveur KO'));
 
     await expect(updateDemandeDevis(fakeDemande as any)).rejects.toThrow('Serveur KO');
-  });
-});
-
-describe('getDemandeDevisByClientId', () => {
-  it('appelle GET /demandeDevis/client/{clientId} et retourne la liste', async () => {
-    (api.get as any).mockResolvedValueOnce({ data: [fakeDemande] });
-
-    const result = await getDemandeDevisByClientId(3);
-
-    expect(api.get).toHaveBeenCalledWith('/demandeDevis/client/3');
-    expect(result).toEqual([fakeDemande]);
-  });
-
-  it('propage l\'erreur', async () => {
-    (api.get as any).mockRejectedValueOnce(new Error('Not found'));
-
-    await expect(getDemandeDevisByClientId(999)).rejects.toThrow('Not found');
   });
 });
 

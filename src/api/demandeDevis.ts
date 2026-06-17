@@ -11,11 +11,6 @@ export const updateDemandeDevis = async (demande: DemandeDevisDTO) => {
   return data;
 };
 
-export const getDemandeDevisByClientId = async (clientId: number): Promise<DemandeDevisDTO[]> => {
-  const { data } = await api.get(`/demandeDevis/client/${clientId}`);
-  return data;
-};
-
 export const getDemandeDevisById = async (id: number): Promise<DemandeDevisDTO> => {
   const { data } = await api.get(`/demandeDevis/${id}`);
   return data;
