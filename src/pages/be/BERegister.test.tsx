@@ -227,7 +227,7 @@ describe('BERegister — validation du code postal', () => {
     expect(authApi.registerCall).not.toHaveBeenCalled();
   });
 
-  it('affiche "5 chiffres requis" si le code postal ne fait pas 5 chiffres', async () => {
+  it('affiche "Code postal invalide (ex: 75001 ou 2A004)" si le code postal ne fait pas 5 chiffres', async () => {
     const user = userEvent.setup();
     renderBERegister();
 
@@ -242,12 +242,12 @@ describe('BERegister — validation du code postal', () => {
     await user.click(screen.getByRole('button', { name: /soumettre ma candidature/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('5 chiffres requis')).toBeTruthy();
+      expect(screen.getByText('Code postal invalide (ex: 75001 ou 2A004)')).toBeTruthy();
     });
     expect(authApi.registerCall).not.toHaveBeenCalled();
   });
 
-  it('affiche "5 chiffres requis" si le code postal contient des lettres', async () => {
+  it('affiche "Code postal invalide (ex: 75001 ou 2A004)" si le code postal contient des lettres', async () => {
     const user = userEvent.setup();
     renderBERegister();
 
@@ -262,7 +262,7 @@ describe('BERegister — validation du code postal', () => {
     await user.click(screen.getByRole('button', { name: /soumettre ma candidature/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('5 chiffres requis')).toBeTruthy();
+      expect(screen.getByText('Code postal invalide (ex: 75001 ou 2A004)')).toBeTruthy();
     });
     expect(authApi.registerCall).not.toHaveBeenCalled();
   });

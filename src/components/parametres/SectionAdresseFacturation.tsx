@@ -54,7 +54,11 @@ export function SectionAdresseFacturation({
   };
 
   const handleChange = (field: keyof AdresseFormState) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    setAdresse((current) => ({ ...current, [field]: event.target.value }));
+    let value = event.target.value;
+    if (field === 'codePostal') {
+      value = value.toUpperCase();
+    }
+    setAdresse((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
   };
 
@@ -147,7 +151,7 @@ export function SectionAdresseFacturation({
             <input
               id="adresse-code-postal"
               type="text"
-              inputMode="numeric"
+              inputMode="text"
               value={adresse.codePostal}
               onChange={handleChange('codePostal')}
               className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
