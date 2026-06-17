@@ -6,9 +6,9 @@
 // ─── Patterns ──────────────────────────────────────────────────────────────────
 
 /**
- * Code postal français : exactement 5 chiffres.
+ * Code postal français : 5 chiffres, ou Corse 2A/2B + 3 chiffres.
  */
-export const CODE_POSTAL_PATTERN = /^\d{5}$/;
+export const CODE_POSTAL_PATTERN = /^(?:\d{5}|2[AB]\d{3})$/;
 
 /**
  * Numéro de téléphone français (format national ou international).
@@ -89,13 +89,17 @@ export function validatePasswordStrength(password = '') {
 // ─── Règles react-hook-form ────────────────────────────────────────────────────
 
 /**
- * Validator pour un champ code postal (5 chiffres).
+ * Validator pour un champ code postal (5 chiffres, ou Corse 2A/2B + 3 chiffres).
+ * Forçage majuscule automatique sur la saisie.
  */
 export const codePostalRules = {
   required: 'Requis',
   pattern: {
     value: CODE_POSTAL_PATTERN,
-    message: '5 chiffres requis',
+    message: 'Code postal invalide (ex: 75001 ou 2A004)',
+  },
+  onChange: (e: { target: { value: string } }) => {
+    e.target.value = e.target.value.toUpperCase();
   },
 } as const;
 

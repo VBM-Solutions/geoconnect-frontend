@@ -21,11 +21,15 @@ describe('parametresUtils', () => {
     expect(isValidTelephone('')).toBe(false);
   });
 
-  it('valide les codes postaux à exactement 5 chiffres', () => {
+  it('valide les codes postaux à exactement 5 chiffres et les codes corses 2A/2B', () => {
     expect(CODE_POSTAL_REGEX.test('75001')).toBe(true);
     expect(isValidCodePostal('75001')).toBe(true);
     expect(isValidCodePostal('7500')).toBe(false);
     expect(isValidCodePostal('75A01')).toBe(false);
+    expect(isValidCodePostal('2A004')).toBe(true);
+    expect(isValidCodePostal('2B123')).toBe(true);
+    expect(isValidCodePostal('2C001')).toBe(false);
+    expect(isValidCodePostal('2a004')).toBe(false);
   });
 
   it('normalise et formate l IBAN en groupes de 4 caractères', () => {

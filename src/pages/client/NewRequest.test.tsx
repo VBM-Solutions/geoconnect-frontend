@@ -577,7 +577,7 @@ describe('NewRequest — validation du code postal', () => {
     expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
   });
 
-  it('affiche "5 chiffres requis" si le code postal ne fait pas 5 chiffres', async () => {
+  it('affiche "Code postal invalide (ex: 75001 ou 2A004)" si le code postal ne fait pas 5 chiffres', async () => {
     const user = userEvent.setup();
     renderNewRequest();
 
@@ -586,7 +586,7 @@ describe('NewRequest — validation du code postal', () => {
     await submitForm(user);
 
     await waitFor(() => {
-      expect(screen.getByText('5 chiffres requis')).toBeTruthy();
+      expect(screen.getByText('Code postal invalide (ex: 75001 ou 2A004)')).toBeTruthy();
     });
     expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
   });
@@ -600,7 +600,7 @@ describe('NewRequest — validation du code postal', () => {
     await submitForm(user);
 
     await waitFor(() => {
-      expect(screen.getByText('5 chiffres requis')).toBeTruthy();
+      expect(screen.getByText('Code postal invalide (ex: 75001 ou 2A004)')).toBeTruthy();
     });
     expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
   });

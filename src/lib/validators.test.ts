@@ -128,7 +128,7 @@ describe('codePostalRules', () => {
 
   it('contient un pattern correspondant à CODE_POSTAL_PATTERN', () => {
     expect(codePostalRules.pattern.value).toBe(CODE_POSTAL_PATTERN);
-    expect(codePostalRules.pattern.message).toBe('5 chiffres requis');
+    expect(codePostalRules.pattern.message).toBe('Code postal invalide (ex: 75001 ou 2A004)');
   });
 });
 
