@@ -56,15 +56,13 @@ export const ETUDE_STEPS: StepDef[] = [
   },
 ];
 
-const STEP_INDEX: Record<EtatEtude, number> = {
-  DEVIS_VALIDE: 0,
-  DEVIS_SIGNE: 1,
-  DATE_INTERVENTION_PROPOSEE: 2,
-  DATE_INTERVENTION_FIXEE: 3,
-  INTERVENTION_EFFECTUEE: 4,
-  RAPPORT_TERMINE: 5,
-  PAIEMENT_EFFECTUE: 6,
-};
+const STEP_INDEX: Record<EtatEtude, number> = ETUDE_STEPS.reduce(
+  (acc, step, index) => {
+    acc[step.etat] = index;
+    return acc;
+  },
+  {} as Record<EtatEtude, number>
+);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
