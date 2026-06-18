@@ -1,16 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ETAT_LABELS, STATUT_LABELS, TYPE_LABELS } from './labels';
 import { EtatEtude, StatutProposition, TypeDemandeDevis } from '../types';
-
-const ALL_ETATS: EtatEtude[] = [
-  'DEVIS_VALIDE',
-  'DEVIS_SIGNE',
-  'DATE_INTERVENTION_PROPOSEE',
-  'DATE_INTERVENTION_FIXEE',
-  'INTERVENTION_EFFECTUEE',
-  'RAPPORT_TERMINE',
-  'PAIEMENT_EFFECTUE',
-];
+import { ALL_ETATS } from './__fixtures__/etatEtude.fixture';
 
 const ALL_STATUTS: StatutProposition[] = ['EN_ATTENTE', 'ACCEPTEE', 'REFUSEE'];
 

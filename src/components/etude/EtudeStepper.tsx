@@ -11,49 +11,59 @@ export interface StepDef {
   descriptionBE: string;
 }
 
+/** Factory local — évite la répétition littérale des clés dans chaque step. */
+function step(
+  etat: EtatEtude,
+  label: string,
+  descriptionClient: string,
+  descriptionBE: string,
+): StepDef {
+  return { etat, label, descriptionClient, descriptionBE };
+}
+
 export const ETUDE_STEPS: StepDef[] = [
-  {
-    etat: 'DEVIS_VALIDE',
-    label: 'Devis accepté',
-    descriptionClient: "Votre proposition de devis a été validée. Le bureau d'études attend la signature du devis pour continuer.",
-    descriptionBE: "Le client a accepté votre devis. Le devis signé est requis avant de proposer une date.",
-  },
-  {
-    etat: 'DEVIS_SIGNE',
-    label: 'Devis signé',
-    descriptionClient: "Le devis a été signé. Le bureau d'études va proposer une date d'intervention.",
-    descriptionBE: "Le devis est signé. Vous pouvez maintenant proposer une date d'intervention.",
-  },
-  {
-    etat: 'DATE_INTERVENTION_PROPOSEE',
-    label: "Date d'intervention",
-    descriptionClient: "Le bureau d'études a soumis une date. Validez ou refusez-la pour continuer.",
-    descriptionBE: "En attente de la confirmation de date par le client.",
-  },
-  {
-    etat: 'DATE_INTERVENTION_FIXEE',
-    label: "Date confirmée",
-    descriptionClient: "La date d'intervention est confirmée. Vous serez informé une fois l'intervention réalisée.",
-    descriptionBE: "La date est validée par le client. Réalisez l'intervention puis signalez-la.",
-  },
-  {
-    etat: 'INTERVENTION_EFFECTUEE',
-    label: "Intervention réalisée",
-    descriptionClient: "L'intervention terrain est terminée. Le rapport est en cours de rédaction.",
-    descriptionBE: "L'intervention est effectuée. Uploadez le rapport final et indiquez sa date de remise.",
-  },
-  {
-    etat: 'RAPPORT_TERMINE',
-    label: "Rapport disponible",
-    descriptionClient: "Le rapport final est prêt. Confirmez le paiement pour clôturer le dossier.",
-    descriptionBE: "Le rapport a été transmis. En attente de la confirmation de paiement du client.",
-  },
-  {
-    etat: 'PAIEMENT_EFFECTUE',
-    label: "Dossier clôturé",
-    descriptionClient: "Le paiement a été confirmé. Merci pour votre confiance.",
-    descriptionBE: "Le paiement a été confirmé par le client. Dossier clôturé.",
-  },
+  step(
+    'DEVIS_VALIDE',
+    'Devis accepté',
+    "Votre proposition de devis a été validée. Le bureau d'études attend la signature du devis pour continuer.",
+    "Le client a accepté votre devis. Le devis signé est requis avant de proposer une date.",
+  ),
+  step(
+    'DEVIS_SIGNE',
+    'Devis signé',
+    "Le devis a été signé. Le bureau d'études va proposer une date d'intervention.",
+    "Le devis est signé. Vous pouvez maintenant proposer une date d'intervention.",
+  ),
+  step(
+    'DATE_INTERVENTION_PROPOSEE',
+    "Date d'intervention",
+    "Le bureau d'études a soumis une date. Validez ou refusez-la pour continuer.",
+    'En attente de la confirmation de date par le client.',
+  ),
+  step(
+    'DATE_INTERVENTION_FIXEE',
+    'Date confirmée',
+    "La date d'intervention est confirmée. Vous serez informé une fois l'intervention réalisée.",
+    'La date est validée par le client. Réalisez l\'intervention puis signalez-la.',
+  ),
+  step(
+    'INTERVENTION_EFFECTUEE',
+    'Intervention réalisée',
+    "L'intervention terrain est terminée. Le rapport est en cours de rédaction.",
+    'L\'intervention est effectuée. Uploadez le rapport final et indiquez sa date de remise.',
+  ),
+  step(
+    'RAPPORT_TERMINE',
+    'Rapport disponible',
+    'Le rapport final est prêt. Confirmez le paiement pour clôturer le dossier.',
+    'Le rapport a été transmis. En attente de la confirmation de paiement du client.',
+  ),
+  step(
+    'PAIEMENT_EFFECTUE',
+    'Dossier clôturé',
+    'Le paiement a été confirmé. Merci pour votre confiance.',
+    'Le paiement a été confirmé par le client. Dossier clôturé.',
+  ),
 ];
 
 const STEP_INDEX: Record<EtatEtude, number> = ETUDE_STEPS.reduce(
