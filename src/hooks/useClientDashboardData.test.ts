@@ -7,7 +7,7 @@ vi.mock('../api/client', () => ({
   getClientByUserId: vi.fn(),
 }));
 vi.mock('../api/demandeDevis', () => ({
-  getDemandeDevisByClientId: vi.fn(),
+  getAllDemandeDevis: vi.fn(),
 }));
 vi.mock('../api/propositionDevis', () => ({
   getPropositionDevisByDemandeId: vi.fn(),
@@ -18,7 +18,7 @@ vi.mock('../api/etude', () => ({
 }));
 
 import { getClientByUserId } from '../api/client';
-import { getDemandeDevisByClientId } from '../api/demandeDevis';
+import { getAllDemandeDevis } from '../api/demandeDevis';
 import { getPropositionDevisByDemandeId } from '../api/propositionDevis';
 import { getEtudesByClientId, fetchEtudeDetails } from '../api/etude';
 
@@ -57,7 +57,7 @@ describe('useClientDashboardData', () => {
 
   it('arrête le chargement si le client n\'a pas d\'id', async () => {
     mockUseAuth();
-    (getClientByUserId as any).mockResolvedValue({ nom: 'Sans ID' }); // pas d'id
+    (getClientByUserId as any).mockResolvedValue({ nom: 'Sans ID' });
 
     const { result } = renderHook(() => useClientDashboardData());
 
@@ -68,7 +68,7 @@ describe('useClientDashboardData', () => {
   it('charge toutes les données en cas nominal', async () => {
     mockUseAuth();
     (getClientByUserId as any).mockResolvedValue(fakeClient);
-    (getDemandeDevisByClientId as any).mockResolvedValue([fakeDemande]);
+    (getAllDemandeDevis as any).mockResolvedValue([fakeDemande]);
     (getPropositionDevisByDemandeId as any).mockResolvedValue([fakePropo]);
     (getEtudesByClientId as any).mockResolvedValue([fakeEtude]);
     (fetchEtudeDetails as any).mockResolvedValue([fakeEtude]);
@@ -99,7 +99,7 @@ describe('useClientDashboardData', () => {
   it('retourne propositions=[] si getPropositionDevisByDemandeId échoue (catch silencieux)', async () => {
     mockUseAuth();
     (getClientByUserId as any).mockResolvedValue(fakeClient);
-    (getDemandeDevisByClientId as any).mockResolvedValue([fakeDemande]);
+    (getAllDemandeDevis as any).mockResolvedValue([fakeDemande]);
     (getPropositionDevisByDemandeId as any).mockRejectedValue(new Error('KO'));
     (getEtudesByClientId as any).mockResolvedValue([]);
     (fetchEtudeDetails as any).mockResolvedValue([]);
@@ -115,7 +115,7 @@ describe('useClientDashboardData', () => {
   it('retourne etudes=[] si getEtudesByClientId échoue (catch silencieux)', async () => {
     mockUseAuth();
     (getClientByUserId as any).mockResolvedValue(fakeClient);
-    (getDemandeDevisByClientId as any).mockResolvedValue([]);
+    (getAllDemandeDevis as any).mockResolvedValue([]);
     (getEtudesByClientId as any).mockRejectedValue(new Error('KO'));
     (fetchEtudeDetails as any).mockResolvedValue([]);
 
@@ -130,7 +130,7 @@ describe('useClientDashboardData', () => {
   it('refetch() redéclenche le chargement', async () => {
     mockUseAuth();
     (getClientByUserId as any).mockResolvedValue(fakeClient);
-    (getDemandeDevisByClientId as any).mockResolvedValue([]);
+    (getAllDemandeDevis as any).mockResolvedValue([]);
     (getEtudesByClientId as any).mockResolvedValue([]);
     (fetchEtudeDetails as any).mockResolvedValue([]);
 
@@ -147,4 +147,3 @@ describe('useClientDashboardData', () => {
     );
   });
 });
-

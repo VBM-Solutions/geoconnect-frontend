@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { getDemandeDevisById } from '../../api/demandeDevis';
 import { getPropositionDevisByDemandeId, accepterPropositionDevis, refuserPropositionDevis } from '../../api/propositionDevis';
 import { DemandeDevisDTO, PropositionDevisDTO } from '../../types';
@@ -14,6 +14,7 @@ import { DocumentList } from '../../components/etude/DocumentList';
 
 export default function ClientRequestDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { toastError, toastSuccess } = useToast();
   const [demande, setDemande] = useState<DemandeDevisDTO | null>(null);
   const [propositions, setPropositions] = useState<PropositionDevisDTO[]>([]);
@@ -33,6 +34,10 @@ export default function ClientRequestDetail() {
         setDemande(demandeData);
         setPropositions(propsData || []);
       } catch (err: any) {
+        if (err?.response?.status === 403) {
+          navigate('/client/dashboard', { replace: true });
+          return;
+        }
         toastError(err?.response?.data?.message ?? err?.message ?? 'Impossible de charger la demande.');
       } finally {
         setIsLoading(false);

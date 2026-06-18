@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getClientByUserId } from '../api/client';
-import { getDemandeDevisByClientId } from '../api/demandeDevis';
+import { getAllDemandeDevis } from '../api/demandeDevis';
 import { getPropositionDevisByDemandeId } from '../api/propositionDevis';
 import { getEtudesByClientId, fetchEtudeDetails } from '../api/etude';
 import { ClientDTO, DemandeDevisDTO, PropositionDevisDTO, EtudeDTO, EtudeDetailDTO } from '../types';
@@ -48,7 +48,7 @@ export function useClientDashboardData(): ClientDashboardData {
 
         setClient(myClient);
 
-        const rawDemandes = await getDemandeDevisByClientId(myClient.id);
+        const rawDemandes = await getAllDemandeDevis();
         if (cancelled) return;
 
         const [enrichedDemandes, rawEtudes] = await Promise.all([
