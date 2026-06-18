@@ -272,7 +272,7 @@ export function BEStepActions({ etat, dateIntervention, isLoading, onProposerDat
   ) : null;
 
   switch (etat) {
-    case 'DEVIS_VALIDE':
+    case 'DEVIS_SIGNE':
     case 'DATE_INTERVENTION_PROPOSEE':
       return (
         <div className="space-y-3">

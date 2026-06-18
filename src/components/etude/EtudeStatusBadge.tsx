@@ -8,6 +8,7 @@ interface EtudeStatusBadgeProps {
 
 const ETAT_CONFIG: Record<EtatEtude, { label: string; color: string }> = {
   DEVIS_VALIDE:               { label: 'Devis validé',           color: 'bg-slate-100 text-slate-600' },
+  DEVIS_SIGNE:                { label: 'Devis signé',            color: 'bg-emerald-100 text-emerald-700' },
   DATE_INTERVENTION_PROPOSEE: { label: 'Date proposée',          color: 'bg-yellow-100 text-yellow-700' },
   DATE_INTERVENTION_FIXEE:    { label: 'Date fixée',             color: 'bg-blue-100 text-blue-700' },
   INTERVENTION_EFFECTUEE:     { label: 'Intervention effectuée', color: 'bg-indigo-100 text-indigo-700' },
@@ -43,7 +44,7 @@ export const clientMustAct = (etat?: EtatEtude): boolean =>
 
 /** Indique si l'état courant nécessite une action du BUREAU_ETUDE. */
 export const beMustAct = (etat?: EtatEtude): boolean =>
-  etat === 'DEVIS_VALIDE' ||
+  etat === 'DEVIS_SIGNE' ||
   etat === 'DATE_INTERVENTION_PROPOSEE' ||
   etat === 'DATE_INTERVENTION_FIXEE' ||
   etat === 'INTERVENTION_EFFECTUEE';

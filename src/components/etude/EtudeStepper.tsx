@@ -15,8 +15,14 @@ export const ETUDE_STEPS: StepDef[] = [
   {
     etat: 'DEVIS_VALIDE',
     label: 'Devis accepté',
-    descriptionClient: "Votre proposition de devis a été validée. Le bureau d'études va proposer une date d'intervention.",
-    descriptionBE: "Le client a accepté votre devis. Proposez une date d'intervention pour démarrer l'étude.",
+    descriptionClient: "Votre proposition de devis a été validée. Le bureau d'études attend la signature du devis pour continuer.",
+    descriptionBE: "Le client a accepté votre devis. Le devis signé est requis avant de proposer une date.",
+  },
+  {
+    etat: 'DEVIS_SIGNE',
+    label: 'Devis signé',
+    descriptionClient: "Le devis a été signé. Le bureau d'études va proposer une date d'intervention.",
+    descriptionBE: "Le devis est signé. Vous pouvez maintenant proposer une date d'intervention.",
   },
   {
     etat: 'DATE_INTERVENTION_PROPOSEE',
@@ -52,11 +58,12 @@ export const ETUDE_STEPS: StepDef[] = [
 
 const STEP_INDEX: Record<EtatEtude, number> = {
   DEVIS_VALIDE: 0,
-  DATE_INTERVENTION_PROPOSEE: 1,
-  DATE_INTERVENTION_FIXEE: 2,
-  INTERVENTION_EFFECTUEE: 3,
-  RAPPORT_TERMINE: 4,
-  PAIEMENT_EFFECTUE: 5,
+  DEVIS_SIGNE: 1,
+  DATE_INTERVENTION_PROPOSEE: 2,
+  DATE_INTERVENTION_FIXEE: 3,
+  INTERVENTION_EFFECTUEE: 4,
+  RAPPORT_TERMINE: 5,
+  PAIEMENT_EFFECTUE: 6,
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────

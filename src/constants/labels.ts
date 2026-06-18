@@ -2,6 +2,7 @@ import { EtatEtude, StatutProposition, TypeDemandeDevis } from '../types';
 
 export const ETAT_LABELS: Record<EtatEtude, { label: string; color: string }> = {
   DEVIS_VALIDE:               { label: 'Devis validé',           color: 'bg-blue-100 text-blue-700' },
+  DEVIS_SIGNE:                { label: 'Devis signé',            color: 'bg-emerald-100 text-emerald-700' },
   DATE_INTERVENTION_PROPOSEE: { label: 'Date proposée',          color: 'bg-yellow-100 text-yellow-700' },
   DATE_INTERVENTION_FIXEE:    { label: 'Date fixée',             color: 'bg-orange-100 text-orange-700' },
   INTERVENTION_EFFECTUEE:     { label: 'Intervention effectuée', color: 'bg-purple-100 text-purple-700' },

@@ -4,6 +4,7 @@ import { EtatEtude, StatutProposition, TypeDemandeDevis } from '../types';
 
 const ALL_ETATS: EtatEtude[] = [
   'DEVIS_VALIDE',
+  'DEVIS_SIGNE',
   'DATE_INTERVENTION_PROPOSEE',
   'DATE_INTERVENTION_FIXEE',
   'INTERVENTION_EFFECTUEE',

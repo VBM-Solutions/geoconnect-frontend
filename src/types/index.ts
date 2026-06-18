@@ -77,6 +77,7 @@ export interface PropositionDevisDTO {
 
 export type EtatEtude =
   | 'DEVIS_VALIDE'
+  | 'DEVIS_SIGNE'
   | 'DATE_INTERVENTION_PROPOSEE'
   | 'DATE_INTERVENTION_FIXEE'
   | 'INTERVENTION_EFFECTUEE'
