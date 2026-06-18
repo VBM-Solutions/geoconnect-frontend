@@ -273,16 +273,8 @@ export function BEStepActions({ etat, dateIntervention, isLoading, onProposerDat
 
   switch (etat) {
     case 'DEVIS_SIGNE':
-    case 'DATE_INTERVENTION_PROPOSEE':
       return (
         <div className="space-y-3">
-          {etat === 'DATE_INTERVENTION_PROPOSEE' && (
-            <InfoMsg color="orange" icon={<Clock className="w-4 h-4" />}>
-              {dateIntervention
-                ? "Le client n'a pas encore validé votre date. Vous pouvez en proposer une nouvelle."
-                : "Le client a refusé la date proposée. Veuillez en proposer une nouvelle."}
-            </InfoMsg>
-          )}
           <div className="flex flex-wrap gap-2 items-end">
             <div>
               <label htmlFor="dateIntervention" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
@@ -326,6 +318,15 @@ export function BEStepActions({ etat, dateIntervention, isLoading, onProposerDat
             </Button>
           </div>
         </div>
+      );
+
+    case 'DATE_INTERVENTION_PROPOSEE':
+      return (
+        <InfoMsg color="orange" icon={<Clock className="w-4 h-4" />}>
+          {dateIntervention
+            ? "Le client n'a pas encore validé votre date. Vous pouvez en proposer une nouvelle."
+            : "Le client a refusé la date proposée. Veuillez en proposer une nouvelle."}
+        </InfoMsg>
       );
 
     case 'DATE_INTERVENTION_FIXEE':
