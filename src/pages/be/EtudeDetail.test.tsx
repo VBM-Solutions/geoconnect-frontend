@@ -212,14 +212,21 @@ describe('BEStepActions — variant de la modale', () => {
 // ─── Autres états (non liés à l'intervention) ─────────────────────────────────
 
 describe('BEStepActions — autres états', () => {
-  it('affiche le formulaire de date pour DEVIS_VALIDE', () => {
-    renderActions({ etat: 'DEVIS_VALIDE' });
+  it('affiche le formulaire de date pour DEVIS_SIGNE', () => {
+    renderActions({ etat: 'DEVIS_SIGNE' });
     expect(screen.getByRole('button', { name: /envoyer la date/i })).toBeTruthy();
   });
 
-  it('affiche le formulaire de date pour DATE_INTERVENTION_PROPOSEE', () => {
+  it('affiche le message d\'information pour DATE_INTERVENTION_PROPOSEE', () => {
     renderActions({ etat: 'DATE_INTERVENTION_PROPOSEE' });
-    expect(screen.getByRole('button', { name: /envoyer la date/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /envoyer la date/i })).toBeNull();
+    expect(screen.getByText(/Le client a refusé la date proposée/i)).toBeTruthy();
+  });
+
+  it('ne rend rien pour DEVIS_VALIDE', () => {
+    const { container } = renderActions({ etat: 'DEVIS_VALIDE' });
+    expect(screen.queryByRole('button', { name: /envoyer la date/i })).toBeNull();
+    expect(container.firstChild).toBeNull();
   });
 
   it('ne rend rien pour un état inconnu', () => {

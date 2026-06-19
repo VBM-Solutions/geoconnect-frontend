@@ -1,15 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { getEtatLabel, clientMustAct, beMustAct } from './EtudeStatusBadge';
 import { EtatEtude } from '../../types';
-
-const ALL_ETATS: EtatEtude[] = [
-  'DEVIS_VALIDE',
-  'DATE_INTERVENTION_PROPOSEE',
-  'DATE_INTERVENTION_FIXEE',
-  'INTERVENTION_EFFECTUEE',
-  'RAPPORT_TERMINE',
-  'PAIEMENT_EFFECTUE',
-];
+import { ALL_ETATS } from '../../constants/__fixtures__/etatEtude.fixture';
 
 describe('getEtatLabel', () => {
   it('retourne "—" si etat est undefined', () => {
@@ -18,6 +10,7 @@ describe('getEtatLabel', () => {
 
   it('retourne le libellé correspondant à chaque état', () => {
     expect(getEtatLabel('DEVIS_VALIDE')).toBe('Devis validé');
+    expect(getEtatLabel('DEVIS_SIGNE')).toBe('Devis signé');
     expect(getEtatLabel('DATE_INTERVENTION_PROPOSEE')).toBe('Date proposée');
     expect(getEtatLabel('DATE_INTERVENTION_FIXEE')).toBe('Date fixée');
     expect(getEtatLabel('INTERVENTION_EFFECTUEE')).toBe('Intervention effectuée');
@@ -62,7 +55,7 @@ describe('clientMustAct', () => {
 
 describe('beMustAct', () => {
   const etatsDeclencheurs: EtatEtude[] = [
-    'DEVIS_VALIDE',
+    'DEVIS_SIGNE',
     'DATE_INTERVENTION_PROPOSEE',
     'DATE_INTERVENTION_FIXEE',
     'INTERVENTION_EFFECTUEE',

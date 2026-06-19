@@ -11,53 +11,91 @@ export interface StepDef {
   descriptionBE: string;
 }
 
+/** Factory local — évite la répétition littérale des clés dans chaque step. */
+function step(
+  etat: EtatEtude,
+  label: string,
+  descriptionClient: string,
+  descriptionBE: string,
+): StepDef {
+  return { etat, label, descriptionClient, descriptionBE };
+}
+
 export const ETUDE_STEPS: StepDef[] = [
-  {
-    etat: 'DEVIS_VALIDE',
-    label: 'Devis accepté',
-    descriptionClient: "Votre proposition de devis a été validée. Le bureau d'études va proposer une date d'intervention.",
-    descriptionBE: "Le client a accepté votre devis. Proposez une date d'intervention pour démarrer l'étude.",
-  },
-  {
-    etat: 'DATE_INTERVENTION_PROPOSEE',
-    label: "Date d'intervention",
-    descriptionClient: "Le bureau d'études a soumis une date. Validez ou refusez-la pour continuer.",
-    descriptionBE: "En attente de la confirmation de date par le client.",
-  },
-  {
-    etat: 'DATE_INTERVENTION_FIXEE',
-    label: "Date confirmée",
-    descriptionClient: "La date d'intervention est confirmée. Vous serez informé une fois l'intervention réalisée.",
-    descriptionBE: "La date est validée par le client. Réalisez l'intervention puis signalez-la.",
-  },
-  {
-    etat: 'INTERVENTION_EFFECTUEE',
-    label: "Intervention réalisée",
-    descriptionClient: "L'intervention terrain est terminée. Le rapport est en cours de rédaction.",
-    descriptionBE: "L'intervention est effectuée. Uploadez le rapport final et indiquez sa date de remise.",
-  },
-  {
-    etat: 'RAPPORT_TERMINE',
-    label: "Rapport disponible",
-    descriptionClient: "Le rapport final est prêt. Confirmez le paiement pour clôturer le dossier.",
-    descriptionBE: "Le rapport a été transmis. En attente de la confirmation de paiement du client.",
-  },
-  {
-    etat: 'PAIEMENT_EFFECTUE',
-    label: "Dossier clôturé",
-    descriptionClient: "Le paiement a été confirmé. Merci pour votre confiance.",
-    descriptionBE: "Le paiement a été confirmé par le client. Dossier clôturé.",
-  },
+  step(
+    'DEVIS_VALIDE',
+    'Devis accepté',
+    "Votre proposition de devis a été validée. Le bureau d'études attend la signature du devis pour continuer.",
+    "Le client a accepté votre devis. Le devis signé est requis avant de proposer une date.",
+  ),
+  step(
+    'DEVIS_SIGNE',
+    'Devis signé',
+    "Vous avez accepté le devis. Le bureau d'études attend la signature du devis pour continuer.",
+    "Le client a accepté votre devis. Le devis signé est requis avant de proposer une date.",
+  ),
+  step(
+    'DATE_INTERVENTION_PROPOSEE',
+    "Date d'intervention",
+    "Le bureau d'études a soumis une date. Validez ou refusez-la pour continuer.",
+    'En attente de la confirmation de date par le client.',
+  ),
+  step(
+    'DATE_INTERVENTION_FIXEE',
+    'Date confirmée',
+    "La date d'intervention est confirmée. Vous serez informé une fois l'intervention réalisée.",
+    'La date est validée par le client. Réalisez l\'intervention puis signalez-la.',
+  ),
+  step(
+    'INTERVENTION_EFFECTUEE',
+    'Intervention réalisée',
+    "L'intervention terrain est terminée. Le rapport est en cours de rédaction.",
+    'L\'intervention est effectuée. Uploadez le rapport final et indiquez sa date de remise.',
+  ),
+  step(
+    'RAPPORT_TERMINE',
+    'Rapport disponible',
+    'Le rapport final est prêt. Confirmez le paiement pour clôturer le dossier.',
+    'Le rapport a été transmis. En attente de la confirmation de paiement du client.',
+  ),
+  step(
+    'PAIEMENT_EFFECTUE',
+    'Dossier clôturé',
+    'Le paiement a été confirmé. Merci pour votre confiance.',
+    'Le paiement a été confirmé par le client. Dossier clôturé.',
+  ),
 ];
 
+/** Indexation : chaque état pointe vers l'étape à laquelle il appartient. */
 const STEP_INDEX: Record<EtatEtude, number> = {
-  DEVIS_VALIDE: 0,
-  DATE_INTERVENTION_PROPOSEE: 1,
-  DATE_INTERVENTION_FIXEE: 2,
-  INTERVENTION_EFFECTUEE: 3,
-  RAPPORT_TERMINE: 4,
-  PAIEMENT_EFFECTUE: 5,
+  DEVIS_VALIDE:               0, // étape 1 : "Devis accepté"
+  DEVIS_SIGNE:                1, // étape 2 : "Devis signé"
+  DATE_INTERVENTION_PROPOSEE: 2, // étape 3 : "Date d'intervention"
+  DATE_INTERVENTION_FIXEE:    3, // étape 4 : "Date confirmée"
+  INTERVENTION_EFFECTUEE:     4, // étape 5 : "Intervention réalisée"
+  RAPPORT_TERMINE:            5, // étape 6 : "Rapport disponible"
+  PAIEMENT_EFFECTUE:          6, // étape 7 : "Dossier clôturé"
 };
+
+/**
+ * Détermine l'index de l'étape "active" (celle qui attend une action).
+ * Les étapes précédentes sont considérées comme "complétées" (vertes).
+ *
+ * Règle métier :
+ * - DEVIS_VALIDE      → active = 1 (attente du devis signé)
+ * - DEVIS_SIGNE       → active = 2 (attente de la proposition de date)
+ * - états suivants    → l'état lui-même est l'étape active
+ */
+function getActiveStepIndex(etat: EtatEtude): number {
+  switch (etat) {
+    case 'DEVIS_VALIDE':
+      return 1;
+    case 'DEVIS_SIGNE':
+      return 2;
+    default:
+      return STEP_INDEX[etat];
+  }
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,7 +111,7 @@ interface EtudeStepperProps {
 // ─── Composant ────────────────────────────────────────────────────────────────
 
 export const EtudeStepper: React.FC<EtudeStepperProps> = ({ etat, role, renderActions }) => {
-  const currentIndex = etat !== undefined ? STEP_INDEX[etat] : -1;
+  const currentIndex = etat !== undefined ? getActiveStepIndex(etat) : -1;
 
   return (
     <div className="relative">
