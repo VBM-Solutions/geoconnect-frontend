@@ -7,7 +7,6 @@ import { uploadDocument } from '../../api/document';
 import { DemandeDevisDTO, PropositionDevisDTO, BureauEtudesDTO } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { BackButton } from '../../components/ui/BackButton';
 import { Input } from '../../components/ui/Input';
 import { MapPin, Clock, FileCheck, Paperclip, History } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,6 +16,7 @@ import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { TYPE_LABELS } from '../../constants/labels';
 import { buildDemandeDocuments } from '../../lib/formatters';
 import { DocumentList } from '../../components/etude/DocumentList';
+import { DetailPageShell } from '../../components/ui/DetailPageShell';
 
 // ─── Sous-composants ──────────────────────────────────────────────────────────
 
@@ -258,8 +258,19 @@ export default function BERequestDetail() {
       : '/be/dashboard?tab=OUVERT';
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4">
-      <BackButton to={backFallback} label="Retour aux missions" />
+    <DetailPageShell
+      tone="be"
+      backTo={backFallback}
+      backLabel="Retour aux missions"
+      eyebrow={`Mission #MES-${demande.id}`}
+      title={demande.adresseProjet?.ville || 'Projet géotechnique'}
+      description={(
+        <span>
+          {demande.type ? TYPE_LABELS[demande.type] ?? demande.type : 'Projet Standard'}
+          {demande.adresseProjet?.codePostal ? ` - ${demande.adresseProjet.codePostal}` : ''}
+        </span>
+      )}
+    >
 
       <div className="flex flex-col lg:flex-row gap-4">
         {/* Colonne Principale */}
@@ -398,6 +409,6 @@ export default function BERequestDetail() {
           onCancel={() => setShowConfirmModal(false)}
         />
       )}
-    </div>
+    </DetailPageShell>
   );
 }

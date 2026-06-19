@@ -1,5 +1,5 @@
 import React from 'react';
-import { EtudeDetailDTO, EtudeDocumentsDTO, DocumentDTO } from '../../types';
+import { EtudeDetailDTO, EtudeDocumentsDTO } from '../../types';
 import { formatDateLong } from '../../lib/formatters';
 import { DocumentList } from './DocumentList';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
@@ -45,7 +45,7 @@ export function EtudeDetailLayout({
   etatRole,
   renderActions,
   dateRenduPrevueEditor,
-}: EtudeDetailLayoutProps) {
+}: Readonly<EtudeDetailLayoutProps>) {
   const prop    = etude.propositionDevis;
   const demande = prop?.demandeDevis;
   const etat    = etude.etat;
@@ -54,35 +54,35 @@ export function EtudeDetailLayout({
     ? demande.referencesCadastrales : [];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-4">
-      <BackButton to={backTo} label="Retour au tableau de bord" />
+    <div className="space-y-6">
+      <BackButton to={backTo} label="Retour au tableau de bord" className="text-slate-500" />
 
       {/* En-tête */}
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className={`${etatRole === 'BE' ? 'border-slate-800/10 bg-linear-to-r from-slate-900 via-slate-800 to-blue-700 shadow-slate-300/60' : 'border-blue-100 bg-linear-to-r from-blue-600 via-blue-600 to-cyan-500 shadow-blue-200/70'} rounded-2xl border p-5 text-white shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4`}>
         <div>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+          <p className="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] mb-2">
             {headerLabel} #{etude.id}
           </p>
-          <h1 className="text-lg font-bold text-slate-800 flex items-center flex-wrap gap-x-2">
-            <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+          <h1 className="text-2xl font-bold tracking-tight flex items-center flex-wrap gap-x-2">
+            <MapPin className="w-4 h-4 text-white/70 shrink-0" />
             <span>{demande?.adresseProjet?.rue || demande?.adresseProjet?.ville || 'Projet géotechnique'}</span>
             {(demande?.adresseProjet?.ville || demande?.adresseProjet?.codePostal) && (
-              <span className="text-slate-400 font-normal text-sm">
+              <span className="text-white/70 font-normal text-sm">
                 {[demande.adresseProjet.ville, demande.adresseProjet.codePostal].filter(Boolean).join(' ')}
               </span>
             )}
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-sm text-white/90 mt-1">
             {demande?.type ? TYPE_LABELS[demande.type] ?? demande.type : 'Étude géotechnique'}
           </p>
           {parcelles.length > 0 && (
-            <p className="flex items-center flex-wrap gap-x-1.5 text-[10px] text-slate-400 mt-0.5">
+            <p className="flex items-center flex-wrap gap-x-1.5 text-[11px] text-white/70 mt-0.5">
               <Landmark className="w-2.5 h-2.5 shrink-0" />
               {parcelles.join(' · ')}
             </p>
           )}
         </div>
-        <EtudeStatusBadge etat={etat} className="self-start sm:self-center" />
+        <EtudeStatusBadge etat={etat} className="self-start border-white/30 bg-white/95 sm:self-center" />
       </div>
 
       {/* Bannière action requise (spécifique au rôle) */}
@@ -96,7 +96,7 @@ export function EtudeDetailLayout({
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="gc-surface-panel rounded-2xl p-4 md:p-5 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
 
         {/* Colonne gauche : infos */}
         <div className="space-y-4">
@@ -260,7 +260,7 @@ export function EtudeDetailLayout({
         </div>
 
         {/* Colonne droite : stepper */}
-        <div className="lg:col-span-2">
+        <div className="min-w-0">
           <Card>
             <CardHeader className="pb-3 border-b border-slate-100">
               <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500">

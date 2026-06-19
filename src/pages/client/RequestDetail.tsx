@@ -5,12 +5,12 @@ import { getPropositionDevisByDemandeId, accepterPropositionDevis, refuserPropos
 import { DemandeDevisDTO, PropositionDevisDTO } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { BackButton } from '../../components/ui/BackButton';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { MapPin, Clock, Building2, CheckCircle2, FileText } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { buildDemandeDocuments } from '../../lib/formatters';
 import { DocumentList } from '../../components/etude/DocumentList';
+import { DetailPageShell } from '../../components/ui/DetailPageShell';
 
 export default function ClientRequestDetail() {
   const { id } = useParams<{ id: string }>();
@@ -92,8 +92,19 @@ export default function ClientRequestDetail() {
   const demandeDocuments = buildDemandeDocuments(demande);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-4">
-      <BackButton to="/client/dashboard?tab=DEMANDES" label="Retour aux demandes" />
+    <DetailPageShell
+      tone="client"
+      backTo="/client/dashboard?tab=DEMANDES"
+      backLabel="Retour aux demandes"
+      eyebrow={`Demande #MES-${demande.id}`}
+      title={demande.adresseProjet?.ville || 'Projet géotechnique'}
+      description={(
+        <span>
+          {demande.type || 'Projet'}
+          {demande.adresseProjet?.codePostal ? ` - ${demande.adresseProjet.codePostal}` : ''}
+        </span>
+      )}
+    >
 
       <div className="flex flex-col md:flex-row gap-4">
         
@@ -167,8 +178,14 @@ export default function ClientRequestDetail() {
                     {propositions.map(prop => {
                       const isAccepted = prop.statut === 'ACCEPTEE';
                       const isRefused  = prop.statut === 'REFUSEE';
+                      let rowClassName = 'hover:bg-slate-50';
+                      if (isAccepted) {
+                        rowClassName = 'bg-green-50/50';
+                      } else if (isRefused) {
+                        rowClassName = 'opacity-50';
+                      }
                       return (
-                        <tr key={prop.id} className={`border-b border-slate-50 ${isAccepted ? 'bg-green-50/50' : isRefused ? 'opacity-50' : 'hover:bg-slate-50'}`}>
+                        <tr key={prop.id} className={`border-b border-slate-50 ${rowClassName}`}>
                           <td className="px-4 py-3">
                             <div className="font-semibold text-slate-800 flex items-center">
                               <Building2 className="w-3 h-3 mr-1.5 text-slate-400"/>
@@ -183,13 +200,15 @@ export default function ClientRequestDetail() {
                             {prop.delaiMaxRendu == null ? '—' : `${prop.delaiMaxRendu} sem`}
                           </td>
                           <td className="px-4 py-3 text-center">
-                            {isAccepted ? (
+                            {isAccepted && (
                               <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded font-bold text-[10px] uppercase tracking-wider">
                                 <CheckCircle2 className="w-3 h-3 mr-1" /> Validée
                               </span>
-                            ) : isRefused ? (
+                            )}
+                            {isRefused && (
                               <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Refusée</span>
-                            ) : acceptedProp ? null : (
+                            )}
+                            {!isAccepted && !isRefused && !acceptedProp && (
                                 <div className="flex justify-center gap-2">
                                   <Button
                                       size="sm"
@@ -250,6 +269,6 @@ export default function ClientRequestDetail() {
           onCancel={() => setConfirmRefuseId(null)}
         />
       )}
-    </div>
+    </DetailPageShell>
   );
 }
