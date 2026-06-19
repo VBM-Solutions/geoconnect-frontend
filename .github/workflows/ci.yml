@@ -82,7 +82,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Déterminer le tag, le mode et l'owner lowercase
+      - name: Déterminer le tag, le mode, l'owner lowercase et le SHA
         id: meta
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
@@ -93,6 +93,12 @@ jobs:
             echo "build_mode=staging" >> $GITHUB_OUTPUT
           fi
           echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+          SHORT_SHA=$(echo '${{ github.sha }}' | cut -c1-7)
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "sha=production-sha-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          else
+            echo "sha=staging-sha-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Déterminer VITE_API_URL
         id: vite
@@ -119,7 +125,9 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: ghcr.io/${{ steps.meta.outputs.owner }}/geoconnect-frontend:${{ steps.meta.outputs.tag }}
+          tags: |
+            ghcr.io/${{ steps.meta.outputs.owner }}/geoconnect-frontend:${{ steps.meta.outputs.tag }}
+            ghcr.io/${{ steps.meta.outputs.owner }}/geoconnect-frontend:${{ steps.meta.outputs.sha }}
           build-args: |
             VITE_API_URL=${{ steps.vite.outputs.api_url }}
             BUILD_MODE=${{ steps.meta.outputs.build_mode }}
@@ -127,48 +135,35 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ─────────────────────────────────────────────
-  # 4. Déploiement Staging (branche develop)
+  # 4. Update Infra Repo (staging SHA tag)
   # ─────────────────────────────────────────────
-  deploy-staging:
-    name: Deploy → Staging
+  update-infra:
+    name: Update Infra Repo
     needs: build-images
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
-    environment:
-      name: staging
-      url: ${{ vars.STAGING_URL }}
     steps:
-      - name: Trigger Coolify Staging Deploy
-        run: |
-          if [ -z "${{ secrets.COOLIFY_STAGING_WEBHOOK_URL }}" ] || [ -z "${{ secrets.COOLIFY_STAGING_TOKEN }}" ]; then
-            echo "⚠️  COOLIFY_STAGING_WEBHOOK_URL ou COOLIFY_STAGING_TOKEN non configurés — déploiement ignoré."
-            exit 0
-          fi
-          curl --silent --fail --show-error \
-            --request GET \
-            "${{ secrets.COOLIFY_STAGING_WEBHOOK_URL }}" \
-            --header "Authorization: Bearer ${{ secrets.COOLIFY_STAGING_TOKEN }}"
+      - name: Checkout infra repo
+        uses: actions/checkout@v4
+        with:
+          repository: VBM-Solutions/geoconnect-infra
+          token: ${{ secrets.INFRA_REPO_PAT }}
+          path: infra
 
-  # ─────────────────────────────────────────────
-  # 5. Déploiement Production (branche main)
-  # Requiert une approbation manuelle.
-  # ─────────────────────────────────────────────
-  deploy-production:
-    name: Deploy → Production
-    needs: [ build-images, sonar ]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment:
-      name: production
-      url: ${{ vars.PRODUCTION_URL }}
-    steps:
-      - name: Trigger Coolify Production Deploy
+      - name: Determine SHA tag
+        id: meta
         run: |
-          if [ -z "${{ secrets.COOLIFY_PRODUCTION_WEBHOOK_URL }}" ] || [ -z "${{ secrets.COOLIFY_PRODUCTION_TOKEN }}" ]; then
-            echo "⚠️  COOLIFY_PRODUCTION_WEBHOOK_URL ou COOLIFY_PRODUCTION_TOKEN non configurés — déploiement ignoré."
-            exit 0
-          fi
-          curl --silent --fail --show-error \
-            --request GET \
-            "${{ secrets.COOLIFY_PRODUCTION_WEBHOOK_URL }}" \
-            --header "Authorization: Bearer ${{ secrets.COOLIFY_PRODUCTION_TOKEN }}"
+          SHORT_SHA=$(echo '${{ github.sha }}' | cut -c1-7)
+          echo "sha=staging-sha-${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Update docker-compose with SHA tag
+        run: |
+          sed -i "s/TAG_PLACEHOLDER/${{ steps.meta.outputs.sha }}/g" infra/staging/docker-compose-frontend.yml
+
+      - name: Commit and push
+        run: |
+          cd infra
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add staging/docker-compose-frontend.yml
+          git diff --cached --quiet || (git commit -m "deploy(staging): update frontend to ${{ steps.meta.outputs.sha }}" && git push origin main)
