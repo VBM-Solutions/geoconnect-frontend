@@ -31,8 +31,8 @@ export const ETUDE_STEPS: StepDef[] = [
   step(
     'DEVIS_SIGNE',
     'Devis signé',
-    "Le devis a été signé. Le bureau d'études va proposer une date d'intervention.",
-    "Le devis est signé. Vous pouvez maintenant proposer une date d'intervention.",
+    "Vous avez accepté le devis. Le bureau d'études attend la signature du devis pour continuer.",
+    "Le client a accepté votre devis. Le devis signé est requis avant de proposer une date.",
   ),
   step(
     'DATE_INTERVENTION_PROPOSEE',
@@ -66,13 +66,36 @@ export const ETUDE_STEPS: StepDef[] = [
   ),
 ];
 
-const STEP_INDEX: Record<EtatEtude, number> = ETUDE_STEPS.reduce(
-  (acc, step, index) => {
-    acc[step.etat] = index;
-    return acc;
-  },
-  {} as Record<EtatEtude, number>
-);
+/** Indexation : chaque état pointe vers l'étape à laquelle il appartient. */
+const STEP_INDEX: Record<EtatEtude, number> = {
+  DEVIS_VALIDE:               0, // étape 1 : "Devis accepté"
+  DEVIS_SIGNE:                1, // étape 2 : "Devis signé"
+  DATE_INTERVENTION_PROPOSEE: 2, // étape 3 : "Date d'intervention"
+  DATE_INTERVENTION_FIXEE:    3, // étape 4 : "Date confirmée"
+  INTERVENTION_EFFECTUEE:     4, // étape 5 : "Intervention réalisée"
+  RAPPORT_TERMINE:            5, // étape 6 : "Rapport disponible"
+  PAIEMENT_EFFECTUE:          6, // étape 7 : "Dossier clôturé"
+};
+
+/**
+ * Détermine l'index de l'étape "active" (celle qui attend une action).
+ * Les étapes précédentes sont considérées comme "complétées" (vertes).
+ *
+ * Règle métier :
+ * - DEVIS_VALIDE      → active = 1 (attente du devis signé)
+ * - DEVIS_SIGNE       → active = 2 (attente de la proposition de date)
+ * - états suivants    → l'état lui-même est l'étape active
+ */
+function getActiveStepIndex(etat: EtatEtude): number {
+  switch (etat) {
+    case 'DEVIS_VALIDE':
+      return 1;
+    case 'DEVIS_SIGNE':
+      return 2;
+    default:
+      return STEP_INDEX[etat];
+  }
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -88,7 +111,7 @@ interface EtudeStepperProps {
 // ─── Composant ────────────────────────────────────────────────────────────────
 
 export const EtudeStepper: React.FC<EtudeStepperProps> = ({ etat, role, renderActions }) => {
-  const currentIndex = etat !== undefined ? STEP_INDEX[etat] : -1;
+  const currentIndex = etat !== undefined ? getActiveStepIndex(etat) : -1;
 
   return (
     <div className="relative">
