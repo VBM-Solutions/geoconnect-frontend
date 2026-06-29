@@ -173,7 +173,7 @@ export default function BureauEtudeDetail() {
 
 // ─── Badge jours restants ─────────────────────────────────────────────────────
 
-function DaysRemainingBadge({ dateIso }: { dateIso: string }) {
+function DaysRemainingBadge({ dateIso }: Readonly<{ dateIso: string }>) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const target = new Date(dateIso);
@@ -267,61 +267,79 @@ export function BEStepActions({ etat, dateIntervention, isLoading, onProposerDat
     </div>
   ) : null;
 
-  switch (etat) {
-    case 'DEVIS_SIGNE':
-      return (
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-2 items-end">
-            <div>
-              <label htmlFor="dateIntervention" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                Date d'intervention
-              </label>
-              <input
-                id="dateIntervention"
-                type="date"
-                value={dateInput}
-                min={today}
-                onChange={e => {
-                  setDateInput(e.target.value);
-                  setDateError('');
-                }}
-                onBlur={e => {
-                  if (e.target.value && e.target.value < today) {
-                    setDateError('La date doit être dans le futur');
-                  } else {
-                    setDateError('');
-                  }
-                }}
-                className={`border rounded px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                  dateError ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'
-                }`}
-              />
-              {dateError && <p className="text-red-500 text-[10px] mt-1">{dateError}</p>}
-            </div>
-            <Button
-              onClick={() => {
-                if (dateInput && dateInput < today) {
-                  setDateError('La date doit être dans le futur');
-                  return;
-                }
+  const dateProposalForm = (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2 items-end">
+        <div>
+          <label htmlFor="dateIntervention" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+            Date d'intervention
+          </label>
+          <input
+            id="dateIntervention"
+            type="date"
+            value={dateInput}
+            min={today}
+            onChange={e => {
+              setDateInput(e.target.value);
+              setDateError('');
+            }}
+            onBlur={e => {
+              if (e.target.value && e.target.value < today) {
+                setDateError('La date doit être dans le futur');
+              } else {
                 setDateError('');
-                onProposerDate(dateInput);
-              }}
-              disabled={!dateInput || !!dateError}
-              isLoading={isLoading}
-            >
-              Envoyer la date
-            </Button>
-          </div>
+              }
+            }}
+            className={`border rounded px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+              dateError ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'
+            }`}
+          />
+          {dateError && <p className="text-red-500 text-[10px] mt-1">{dateError}</p>}
         </div>
-      );
+        <Button
+          onClick={() => {
+            if (dateInput && dateInput < today) {
+              setDateError('La date doit être dans le futur');
+              return;
+            }
+            setDateError('');
+            onProposerDate(dateInput);
+          }}
+          disabled={!dateInput || !!dateError}
+          isLoading={isLoading}
+        >
+          Envoyer la date
+        </Button>
+      </div>
+    </div>
+  );
 
-    case 'DATE_INTERVENTION_PROPOSEE':
+  switch (etat) {
+    case 'DEVIS_VALIDE':
       return (
         <InfoMsg color="orange" icon={<Clock className="w-4 h-4" />}>
-          {dateIntervention
-            ? "Le client n'a pas encore validé votre date. Vous pouvez en proposer une nouvelle."
-            : "Le client a refusé la date proposée. Veuillez en proposer une nouvelle."}
+          En attente du devis signé par le client avant de pouvoir proposer une date d'intervention.
+        </InfoMsg>
+      );
+
+    case 'DEVIS_SIGNE':
+      return dateProposalForm;
+
+    case 'DATE_INTERVENTION_PROPOSEE':
+      if (!dateIntervention) {
+        return (
+          <div className="space-y-3">
+            <InfoMsg color="orange" icon={<Clock className="w-4 h-4" />}>
+              Le client a refusé la date proposée. Veuillez en proposer une nouvelle.
+            </InfoMsg>
+            {dateProposalForm}
+          </div>
+        );
+      }
+
+      return (
+        <InfoMsg color="orange" icon={<Clock className="w-4 h-4" />}>
+          Date proposée au client : <strong>{formatDateLong(dateIntervention)}</strong>. En attente de sa validation ou de son refus.
         </InfoMsg>
       );
 

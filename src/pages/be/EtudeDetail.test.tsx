@@ -217,16 +217,26 @@ describe('BEStepActions — autres états', () => {
     expect(screen.getByRole('button', { name: /envoyer la date/i })).toBeTruthy();
   });
 
-  it('affiche le message d\'information pour DATE_INTERVENTION_PROPOSEE', () => {
-    renderActions({ etat: 'DATE_INTERVENTION_PROPOSEE' });
+  it('affiche un message d\'attente pour DEVIS_VALIDE', () => {
+    renderActions({ etat: 'DEVIS_VALIDE' });
     expect(screen.queryByRole('button', { name: /envoyer la date/i })).toBeNull();
-    expect(screen.getByText(/Le client a refusé la date proposée/i)).toBeTruthy();
+    expect(screen.getByText(/en attente du devis sign/i)).toBeTruthy();
   });
 
-  it('ne rend rien pour DEVIS_VALIDE', () => {
-    const { container } = renderActions({ etat: 'DEVIS_VALIDE' });
+  it('affiche la date proposée et bloque la reproposition pour DATE_INTERVENTION_PROPOSEE', () => {
+    renderActions({
+      etat: 'DATE_INTERVENTION_PROPOSEE',
+      dateIntervention: '2026-07-15',
+    });
     expect(screen.queryByRole('button', { name: /envoyer la date/i })).toBeNull();
-    expect(container.firstChild).toBeNull();
+    expect(screen.getByText(/date proposée au client/i)).toBeTruthy();
+    expect(screen.getByText(/en attente de sa validation ou de son refus/i)).toBeTruthy();
+  });
+
+  it('affiche le formulaire pour DATE_INTERVENTION_PROPOSEE sans date après refus client', () => {
+    renderActions({ etat: 'DATE_INTERVENTION_PROPOSEE' });
+    expect(screen.getByText(/le client a refusé la date proposée/i)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /envoyer la date/i })).toBeTruthy();
   });
 
   it('ne rend rien pour un état inconnu', () => {

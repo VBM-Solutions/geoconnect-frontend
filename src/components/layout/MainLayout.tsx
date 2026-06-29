@@ -73,7 +73,7 @@ export default function MainLayout() {
 
   let navItems: Array<{ label: string; path: string }> = [];
   if (user?.role === 'CLIENT') {
-    navItems = [{ label: 'Mes demandes', path: '/client/dashboard' }];
+    navItems = [{ label: 'Mon espace', path: '/client/dashboard' }];
   } else if (user?.role === 'BUREAU_ETUDE') {
     navItems = [{ label: 'Acceuil', path: '/be/dashboard' }];
   } else if (user?.role === 'ADMIN') {

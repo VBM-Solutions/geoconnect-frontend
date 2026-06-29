@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, Circle } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { EtatEtude } from '../../types';
 
 // ─── Définition des étapes ────────────────────────────────────────────────────
@@ -31,8 +31,8 @@ export const ETUDE_STEPS: StepDef[] = [
   step(
     'DEVIS_SIGNE',
     'Devis signé',
-    "Vous avez accepté le devis. Le bureau d'études attend la signature du devis pour continuer.",
-    "Le client a accepté votre devis. Le devis signé est requis avant de proposer une date.",
+    "Le devis signé a été déposé. Le bureau d'études peut maintenant proposer une date d'intervention.",
+    "Le devis signé a été reçu. Proposez une date d'intervention au client.",
   ),
   step(
     'DATE_INTERVENTION_PROPOSEE',
