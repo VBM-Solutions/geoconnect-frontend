@@ -10,6 +10,8 @@ import { clientMustAct } from '../../components/etude/EtudeStatusBadge';
 import { CheckCircle2, XCircle, CreditCard, AlertCircle, Clock, Building2, Upload, FilePen } from 'lucide-react';
 import { formatDateLong } from '../../lib/formatters';
 import { useEtudeDetail } from '../../hooks/useEtudeDetail';
+import { formatDelaiWithProjection } from '../../lib/delaiProjection';
+import { EtudeInfoMetric } from '../../components/etude/EtudeInfoMetric';
 
 export default function ClientEtudeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -43,14 +45,8 @@ export default function ClientEtudeDetail() {
           {bureau?.emailContact && <p className="text-slate-500">{bureau.emailContact}</p>}
           {bureau?.telContact && <p className="text-slate-500">{bureau.telContact}</p>}
           <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 mt-1">
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Montant</p>
-              <p className="font-bold text-slate-800">{prop?.prix == null ? '—' : `${prop.prix} €`}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Délai rendu</p>
-              <p className="font-bold text-slate-800">{prop?.delaiMaxRendu == null ? '—' : `${prop.delaiMaxRendu} sem`}</p>
-            </div>
+            <EtudeInfoMetric label="Montant">{prop?.prix == null ? '—' : `${prop.prix} €`}</EtudeInfoMetric>
+            <EtudeInfoMetric label="Délai rendu">{formatDelaiWithProjection(prop?.delaiMaxRendu, prop?.delaiProjectionRendu)}</EtudeInfoMetric>
           </div>
         </CardContent>
       </Card>

@@ -16,6 +16,7 @@ import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { TYPE_LABELS } from '../../constants/labels';
 import { buildDemandeDocuments } from '../../lib/formatters';
 import { DocumentList } from '../../components/etude/DocumentList';
+import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 import { DetailPageShell } from '../../components/ui/DetailPageShell';
 
 // ─── Sous-composants ──────────────────────────────────────────────────────────
@@ -49,7 +50,7 @@ function ActivePropositionCard({ prop, statusConfig }: Readonly<ActivePropositio
           <div className="bg-current/10 p-2 rounded">
             <span className="block text-[10px] font-bold uppercase mb-1">Délai rendu</span>
             <span className="font-semibold text-xs">
-              {prop.delaiMaxRendu == null ? '—' : `${prop.delaiMaxRendu} sem`}
+              {formatDelaiWithProjection(prop.delaiMaxRendu, prop.delaiProjectionRendu)}
             </span>
           </div>
           <div className="bg-current/10 p-2 rounded">
@@ -60,7 +61,7 @@ function ActivePropositionCard({ prop, statusConfig }: Readonly<ActivePropositio
         {prop.delaiMaxIntervention != null && (
           <div className="bg-current/10 p-2 rounded">
             <span className="block text-[10px] font-bold uppercase mb-1">Délai intervention</span>
-            <span className="font-semibold text-xs">{prop.delaiMaxIntervention} sem</span>
+            <span className="font-semibold text-xs">{formatDelaiWithProjection(prop.delaiMaxIntervention, prop.delaiProjectionIntervention)}</span>
           </div>
         )}
       </CardContent>
@@ -365,8 +366,8 @@ export default function BERequestDetail() {
                       <span className="font-mono font-bold text-slate-700">{rp.prix} €</span>
                     </div>
                     <div className="text-slate-500 mt-0.5">
-                      Rendu : {rp.delaiMaxRendu == null ? '—' : `${rp.delaiMaxRendu} sem`}
-                      {rp.delaiMaxIntervention != null && ` · Intervention : ${rp.delaiMaxIntervention} sem`}
+                      Rendu : {formatDelaiWithProjection(rp.delaiMaxRendu, rp.delaiProjectionRendu)}
+                      {rp.delaiMaxIntervention != null && ` · Intervention : ${formatDelaiWithProjection(rp.delaiMaxIntervention, rp.delaiProjectionIntervention)}`}
                     </div>
                   </div>
                 ))}

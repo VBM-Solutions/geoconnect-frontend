@@ -10,6 +10,7 @@ import { MapPin, Clock, Building2, CheckCircle2, FileText } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { buildDemandeDocuments } from '../../lib/formatters';
 import { DocumentList } from '../../components/etude/DocumentList';
+import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 import { DetailPageShell } from '../../components/ui/DetailPageShell';
 
 export default function ClientRequestDetail() {
@@ -197,7 +198,7 @@ export default function ClientRequestDetail() {
                             {prop.prix} €
                           </td>
                           <td className="px-4 py-3 text-slate-600">
-                            {prop.delaiMaxRendu == null ? '—' : `${prop.delaiMaxRendu} sem`}
+                            {formatDelaiWithProjection(prop.delaiMaxRendu, prop.delaiProjectionRendu)}
                           </td>
                           <td className="px-4 py-3 text-center">
                             {isAccepted && (
