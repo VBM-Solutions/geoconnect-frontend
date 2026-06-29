@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { EtudeDetailLayout, EtudeDetailLoadingSpinner } from '../../components/etude/EtudeDetailLayout';
 import { InfoMsg } from '../../components/etude/InfoMsg';
 import { clientMustAct } from '../../components/etude/EtudeStatusBadge';
+import { RapportDownloadCard } from '../../components/etude/RapportDownloadCard';
 import { CheckCircle2, XCircle, CreditCard, AlertCircle, Clock, Building2, Upload, FilePen } from 'lucide-react';
 import { formatDateLong } from '../../lib/formatters';
 import { useEtudeDetail } from '../../hooks/useEtudeDetail';
@@ -30,9 +31,15 @@ export default function ClientEtudeDetail() {
 
   /**
    * Colonne gauche : carte bureau + carte devis signé (persistante jusqu'au dépôt)
+   * + carte rapport dédiée post-paiement
    */
   const infoCard = (
     <>
+      {/* Carte rapport final — CTA dédiée, visible uniquement post-paiement avec rapport */}
+      {etat === 'PAIEMENT_EFFECTUE' && documents?.rapport?.id != null && (
+        <RapportDownloadCard rapport={documents.rapport} />
+      )}
+
       {/* Carte bureau d'études */}
       <Card>
         <CardHeader className="pb-2 border-b border-slate-100">

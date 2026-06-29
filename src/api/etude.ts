@@ -51,7 +51,7 @@ export const attacherDevisSigne = async (id: number, documentId: number): Promis
   return data;
 };
 
-/** CLIENT → upload le devis signé (sans changement d'état) — notifie le BE */
+/** CLIENT → upload le devis signé, passe l'étude à DEVIS_SIGNE et notifie le BE */
 export const uploaderDevisSigne = async (id: number, file: File): Promise<void> => {
   const formData = new FormData();
   formData.append('file', file);
