@@ -60,12 +60,22 @@ export interface DemandeDevisDTO {
 
 export type StatutProposition = 'EN_ATTENTE' | 'ACCEPTEE' | 'REFUSEE';
 
+export interface DelaiProjectionDTO {
+  min?: string;
+  max?: string;
+  label?: string;
+  joursRestants?: number;
+  semainesRestantes?: number;
+}
+
 export interface PropositionDevisDTO {
   id?: number;
   bureauEtudeId?: number;
   demandeDevisId?: number;
   delaiMaxIntervention?: number;
+  delaiProjectionIntervention?: DelaiProjectionDTO;
   delaiMaxRendu?: number;
+  delaiProjectionRendu?: DelaiProjectionDTO;
   prix?: number;
   documentId?: number;
   statut?: StatutProposition;
@@ -180,7 +190,9 @@ export interface PropositionDevisDetail {
   statut?: StatutProposition;
   prix?: number;
   delaiMaxIntervention?: number;
+  delaiProjectionIntervention?: DelaiProjectionDTO;
   delaiMaxRendu?: number;
+  delaiProjectionRendu?: DelaiProjectionDTO;
   devisPdfId?: number;
   bureauEtude?: BureauEtudesDetail;
   demandeDevis?: DemandeDevisDetail;

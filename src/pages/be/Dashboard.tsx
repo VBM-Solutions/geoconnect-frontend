@@ -15,6 +15,7 @@ import { DashboardMetricCard } from '../../components/ui/DashboardMetricCard';
 import { DashboardActivityFeed } from '../../components/ui/DashboardActivityFeed';
 import { Link, useSearchParams } from 'react-router-dom';
 import { buildBEActivityFeed } from './dashboardActivityFeed';
+import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 
 type TabType = 'OUVERT' | 'EN_ATTENTE' | 'ETUDE_EN_COURS' | 'ARCHIVES';
 
@@ -465,7 +466,7 @@ export default function BEDashboard() {
               <span className="font-bold text-slate-900 text-xs">{prop.prix} €</span>
             </div>
             <div className="text-slate-500">
-              Rendu: {prop.delaiMaxRendu == null ? 'N/A' : `${prop.delaiMaxRendu} sem`}
+              Rendu: {formatDelaiWithProjection(prop.delaiMaxRendu, prop.delaiProjectionRendu)}
             </div>
           </div>
         )}
@@ -539,8 +540,8 @@ export default function BEDashboard() {
             <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-700">
               <p>Montant : <span className="font-semibold">{prop?.prix == null ? '—' : `${prop.prix} €`}</span></p>
               <p>Statut : <span className="font-semibold">{prop?.statut ? (STATUT_LABELS[prop.statut] ?? prop.statut) : '—'}</span></p>
-              <p>Rendu : <span className="font-semibold">{prop?.delaiMaxRendu == null ? '—' : `${prop.delaiMaxRendu} sem`}</span></p>
-              <p>Intervention : <span className="font-semibold">{prop?.delaiMaxIntervention == null ? '—' : `${prop.delaiMaxIntervention} sem`}</span></p>
+              <p>Rendu : <span className="font-semibold">{formatDelaiWithProjection(prop?.delaiMaxRendu, prop?.delaiProjectionRendu)}</span></p>
+              <p>Intervention : <span className="font-semibold">{formatDelaiWithProjection(prop?.delaiMaxIntervention, prop?.delaiProjectionIntervention)}</span></p>
             </div>
           </div>
 
