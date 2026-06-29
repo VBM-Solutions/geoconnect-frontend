@@ -1,13 +1,30 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
+import {
+  CalendarDays,
+  ChevronRight,
+  ClipboardList,
+  Clock,
+  FileText,
+  FolderOpen,
+  Landmark,
+  LayoutList,
+  MapPin,
+  Mountain,
+  Ruler,
+  UserRound,
+  XCircle,
+} from 'lucide-react';
 import { EtudeDetailDTO, EtudeDocumentsDTO } from '../../types';
+import { TYPE_LABELS } from '../../constants/labels';
 import { formatDateLong } from '../../lib/formatters';
+import { cn } from '../../lib/utils';
 import { DocumentList } from './DocumentList';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { BackButton } from '../ui/BackButton';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { EtudeStatusBadge } from './EtudeStatusBadge';
 import { EtudeStepper } from './EtudeStepper';
-import { MapPin, FileText, XCircle, Clock, Landmark, Mountain, Ruler, LayoutList } from 'lucide-react';
-import { TYPE_LABELS } from '../../constants/labels';
+
+type EtudeSectionId = 'synthese' | 'progression' | 'documents' | 'dates' | 'technique' | 'intervenants' | 'description';
 
 interface EtudeDetailLayoutProps {
   etude: EtudeDetailDTO;
@@ -15,25 +32,20 @@ interface EtudeDetailLayoutProps {
   error: string | null;
   /** URL de retour vers le tableau de bord */
   backTo: string;
-  /** Libellé du titre (ex : "Suivi d'étude" | "Gestion d'étude") */
+  /** Libelle du titre (ex : "Suivi d'etude" | "Gestion d'etude") */
   headerLabel: string;
-  /** Bannière optionnelle "action requise" (rendu différent selon le rôle) */
+  /** Banniere optionnelle "action requise" (rendu different selon le role) */
   actionBanner?: React.ReactNode;
-  /** Carte d'informations spécifique au rôle (Bureau | Client) */
+  /** Carte d'informations specifique au role (Bureau | Client) */
   infoCard: React.ReactNode;
-  /** Rôle transmis au stepper */
+  /** Role transmis au stepper */
   etatRole: 'CLIENT' | 'BE';
   /** Fabrique les boutons d'action contextuels dans le stepper */
   renderActions: () => React.ReactNode;
-  /** Éditeur de la date de rendu prévue à afficher dans la carte Dates (optionnel, BE uniquement) */
+  /** Editeur de la date de rendu prevue a afficher dans la section Dates (optionnel, BE uniquement) */
   dateRenduPrevueEditor?: React.ReactNode;
 }
 
-/**
- * Mise en page partagée entre la page détail CLIENT et la page détail BE.
- * Seuls varient : le lien de retour, le libellé d'en-tête, la carte d'infos
- * gauche, la bannière d'action et le libellé du rapport.
- */
 export function EtudeDetailLayout({
   etude,
   documents,
@@ -46,247 +58,336 @@ export function EtudeDetailLayout({
   renderActions,
   dateRenduPrevueEditor,
 }: Readonly<EtudeDetailLayoutProps>) {
-  const prop    = etude.propositionDevis;
+  const [activeSection, setActiveSection] = useState<EtudeSectionId>('synthese');
+  const prop = etude.propositionDevis;
   const demande = prop?.demandeDevis;
-  const etat    = etude.etat;
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const parcelles: string[] = demande?.referencesCadastrales?.length
-    ? demande.referencesCadastrales : [];
+  const etat = etude.etat;
+  const parcelles = demande?.referencesCadastrales?.length ? demande.referencesCadastrales : [];
+  const documentCount = countDocuments(documents);
+  const hasTechnicalData =
+    demande?.superficie != null ||
+    demande?.nombreLot != null ||
+    demande?.delaiMaxSouhaite != null ||
+    parcelles.length > 0;
+  const projectTitle = demande?.adresseProjet?.rue || demande?.adresseProjet?.ville || 'Projet geotechnique';
+  const projectPlace = [demande?.adresseProjet?.ville, demande?.adresseProjet?.codePostal].filter(Boolean).join(' ');
+  const studyType = demande?.type ? TYPE_LABELS[demande.type] ?? demande.type : 'Etude geotechnique';
+
+  const sections = useMemo(
+    () => [
+      { id: 'synthese' as const, label: 'Synthese', icon: ClipboardList },
+      { id: 'progression' as const, label: 'Progression', icon: ChevronRight },
+      { id: 'documents' as const, label: 'Documents', icon: FolderOpen, count: documentCount },
+      { id: 'dates' as const, label: 'Dates', icon: CalendarDays },
+      { id: 'technique' as const, label: 'Technique', icon: Mountain, disabled: !hasTechnicalData },
+      { id: 'intervenants' as const, label: etatRole === 'BE' ? 'Client' : 'Bureau', icon: UserRound },
+      { id: 'description' as const, label: 'Description', icon: FileText, disabled: !demande?.description },
+    ],
+    [demande?.description, documentCount, etatRole, hasTechnicalData],
+  );
 
   return (
     <div className="space-y-6">
       <BackButton to={backTo} label="Retour au tableau de bord" className="text-slate-500" />
 
-      {/* En-tête */}
-      <div className={`${etatRole === 'BE' ? 'border-slate-800/10 bg-linear-to-r from-slate-900 via-slate-800 to-blue-700 shadow-slate-300/60' : 'border-blue-100 bg-linear-to-r from-blue-600 via-blue-600 to-cyan-500 shadow-blue-200/70'} rounded-2xl border p-5 text-white shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4`}>
-        <div>
-          <p className="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] mb-2">
-            {headerLabel} #{etude.id}
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center flex-wrap gap-x-2">
-            <MapPin className="w-4 h-4 text-white/70 shrink-0" />
-            <span>{demande?.adresseProjet?.rue || demande?.adresseProjet?.ville || 'Projet géotechnique'}</span>
-            {(demande?.adresseProjet?.ville || demande?.adresseProjet?.codePostal) && (
-              <span className="text-white/70 font-normal text-sm">
-                {[demande.adresseProjet.ville, demande.adresseProjet.codePostal].filter(Boolean).join(' ')}
-              </span>
-            )}
-          </h1>
-          <p className="text-sm text-white/90 mt-1">
-            {demande?.type ? TYPE_LABELS[demande.type] ?? demande.type : 'Étude géotechnique'}
-          </p>
-          {parcelles.length > 0 && (
-            <p className="flex items-center flex-wrap gap-x-1.5 text-[11px] text-white/70 mt-0.5">
-              <Landmark className="w-2.5 h-2.5 shrink-0" />
-              {parcelles.join(' · ')}
+      <header
+        className={cn(
+          'rounded-2xl border p-5 text-white shadow-lg',
+          etatRole === 'BE'
+            ? 'border-slate-800/10 bg-linear-to-r from-slate-900 via-slate-800 to-blue-700 shadow-slate-300/60'
+            : 'border-blue-100 bg-linear-to-r from-blue-600 via-blue-600 to-cyan-500 shadow-blue-200/70',
+        )}
+      >
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div className="min-w-0">
+            <p className="mb-2 inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
+              {headerLabel} #{etude.id}
             </p>
-          )}
+            <h1 className="flex flex-wrap items-center gap-x-2 text-2xl font-bold tracking-tight">
+              <MapPin className="h-4 w-4 shrink-0 text-white/70" />
+              <span>{projectTitle}</span>
+              {projectPlace && <span className="text-sm font-normal text-white/70">{projectPlace}</span>}
+            </h1>
+            <p className="mt-1 text-sm text-white/90">{studyType}</p>
+            {parcelles.length > 0 && (
+              <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-white/70">
+                <Landmark className="h-2.5 w-2.5 shrink-0" />
+                {parcelles.join(' - ')}
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <HeaderMetric label="Intervention" value={formatDateLong(etude.dateIntervention) ?? '-'} />
+            <HeaderMetric label="Rendu prevu" value={formatDateLong(etude.dateRenduPrevue) ?? '-'} />
+            <EtudeStatusBadge etat={etat} className="self-start border-white/30 bg-white/95 sm:self-center" />
+          </div>
         </div>
-        <EtudeStatusBadge etat={etat} className="self-start border-white/30 bg-white/95 sm:self-center" />
-      </div>
+      </header>
 
-      {/* Bannière action requise (spécifique au rôle) */}
-      {actionBanner}
-
-      {/* Erreur */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-xs font-semibold flex items-center gap-2">
-          <XCircle className="w-4 h-4 shrink-0" />
+        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+          <XCircle className="h-4 w-4 shrink-0" />
           {error}
         </div>
       )}
 
-      <div className="gc-surface-panel rounded-2xl p-4 md:p-5 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
+      <div className="gc-surface-panel grid grid-cols-1 gap-4 rounded-2xl p-4 md:p-5 xl:grid-cols-[230px_minmax(0,1fr)]">
+        <aside className="xl:sticky xl:top-4 xl:self-start">
+          <nav className="flex gap-2 overflow-x-auto pb-1 xl:flex-col xl:overflow-visible xl:pb-0">
+            {sections.map((section) => {
+              const Icon = section.icon;
+              const isActive = activeSection === section.id;
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  disabled={section.disabled}
+                  onClick={() => setActiveSection(section.id)}
+                  className={cn(
+                    'flex min-h-10 shrink-0 items-center gap-2 rounded-md border px-3 text-left text-xs font-semibold transition-colors',
+                    'xl:w-full',
+                    isActive
+                      ? 'border-blue-200 bg-blue-50 text-blue-700'
+                      : 'border-transparent bg-white text-slate-600 hover:border-slate-200 hover:bg-slate-50',
+                    section.disabled && 'cursor-not-allowed opacity-40 hover:border-transparent hover:bg-white',
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="whitespace-nowrap">{section.label}</span>
+                  {section.count != null && section.count > 0 && (
+                    <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">
+                      {section.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
 
-        {/* Colonne gauche : infos */}
-        <div className="space-y-4">
-
-          {/* Carte d'infos spécifique au rôle */}
-          {infoCard}
-
-          {/* Carte Dates (commune) */}
-          <Card>
-            <CardHeader className="pb-2 border-b border-slate-100">
-              <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <Clock className="w-3 h-3" /> Dates
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-3 space-y-2 text-xs">
-              <div className="flex justify-between p-2 rounded bg-slate-50 border border-slate-100">
-                <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Intervention</span>
-                <span className="font-semibold text-slate-800">{formatDateLong(etude.dateIntervention) ?? '—'}</span>
-              </div>
-              {dateRenduPrevueEditor ? (
-                <div className="p-2 rounded bg-slate-50 border border-slate-100 space-y-1.5">
-                  <span className="block text-slate-500 font-bold uppercase tracking-wider text-[10px]">Rendu prévu</span>
-                  {dateRenduPrevueEditor}
+        <main className="min-w-0">
+          {activeSection === 'synthese' && (
+            <SectionPanel title="Synthese du dossier">
+              <div className="space-y-4">
+                {actionBanner}
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <SummaryMetric label="Statut" value={<EtudeStatusBadge etat={etat} />} />
+                  <SummaryMetric label="Montant" value={prop?.prix == null ? '-' : `${prop.prix} EUR`} />
+                  <SummaryMetric label="Intervention" value={formatDateLong(etude.dateIntervention) ?? '-'} />
+                  <SummaryMetric label="Rendu prevu" value={formatDateLong(etude.dateRenduPrevue) ?? '-'} />
                 </div>
-              ) : (
-                <div className="flex justify-between p-2 rounded bg-slate-50 border border-slate-100">
-                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Rendu prévu</span>
-                  <span className="font-semibold text-slate-800">{formatDateLong(etude.dateRenduPrevue) ?? '—'}</span>
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+                  <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-4">
+                    <h3 className="mb-3 text-sm font-bold text-slate-800">Progression</h3>
+                    <EtudeStepper etat={etat} role={etatRole} renderActions={renderActions} />
+                  </div>
+                  <div className="min-w-0 space-y-4">{infoCard}</div>
                 </div>
-              )}
-              <div className="flex justify-between p-2 rounded bg-slate-50 border border-slate-100">
-                <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Rendu effectif</span>
-                <span className="font-semibold text-slate-800">{formatDateLong(etude.dateRendu) ?? '—'}</span>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Carte Terrain / Technique (commune) */}
-          {(demande?.superficie != null || demande?.nombreLot != null || demande?.delaiMaxSouhaite != null || parcelles.length > 0) && (
-            <Card>
-              <CardHeader className="pb-2 border-b border-slate-100">
-                <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                  <Mountain className="w-3 h-3" /> Terrain / Technique
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-3 space-y-2 text-xs">
-
-                {demande?.superficie != null && (
-                  <div className="flex justify-between items-center p-2 rounded bg-slate-50 border border-slate-100">
-                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1">
-                      <Ruler className="w-3 h-3" /> Superficie
-                    </span>
-                    <span className="font-semibold text-slate-800">{demande.superficie} m²</span>
-                  </div>
-                )}
-
-                {demande?.nombreLot != null && (
-                  <div className="flex justify-between items-center p-2 rounded bg-slate-50 border border-slate-100">
-                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1">
-                      <LayoutList className="w-3 h-3" /> Nombre de lots
-                    </span>
-                    <span className="font-semibold text-slate-800">{demande.nombreLot}</span>
-                  </div>
-                )}
-
-                {demande?.delaiMaxSouhaite != null && (
-                  <div className="flex justify-between items-center p-2 rounded bg-slate-50 border border-slate-100">
-                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> Délai souhaité
-                    </span>
-                    <span className="font-semibold text-slate-800">{demande.delaiMaxSouhaite} sem</span>
-                  </div>
-                )}
-
-                {parcelles.length > 0 && (
-                  <div className="p-2 rounded bg-slate-50 border border-slate-100">
-                    <p className="text-slate-500 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1 mb-1.5">
-                      <Landmark className="w-3 h-3" /> Références cadastrales
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {parcelles.map(ref => (
-                        <span key={ref} className="px-2 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-mono font-semibold text-slate-700">
-                          {ref}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-              </CardContent>
-            </Card>
-          )}
-          {/* Carte Description (commune) */}
-          {demande?.description && (
-            <Card>
-              <CardHeader className="pb-2 border-b border-slate-100">
-                <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                  <FileText className="w-3 h-3" /> Description
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-3">
-                <p className="text-xs text-slate-600 leading-relaxed">{demande.description}</p>
-              </CardContent>
-            </Card>
+            </SectionPanel>
           )}
 
-          {/* Carte Documents de l'étude */}
-          {documents && (
-            <div className="space-y-3">
-              {documents.documentsDemandeDevis.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-2 border-b border-slate-100">
-                    <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                      <FileText className="w-3 h-3" /> Documents de la demande
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-3">
-                    <DocumentList documents={documents.documentsDemandeDevis} showCard={false} />
-                  </CardContent>
-                </Card>
-              )}
-              {documents.devisPdf && (
-                <Card>
-                  <CardHeader className="pb-2 border-b border-slate-100">
-                    <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                      <FileText className="w-3 h-3" /> Devis (proposition)
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-3">
-                    <DocumentList documents={[documents.devisPdf]} showCard={false} />
-                  </CardContent>
-                </Card>
-              )}
-              {documents.devisSigne && (
-                <Card>
-                  <CardHeader className="pb-2 border-b border-slate-100">
-                    <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                      <FileText className="w-3 h-3" /> Devis signé
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-3">
-                    <DocumentList documents={[documents.devisSigne]} showCard={false} />
-                  </CardContent>
-                </Card>
-              )}
-              {documents.rapport && (
-                <Card>
-                  <CardHeader className="pb-2 border-b border-slate-100">
-                    <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                      <FileText className="w-3 h-3" /> Rapport final
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-3">
-                    <DocumentList documents={[documents.rapport]} showCard={false} />
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+          {activeSection === 'progression' && (
+            <SectionPanel title="Progression du dossier">
+              <EtudeStepper etat={etat} role={etatRole} renderActions={renderActions} />
+            </SectionPanel>
           )}
 
-        </div>
+          {activeSection === 'documents' && (
+            <SectionPanel title="Documents">
+              <DocumentsSection documents={documents} />
+            </SectionPanel>
+          )}
 
-        {/* Colonne droite : stepper */}
-        <div className="min-w-0">
-          <Card>
-            <CardHeader className="pb-3 border-b border-slate-100">
-              <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                Progression du dossier
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-5">
-              <EtudeStepper
-                etat={etat}
-                role={etatRole}
-                renderActions={renderActions}
+          {activeSection === 'dates' && (
+            <SectionPanel title="Dates">
+              <div className="grid gap-3 md:grid-cols-3">
+                <InfoTile label="Intervention" value={formatDateLong(etude.dateIntervention) ?? '-'} icon={<CalendarDays />} />
+                <InfoTile
+                  label="Rendu prevu"
+                  value={dateRenduPrevueEditor ?? formatDateLong(etude.dateRenduPrevue) ?? '-'}
+                  icon={<Clock />}
+                />
+                <InfoTile label="Rendu effectif" value={formatDateLong(etude.dateRendu) ?? '-'} icon={<Clock />} />
+              </div>
+            </SectionPanel>
+          )}
+
+          {activeSection === 'technique' && (
+            <SectionPanel title="Terrain et technique">
+              <TechniqueSection
+                superficie={demande?.superficie}
+                nombreLot={demande?.nombreLot}
+                delaiMaxSouhaite={demande?.delaiMaxSouhaite}
+                parcelles={parcelles}
               />
-            </CardContent>
-          </Card>
-        </div>
+            </SectionPanel>
+          )}
+
+          {activeSection === 'intervenants' && (
+            <SectionPanel title={etatRole === 'BE' ? 'Client commanditaire' : 'Bureau d\'etudes'}>
+              <div className="max-w-xl">{infoCard}</div>
+            </SectionPanel>
+          )}
+
+          {activeSection === 'description' && (
+            <SectionPanel title="Description">
+              <p className="max-w-3xl whitespace-pre-wrap text-sm leading-6 text-slate-700">{demande?.description}</p>
+            </SectionPanel>
+          )}
+        </main>
       </div>
     </div>
   );
 }
 
-/** Spinner de chargement partagé */
-export function EtudeDetailLoadingSpinner() {
+function HeaderMetric({ label, value }: Readonly<{ label: string; value: React.ReactNode }>) {
   return (
-    <div className="flex justify-center p-12">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+    <div className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-right">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-white/60">{label}</p>
+      <p className="text-xs font-semibold text-white">{value}</p>
     </div>
   );
 }
 
+function SummaryMetric({ label, value }: Readonly<{ label: string; value: React.ReactNode }>) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{label}</p>
+      <div className="mt-1 text-sm font-semibold text-slate-800">{value}</div>
+    </div>
+  );
+}
+
+function SectionPanel({ title, children }: Readonly<{ title: string; children: React.ReactNode }>) {
+  return (
+    <section className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/50 p-4 md:p-5">
+      <h2 className="mb-4 text-base font-bold text-slate-900">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function InfoTile({
+  label,
+  value,
+  icon,
+}: Readonly<{
+  label: string;
+  value: React.ReactNode;
+  icon: React.ReactElement<{ className?: string }>;
+}>) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-3">
+      <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+        {React.cloneElement(icon, { className: 'h-3.5 w-3.5' })}
+        {label}
+      </p>
+      <div className="text-sm font-semibold text-slate-800">{value}</div>
+    </div>
+  );
+}
+
+function TechniqueSection({
+  superficie,
+  nombreLot,
+  delaiMaxSouhaite,
+  parcelles,
+}: Readonly<{
+  superficie?: number;
+  nombreLot?: number;
+  delaiMaxSouhaite?: number;
+  parcelles: string[];
+}>) {
+  return (
+    <div className="grid gap-3 md:grid-cols-3">
+      {superficie != null && <InfoTile label="Superficie" value={`${superficie} m2`} icon={<Ruler />} />}
+      {nombreLot != null && <InfoTile label="Nombre de lots" value={nombreLot} icon={<LayoutList />} />}
+      {delaiMaxSouhaite != null && <InfoTile label="Delai souhaite" value={`${delaiMaxSouhaite} sem`} icon={<Clock />} />}
+      {parcelles.length > 0 && (
+        <div className="rounded-lg border border-slate-200 bg-white p-3 md:col-span-3">
+          <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+            <Landmark className="h-3.5 w-3.5" />
+            References cadastrales
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {parcelles.map((ref) => (
+              <span key={ref} className="rounded border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] font-semibold text-slate-700">
+                {ref}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DocumentsSection({ documents }: Readonly<{ documents?: EtudeDocumentsDTO }>) {
+  if (!documents || countDocuments(documents) === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
+        Aucun document disponible pour cette etude.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {documents.documentsDemandeDevis.length > 0 && (
+        <DocumentGroup title="Documents de la demande">
+          <DocumentList documents={documents.documentsDemandeDevis} showCard={false} />
+        </DocumentGroup>
+      )}
+      {documents.devisPdf && (
+        <DocumentGroup title="Devis (proposition)">
+          <DocumentList documents={[documents.devisPdf]} showCard={false} />
+        </DocumentGroup>
+      )}
+      {documents.devisSigne && (
+        <DocumentGroup title="Devis signe">
+          <DocumentList documents={[documents.devisSigne]} showCard={false} />
+        </DocumentGroup>
+      )}
+      {documents.rapport && (
+        <DocumentGroup title="Rapport final">
+          <DocumentList documents={[documents.rapport]} showCard={false} />
+        </DocumentGroup>
+      )}
+    </div>
+  );
+}
+
+function DocumentGroup({ title, children }: Readonly<{ title: string; children: React.ReactNode }>) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+          <FileText className="h-3 w-3" />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-3">{children}</CardContent>
+    </Card>
+  );
+}
+
+function countDocuments(documents?: EtudeDocumentsDTO) {
+  if (!documents) return 0;
+  return (
+    documents.documentsDemandeDevis.length +
+    Number(Boolean(documents.devisPdf)) +
+    Number(Boolean(documents.devisSigne)) +
+    Number(Boolean(documents.rapport))
+  );
+}
+
+/** Spinner de chargement partage */
+export function EtudeDetailLoadingSpinner() {
+  return (
+    <div className="flex justify-center p-12">
+      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
+    </div>
+  );
+}
