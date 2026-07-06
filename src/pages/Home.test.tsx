@@ -65,14 +65,14 @@ async function completeStep1(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByPlaceholderText(/15 Avenue des Champs/i), '10 Rue de la Paix');
   await user.type(screen.getByLabelText('Code Postal *'), '75001');
   await user.type(screen.getByLabelText('Ville *'), 'Paris');
-  await user.click(screen.getByRole('button', { name: /suivant/i }));
+  await user.click(screen.getByRole('button', { name: /continuer ma demande/i }));
 
   expect(await screen.findByText(/détails du projet/i)).toBeTruthy();
 }
 
 async function completeStep2(user: ReturnType<typeof userEvent.setup>) {
   await user.type(
-    screen.getByPlaceholderText(/décrivez votre besoin, contraintes particulières/i),
+    screen.getByLabelText('Description du projet *'),
     'Maison individuelle avec accès étroit.'
   );
   await user.click(screen.getByRole('button', { name: /suivant/i }));
@@ -105,7 +105,10 @@ describe('Home — tunnel utilisateur', () => {
     setupDefaultDemandeMocks();
     vi.mocked(referentielApi.getTypesEtude).mockResolvedValue([
       { code: 'G0', libelle: 'G0 — Étude préalable' },
+      { code: 'G1', libelle: 'G1 — Étude de site' },
+      { code: 'G2_AVP', libelle: 'G2 AVP — Avant-projet' },
       { code: 'G2_PRO', libelle: 'G2 PRO — Projet' },
+      { code: 'G5', libelle: 'Mission G5' },
     ]);
     vi.mocked(authApi.registerCall).mockResolvedValue(MOCK_AUTH_RESPONSE);
     vi.mocked(clientApi.createClient).mockResolvedValue({ id: 10 });
@@ -307,7 +310,7 @@ describe('Home — tunnel utilisateur', () => {
     await startTunnel(user);
     await completeStep1(user);
     await user.type(
-      screen.getByPlaceholderText(/décrivez votre besoin, contraintes particulières/i),
+      screen.getByLabelText('Description du projet *'),
       'Maison individuelle avec accès étroit.'
     );
 
@@ -325,7 +328,7 @@ describe('Home — tunnel utilisateur', () => {
     await startTunnel(user);
     await completeStep1(user);
     await user.type(
-      screen.getByPlaceholderText(/décrivez votre besoin, contraintes particulières/i),
+      screen.getByLabelText('Description du projet *'),
       'Maison individuelle avec accès étroit.'
     );
 
@@ -343,7 +346,7 @@ describe('Home — tunnel utilisateur', () => {
     await startTunnel(user);
     await completeStep1(user);
 
-    const descInput = screen.getByPlaceholderText(/décrivez votre besoin, contraintes particulières/i) as HTMLTextAreaElement;
+    const descInput = screen.getByLabelText('Description du projet *') as HTMLTextAreaElement;
     const longDesc = 'A'.repeat(2001);
     await user.clear(descInput);
     descInput.value = longDesc;
