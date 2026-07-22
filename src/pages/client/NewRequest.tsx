@@ -11,6 +11,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { CadastralReferencesField } from '../../components/ui/CadastralReferencesField';
 import { FileUploader } from '../../components/shared/FileUploader';
+import { AddressAutocompleteField } from '../../components/shared/AddressAutocompleteField';
 import { TypeEtudeSelect } from '../../components/project/TypeEtudeSelect';
 import { buildDemandePayload, mapFormFieldsToPayloadBase } from '../../lib/demandePayload';
 import { codePostalRules } from '../../lib/validators';
@@ -19,7 +20,7 @@ import { getFieldMessage } from '../../lib/formErrors';
 export default function NewRequest() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { register: formRegister, handleSubmit, formState: { errors } } = useForm();
+  const { register: formRegister, handleSubmit, setValue, formState: { errors } } = useForm();
   const [errorDetails, setErrorDetails] = useState('');
   const [docFiles, setDocFiles] = useState<File[]>([]);
   const { typesEtude, loading: loadingTypes } = useTypesEtude();
@@ -52,6 +53,16 @@ export default function NewRequest() {
       await submit(payload, docFiles);
     } catch (err: unknown) {
       setErrorDetails(err instanceof Error ? err.message : 'Une erreur est survenue.');
+    }
+  };
+
+  const handleAddressSelect = (suggestion: { rue?: string; codePostal?: string; ville?: string; label: string }) => {
+    setValue('rueProjet', suggestion.rue ?? suggestion.label, { shouldValidate: true, shouldDirty: true });
+    if (suggestion.codePostal) {
+      setValue('codePostal', suggestion.codePostal, { shouldValidate: true, shouldDirty: true });
+    }
+    if (suggestion.ville) {
+      setValue('ville', suggestion.ville, { shouldValidate: true, shouldDirty: true });
     }
   };
 
@@ -127,6 +138,13 @@ export default function NewRequest() {
                   error={getFieldMessage(errors.nombreLot)}
                 />
               </div>
+
+              <AddressAutocompleteField
+                id="adresse-projet-autocomplete"
+                label="Adresse du projet"
+                placeholder="Tapez une adresse pour rechercher dans la Base Adresse Nationale"
+                onSelect={handleAddressSelect}
+              />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input

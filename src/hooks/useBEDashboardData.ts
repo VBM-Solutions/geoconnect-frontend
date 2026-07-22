@@ -21,6 +21,23 @@ interface BEDashboardData {
   refetch: () => void;
 }
 
+function asArray<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === 'object') {
+    const record = value as { content?: unknown; data?: unknown; items?: unknown };
+    if (Array.isArray(record.content)) return record.content as T[];
+    if (Array.isArray(record.data)) return record.data as T[];
+    if (Array.isArray(record.items)) return record.items as T[];
+  }
+  return [];
+}
+
+function getPropositionsSafely(demande: DemandeDevisDTO): Promise<PropositionDevisDTO[]> {
+  return getPropositionDevisByDemandeId(demande.id)
+    .then(asArray<PropositionDevisDTO>)
+    .catch((): PropositionDevisDTO[] => []);
+}
+
 export function useBEDashboardData(): BEDashboardData {
   const { user } = useAuth();
   const [bureau, setBureau] = useState<BureauEtudesDTO | null>(null);
@@ -58,20 +75,22 @@ export function useBEDashboardData(): BEDashboardData {
 
         if (cancelled) return;
 
-        setDemandes(allDemandes || []);
-        setMyPropositions(myProps || []);
+        const demandesList = asArray<DemandeDevisDTO>(allDemandes);
+        const myPropositionsList = asArray<PropositionDevisDTO>(myProps);
+        const rawEtudesList = asArray<EtudeDTO>(rawEtudes);
+
+        setDemandes(demandesList);
+        setMyPropositions(myPropositionsList);
         setNotificationPreferences(prefs);
 
-        const allProps = await Promise.all(
-          (allDemandes || []).map(d => getPropositionDevisByDemandeId(d.id).catch((): PropositionDevisDTO[] => []))
-        );
+        const allProps = await Promise.all(demandesList.map(getPropositionsSafely));
 
         if (cancelled) return;
         setAllPropositionsPerDemande(allProps);
 
-        const details = await fetchEtudeDetails(rawEtudes || []);
+        const details = await fetchEtudeDetails(rawEtudesList);
 
-        if (!cancelled) setEtudes(details);
+        if (!cancelled) setEtudes(asArray<EtudeDetailDTO>(details));
       } catch (err: any) {
         if (!cancelled) {
           setError(extractErrorMessage(err));

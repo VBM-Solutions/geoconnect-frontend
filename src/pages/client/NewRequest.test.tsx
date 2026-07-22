@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import NewRequest from './NewRequest';
 import * as referentielApi from '../../api/referentiel';
-import * as clientApi from '../../api/client';
 import * as demandeDevisApi from '../../api/demandeDevis';
 import * as documentApi from '../../api/document';
 import * as AuthContextModule from '../../contexts/AuthContext';
@@ -15,6 +14,7 @@ vi.mock('../../api/referentiel');
 vi.mock('../../api/demandeDevis');
 vi.mock('../../api/client');
 vi.mock('../../api/document');
+vi.mock('../../api/addressAutocomplete');
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -68,9 +68,7 @@ describe('NewRequest — chargement des types d\'étude', () => {
     ]);
     renderNewRequest();
 
-    await waitFor(() => {
-      expect(screen.getByText('G0 — Étude préalable')).toBeTruthy();
-    });
+    expect(await screen.findByText('G0 — Étude préalable')).toBeTruthy();
     expect(screen.getByText('G2 PRO — Projet')).toBeTruthy();
   });
 
@@ -90,9 +88,7 @@ describe('NewRequest — chargement des types d\'étude', () => {
     vi.mocked(referentielApi.getTypesEtude).mockRejectedValue(new Error('API down'));
     renderNewRequest();
 
-    await waitFor(() => {
-      expect(screen.getByText('G5 — Diagnostic')).toBeTruthy();
-    });
+    expect(await screen.findByText('G5 — Diagnostic')).toBeTruthy();
 
     const options = screen.getAllByRole('option');
     expect(options).toHaveLength(8); // 1 placeholder + 7 types
@@ -110,7 +106,7 @@ describe('NewRequest — soumission du formulaire', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user);
     await submitForm(user);
 
@@ -125,13 +121,11 @@ describe('NewRequest — soumission du formulaire', () => {
     vi.mocked(demandeDevisApi.createDemandeDevis).mockRejectedValue(new Error('Erreur serveur'));
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user);
     await submitForm(user);
 
-    await waitFor(() => {
-      expect(screen.getByText('Erreur serveur')).toBeTruthy();
-    });
+    expect(await screen.findByText('Erreur serveur')).toBeTruthy();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
@@ -147,7 +141,7 @@ describe('NewRequest — soumission du formulaire', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G2 PRO — Projet'));
+    await screen.findByText('G2 PRO — Projet');
     await fillRequiredProjectFields(user, { type: 'G2_PRO' });
     await submitForm(user);
 
@@ -162,7 +156,7 @@ describe('NewRequest — soumission du formulaire', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user);
     await submitForm(user);
 
@@ -177,7 +171,7 @@ describe('NewRequest — soumission du formulaire', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await user.type(screen.getByPlaceholderText('Ex : AB 0042'), 'AB 0042');
     await fillRequiredProjectFields(user);
     await submitForm(user);
@@ -193,7 +187,7 @@ describe('NewRequest — soumission du formulaire', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
 
     const [firstInput] = screen.getAllByPlaceholderText('Ex : AB 0042');
     await user.type(firstInput, 'AB 0042');
@@ -217,7 +211,7 @@ describe('NewRequest — soumission du formulaire', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user);
     await submitForm(user);
 
@@ -232,7 +226,7 @@ describe('NewRequest — soumission du formulaire', () => {
     vi.mocked(documentApi.uploadDocuments).mockResolvedValue([99, 100]);
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
 
     const files = [
       new File(['content'], 'plan.pdf', { type: 'application/pdf' }),
@@ -256,7 +250,7 @@ describe('NewRequest — soumission du formulaire', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user);
     await submitForm(user);
 
@@ -272,79 +266,71 @@ describe('NewRequest — soumission du formulaire', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
 
     const file = new File(['content'], 'plan.pdf', { type: 'application/pdf' });
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(fileInput, file);
 
-    await waitFor(() => {
-      expect(screen.getByText('plan.pdf')).toBeTruthy();
-      expect(screen.getByText(/Ajouter d'autres fichiers/i)).toBeTruthy();
-    });
+    expect(await screen.findByText('plan.pdf')).toBeTruthy();
+    expect(screen.getByText(/Ajouter d'autres fichiers/i)).toBeTruthy();
   });
 
   it('ajoute des fichiers supplémentaires via le bouton +', async () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
 
     const file1 = new File(['content1'], 'plan.pdf', { type: 'application/pdf' });
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(fileInput, file1);
-    await waitFor(() => expect(screen.getByText('plan.pdf')).toBeTruthy());
+    expect(await screen.findByText('plan.pdf')).toBeTruthy();
 
     const file2 = new File(['content2'], 'photo.png', { type: 'image/png' });
     await user.click(screen.getByText(/Ajouter d'autres fichiers/i));
     await user.upload(fileInput, file2);
 
-    await waitFor(() => {
-      expect(screen.getByText('plan.pdf')).toBeTruthy();
-      expect(screen.getByText('photo.png')).toBeTruthy();
-    });
+    expect(await screen.findByText('plan.pdf')).toBeTruthy();
+    expect(screen.getByText('photo.png')).toBeTruthy();
   });
 
   it('supprime un fichier au clic sur le bouton ✕ individuel', async () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
 
     const file1 = new File(['content1'], 'plan.pdf', { type: 'application/pdf' });
     const file2 = new File(['content2'], 'photo.png', { type: 'image/png' });
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(fileInput, file1);
-    await waitFor(() => expect(screen.getByText('plan.pdf')).toBeTruthy());
+    expect(await screen.findByText('plan.pdf')).toBeTruthy();
 
     await user.click(screen.getByText(/Ajouter d'autres fichiers/i));
     await user.upload(fileInput, file2);
-    await waitFor(() => {
-      expect(screen.getByText('plan.pdf')).toBeTruthy();
-      expect(screen.getByText('photo.png')).toBeTruthy();
-    });
+    expect(await screen.findByText('plan.pdf')).toBeTruthy();
+    expect(screen.getByText('photo.png')).toBeTruthy();
 
     const deleteButtons = screen.getAllByLabelText(/^Supprimer /);
     expect(deleteButtons).toHaveLength(2);
     await user.click(deleteButtons[0]);
 
-    await waitFor(() => {
-      expect(screen.queryByText('plan.pdf')).toBeNull();
-      expect(screen.getByText('photo.png')).toBeTruthy();
-    });
+    await waitFor(() => expect(screen.queryByText('plan.pdf')).toBeNull());
+    expect(screen.getByText('photo.png')).toBeTruthy();
   });
 
   it('permet de re-ajouter un fichier après suppression', async () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
 
     const file = new File(['content'], 'plan.pdf', { type: 'application/pdf' });
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
 
     await user.upload(fileInput, file);
-    await waitFor(() => expect(screen.getByText('plan.pdf')).toBeTruthy());
+    expect(await screen.findByText('plan.pdf')).toBeTruthy();
 
     const deleteButton = screen.getByLabelText('Supprimer plan.pdf');
     await user.click(deleteButton);
@@ -354,9 +340,7 @@ describe('NewRequest — soumission du formulaire', () => {
     await user.click(addFileDiv);
     await user.upload(fileInput, file);
 
-    await waitFor(() => {
-      expect(screen.getByText('plan.pdf')).toBeTruthy();
-    });
+    expect(await screen.findByText('plan.pdf')).toBeTruthy();
   });
 });
 
@@ -365,7 +349,7 @@ describe('NewRequest — champ délai maximum souhaité (semaines)', () => {
 
   it('affiche le label "Délai maximum souhaité (semaines)"', async () => {
     renderNewRequest();
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     expect(screen.getByText(/délai maximum souhaité \(semaines\)/i)).toBeTruthy();
   });
 
@@ -373,7 +357,7 @@ describe('NewRequest — champ délai maximum souhaité (semaines)', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user);
     await user.type(screen.getByPlaceholderText('Ex : 8'), '6');
     await submitForm(user);
@@ -389,7 +373,7 @@ describe('NewRequest — champ délai maximum souhaité (semaines)', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user);
     await submitForm(user);
 
@@ -403,7 +387,7 @@ describe('NewRequest — champ délai maximum souhaité (semaines)', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user);
     await submitForm(user);
 
@@ -476,7 +460,7 @@ describe('NewRequest — références cadastrales dynamiques', () => {
     const [firstInput] = screen.getAllByPlaceholderText('Ex : AB 0042');
     await user.type(firstInput, 'AB 0042');
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user);
     await submitForm(user);
 
@@ -495,15 +479,13 @@ describe('NewRequest — validation des champs obligatoires', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user);
     // Réinitialiser le select à vide
     await user.selectOptions(screen.getByRole('combobox'), '');
     await submitForm(user);
 
-    await waitFor(() => {
-      expect(screen.getByText('Ce champ est requis')).toBeTruthy();
-    });
+    expect(await screen.findByText('Ce champ est requis')).toBeTruthy();
     expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
   });
 
@@ -511,7 +493,7 @@ describe('NewRequest — validation des champs obligatoires', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await user.selectOptions(screen.getByRole('combobox'), 'G0');
     await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
     await user.type(screen.getByPlaceholderText('Ex : Paris'), 'Paris');
@@ -526,7 +508,7 @@ describe('NewRequest — validation des champs obligatoires', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await user.selectOptions(screen.getByRole('combobox'), 'G0');
     await user.type(screen.getByPlaceholderText(/15 Avenue des Champs/i), '10 Rue de la Paix');
     await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
@@ -541,7 +523,7 @@ describe('NewRequest — validation des champs obligatoires', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await user.selectOptions(screen.getByRole('combobox'), 'G0');
     await user.type(screen.getByPlaceholderText(/15 Avenue des Champs/i), '42 Rue Oberkampf');
     await user.type(screen.getByPlaceholderText('Ex : 75001'), '75011');
@@ -565,15 +547,13 @@ describe('NewRequest — validation du code postal', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await user.selectOptions(screen.getByRole('combobox'), 'G0');
     await user.type(screen.getByPlaceholderText(/15 Avenue des Champs/i), '10 Rue de la Paix');
     await user.type(screen.getByPlaceholderText('Ex : Paris'), 'Paris');
     await submitForm(user);
 
-    await waitFor(() => {
-      expect(screen.getByText('Requis')).toBeTruthy();
-    });
+    expect(await screen.findByText('Requis')).toBeTruthy();
     expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
   });
 
@@ -581,13 +561,11 @@ describe('NewRequest — validation du code postal', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user, { cp: '750' });
     await submitForm(user);
 
-    await waitFor(() => {
-      expect(screen.getByText('Code postal invalide (ex: 75001 ou 2A004)')).toBeTruthy();
-    });
+    expect(await screen.findByText('Code postal invalide (ex: 75001 ou 2A004)')).toBeTruthy();
     expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
   });
 
@@ -595,13 +573,11 @@ describe('NewRequest — validation du code postal', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user, { cp: 'ABCDE' });
     await submitForm(user);
 
-    await waitFor(() => {
-      expect(screen.getByText('Code postal invalide (ex: 75001 ou 2A004)')).toBeTruthy();
-    });
+    expect(await screen.findByText('Code postal invalide (ex: 75001 ou 2A004)')).toBeTruthy();
     expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
   });
 
@@ -609,7 +585,7 @@ describe('NewRequest — validation du code postal', () => {
     const user = userEvent.setup();
     renderNewRequest();
 
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user, { cp: '13001' });
     await submitForm(user);
 
@@ -625,7 +601,7 @@ describe('NewRequest — validation numérique et description', () => {
   it('bloque la soumission si superficie négative', async () => {
     const user = userEvent.setup();
     renderNewRequest();
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user);
 
     const superficieInput = screen.getByPlaceholderText('Ex : 500') as HTMLInputElement;
@@ -641,7 +617,7 @@ describe('NewRequest — validation numérique et description', () => {
   it('bloque la soumission si nombre de lots négatif', async () => {
     const user = userEvent.setup();
     renderNewRequest();
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user);
 
     const lotsInput = screen.getByPlaceholderText('Ex : 1') as HTMLInputElement;
@@ -657,7 +633,7 @@ describe('NewRequest — validation numérique et description', () => {
   it('bloque la soumission si description > 2000 caractères', async () => {
     const user = userEvent.setup();
     renderNewRequest();
-    await waitFor(() => screen.getByText('G0 — Étude préalable'));
+    await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user);
 
     const descInput = screen.getByPlaceholderText(/terrain en pente/i) as HTMLTextAreaElement;
@@ -668,9 +644,7 @@ describe('NewRequest — validation numérique et description', () => {
 
     await submitForm(user);
 
-    await waitFor(() => {
-      expect(screen.getByText('La description ne doit pas dépasser 2000 caractères')).toBeTruthy();
-    });
+    expect(await screen.findByText('La description ne doit pas dépasser 2000 caractères')).toBeTruthy();
     expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
   });
 });

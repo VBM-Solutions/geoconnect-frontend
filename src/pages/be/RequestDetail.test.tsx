@@ -73,19 +73,15 @@ describe('BERequestDetail — rendu initial', () => {
   it('affiche le formulaire de proposition quand aucune offre n\'existe', async () => {
     renderRequestDetail();
 
-    await waitFor(() => {
-      expect(screen.getByText(/formuler une offre/i)).toBeTruthy();
-    });
+    expect(await screen.findByText(/formuler une offre/i)).toBeTruthy();
   });
 
   it('affiche les champs prix, délai rendu et délai intervention', async () => {
     renderRequestDetail();
 
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText('Ex: 4200')).toBeTruthy();
-      expect(screen.getByPlaceholderText('Ex: 4')).toBeTruthy();
-      expect(screen.getByPlaceholderText('Ex: 2')).toBeTruthy();
-    });
+    expect(await screen.findByPlaceholderText('Ex: 4200')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Ex: 4')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Ex: 2')).toBeTruthy();
   });
 
   it('affiche les documents joints de la demande quand docsDevisIds est renseigné', async () => {
@@ -96,10 +92,8 @@ describe('BERequestDetail — rendu initial', () => {
 
     renderRequestDetail();
 
-    await waitFor(() => {
-      expect(screen.getByText('Document de la demande #1')).toBeTruthy();
-      expect(screen.getByText('Document de la demande #2')).toBeTruthy();
-    });
+    expect(await screen.findByText('Document de la demande #1')).toBeTruthy();
+    expect(screen.getByText('Document de la demande #2')).toBeTruthy();
   });
 });
 
@@ -122,21 +116,19 @@ describe('BERequestDetail — validation du formulaire de proposition', () => {
     const user = userEvent.setup();
     renderRequestDetail();
 
-    await waitFor(() => screen.getByPlaceholderText('Ex: 4200'));
+    await screen.findByPlaceholderText('Ex: 4200');
 
     // Prix vide → modale s'ouvre quand même
     await user.click(screen.getByRole('button', { name: /soumettre mon offre/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText('Confirmer la soumission')).toBeTruthy();
-    });
+    expect(await screen.findByText('Confirmer la soumission')).toBeTruthy();
   });
 
   it('n\'appelle pas createPropositionDevis si le prix est vide après confirmation', async () => {
     const user = userEvent.setup();
     renderRequestDetail();
 
-    await waitFor(() => screen.getByPlaceholderText('Ex: 4200'));
+    await screen.findByPlaceholderText('Ex: 4200');
 
     // Laisser le prix vide, remplir le reste
     await user.type(screen.getByPlaceholderText('Ex: 4'), '4');
@@ -144,7 +136,7 @@ describe('BERequestDetail — validation du formulaire de proposition', () => {
 
     // Ouvrir la modale et confirmer
     await user.click(screen.getByRole('button', { name: /soumettre mon offre/i }));
-    await waitFor(() => screen.getByText('Confirmer la soumission'));
+    await screen.findByText('Confirmer la soumission');
     await user.click(screen.getByRole('button', { name: /^soumettre$/i }));
 
     await waitFor(() => {
@@ -156,19 +148,17 @@ describe('BERequestDetail — validation du formulaire de proposition', () => {
     const user = userEvent.setup();
     renderRequestDetail();
 
-    await waitFor(() => screen.getByPlaceholderText('Ex: 4200'));
+    await screen.findByPlaceholderText('Ex: 4200');
 
     await user.type(screen.getByPlaceholderText('Ex: 4200'), '0');
     await user.type(screen.getByPlaceholderText('Ex: 4'), '4');
     await user.type(screen.getByPlaceholderText('Ex: 2'), '2');
 
     await user.click(screen.getByRole('button', { name: /soumettre mon offre/i }));
-    await waitFor(() => screen.getByText('Confirmer la soumission'));
+    await screen.findByText('Confirmer la soumission');
     await user.click(screen.getByRole('button', { name: /^soumettre$/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText('Doit être > 0')).toBeTruthy();
-    });
+    expect(await screen.findByText('Doit être > 0')).toBeTruthy();
     expect(propositionDevisApi.createPropositionDevis).not.toHaveBeenCalled();
   });
 
@@ -176,14 +166,14 @@ describe('BERequestDetail — validation du formulaire de proposition', () => {
     const user = userEvent.setup();
     renderRequestDetail();
 
-    await waitFor(() => screen.getByPlaceholderText('Ex: 4200'));
+    await screen.findByPlaceholderText('Ex: 4200');
 
     await user.type(screen.getByPlaceholderText('Ex: 4200'), '4200');
     // délai rendu non renseigné
     await user.type(screen.getByPlaceholderText('Ex: 2'), '2');
 
     await user.click(screen.getByRole('button', { name: /soumettre mon offre/i }));
-    await waitFor(() => screen.getByText('Confirmer la soumission'));
+    await screen.findByText('Confirmer la soumission');
     await user.click(screen.getByRole('button', { name: /^soumettre$/i }));
 
     await waitFor(() => {
@@ -195,33 +185,31 @@ describe('BERequestDetail — validation du formulaire de proposition', () => {
     const user = userEvent.setup();
     renderRequestDetail();
 
-    await waitFor(() => screen.getByPlaceholderText('Ex: 4200'));
+    await screen.findByPlaceholderText('Ex: 4200');
 
     await user.type(screen.getByPlaceholderText('Ex: 4200'), '4200');
     await user.type(screen.getByPlaceholderText('Ex: 4'), '0'); // invalide
     await user.type(screen.getByPlaceholderText('Ex: 2'), '2');
 
     await user.click(screen.getByRole('button', { name: /soumettre mon offre/i }));
-    await waitFor(() => screen.getByText('Confirmer la soumission'));
+    await screen.findByText('Confirmer la soumission');
     await user.click(screen.getByRole('button', { name: /^soumettre$/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText('Minimum 1 semaine')).toBeTruthy();
-    });
+    expect(await screen.findByText('Minimum 1 semaine')).toBeTruthy();
   });
 
   it('n\'appelle pas createPropositionDevis si le délai d\'intervention est vide après confirmation', async () => {
     const user = userEvent.setup();
     renderRequestDetail();
 
-    await waitFor(() => screen.getByPlaceholderText('Ex: 4200'));
+    await screen.findByPlaceholderText('Ex: 4200');
 
     await user.type(screen.getByPlaceholderText('Ex: 4200'), '4200');
     await user.type(screen.getByPlaceholderText('Ex: 4'), '4');
     // délai intervention non renseigné
 
     await user.click(screen.getByRole('button', { name: /soumettre mon offre/i }));
-    await waitFor(() => screen.getByText('Confirmer la soumission'));
+    await screen.findByText('Confirmer la soumission');
     await user.click(screen.getByRole('button', { name: /^soumettre$/i }));
 
     await waitFor(() => {
@@ -233,14 +221,14 @@ describe('BERequestDetail — validation du formulaire de proposition', () => {
     const user = userEvent.setup();
     renderRequestDetail();
 
-    await waitFor(() => screen.getByPlaceholderText('Ex: 4200'));
+    await screen.findByPlaceholderText('Ex: 4200');
 
     await user.type(screen.getByPlaceholderText('Ex: 4200'), '4200');
     await user.type(screen.getByPlaceholderText('Ex: 4'), '4');
     await user.type(screen.getByPlaceholderText('Ex: 2'), '2');
     await user.click(screen.getByRole('button', { name: /soumettre mon offre/i }));
 
-    await waitFor(() => screen.getByText('Confirmer la soumission'));
+    await screen.findByText('Confirmer la soumission');
 
     // Clic précis sur le bouton "Soumettre" de la modale (pas l'autre bouton du formulaire)
     const submitButtons = screen.getAllByRole('button', { name: /soumettre/i });
@@ -266,16 +254,14 @@ describe('BERequestDetail — validation du formulaire de proposition', () => {
     const user = userEvent.setup();
     renderRequestDetail();
 
-    await waitFor(() => screen.getByPlaceholderText('Ex: 4200'));
+    await screen.findByPlaceholderText('Ex: 4200');
 
     await user.type(screen.getByPlaceholderText('Ex: 4200'), '0.01');
     await user.type(screen.getByPlaceholderText('Ex: 4'), '4');
     await user.type(screen.getByPlaceholderText('Ex: 2'), '2');
     await user.click(screen.getByRole('button', { name: /soumettre mon offre/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText('Confirmer la soumission')).toBeTruthy();
-    });
+    expect(await screen.findByText('Confirmer la soumission')).toBeTruthy();
 
     const submitButtons = screen.getAllByRole('button', { name: /soumettre/i });
     const modalSubmitBtn = submitButtons.find(b =>

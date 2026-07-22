@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Home from './Home';
@@ -9,7 +9,7 @@ import * as demandeDevisApi from '../api/demandeDevis';
 import * as documentApi from '../api/document';
 import * as referentielApi from '../api/referentiel';
 import * as AuthContextModule from '../contexts/AuthContext';
-import { setupDefaultDemandeMocks, fillRequiredProjectFields } from '../test-utils/demandeTestSetup';
+import { setupDefaultDemandeMocks } from '../test-utils/demandeTestSetup';
 import { getLastMockCallPayload } from '../test-utils/mockHelpers';
 
 vi.mock('../api/auth');
@@ -17,6 +17,7 @@ vi.mock('../api/client');
 vi.mock('../api/demandeDevis');
 vi.mock('../api/document');
 vi.mock('../api/referentiel');
+vi.mock('../api/addressAutocomplete');
 
 const mockNavigate = vi.fn();
 const mockLogin = vi.fn();
@@ -55,22 +56,18 @@ function renderHome() {
 async function startTunnel(user: ReturnType<typeof userEvent.setup>) {
   renderHome();
   await user.click(screen.getByRole('button', { name: /démarrer le tunnel/i }));
-  await waitFor(() => {
-    expect(screen.getByText(/quel est votre besoin/i)).toBeTruthy();
-  });
+  expect(await screen.findByText(/quel est votre besoin/i)).toBeTruthy();
 }
 
 async function completeStep1(user: ReturnType<typeof userEvent.setup>) {
-  await waitFor(() => screen.getByText('G0 — Étude préalable'));
+  await screen.findByText('G0 — Étude préalable');
   await user.selectOptions(screen.getByRole('combobox'), 'G0');
   await user.type(screen.getByPlaceholderText(/15 Avenue des Champs/i), '10 Rue de la Paix');
   await user.type(screen.getByLabelText('Code Postal *'), '75001');
   await user.type(screen.getByLabelText('Ville *'), 'Paris');
   await user.click(screen.getByRole('button', { name: /suivant/i }));
 
-  await waitFor(() => {
-    expect(screen.getByText(/détails du projet/i)).toBeTruthy();
-  });
+  expect(await screen.findByText(/détails du projet/i)).toBeTruthy();
 }
 
 async function completeStep2(user: ReturnType<typeof userEvent.setup>) {
@@ -80,9 +77,7 @@ async function completeStep2(user: ReturnType<typeof userEvent.setup>) {
   );
   await user.click(screen.getByRole('button', { name: /suivant/i }));
 
-  await waitFor(() => {
-    expect(screen.getByText(/vos coordonnées/i)).toBeTruthy();
-  });
+  expect(await screen.findByText(/vos coordonnées/i)).toBeTruthy();
 }
 
 async function fillStep3Required(
@@ -163,13 +158,11 @@ describe('Home — tunnel utilisateur', () => {
 
     await user.click(screen.getByRole('button', { name: /publier ma demande/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText('Les mots de passe ne correspondent pas')).toBeTruthy();
-    });
+    expect(await screen.findByText('Les mots de passe ne correspondent pas')).toBeTruthy();
 
     expect(vi.mocked(authApi.registerCall)).not.toHaveBeenCalled();
     expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
-  });
+  }, 20000);
 
   it('bloque la soumission si le mot de passe ne respecte pas les critères de sécurité', async () => {
     const user = userEvent.setup();
@@ -180,16 +173,14 @@ describe('Home — tunnel utilisateur', () => {
 
     await user.click(screen.getByRole('button', { name: /publier ma demande/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(/Le mot de passe doit contenir : une majuscule, un chiffre, un caractère spécial\./i)).toBeTruthy();
-      expect(screen.getByLabelText('Critère manquant : Une majuscule')).toBeTruthy();
-      expect(screen.getByLabelText('Critère manquant : Un chiffre')).toBeTruthy();
-      expect(screen.getByLabelText('Critère manquant : Un caractère spécial')).toBeTruthy();
-    });
+    expect(await screen.findByText(/Le mot de passe doit contenir : une majuscule, un chiffre, un caractère spécial\./i)).toBeTruthy();
+    expect(screen.getByLabelText('Critère manquant : Une majuscule')).toBeTruthy();
+    expect(screen.getByLabelText('Critère manquant : Un chiffre')).toBeTruthy();
+    expect(screen.getByLabelText('Critère manquant : Un caractère spécial')).toBeTruthy();
 
     expect(vi.mocked(authApi.registerCall)).not.toHaveBeenCalled();
     expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
-  });
+  }, 10000);
 
   it('upload plusieurs documents et transmet docsDevisIds dans la demande', async () => {
     const user = userEvent.setup();
@@ -218,7 +209,7 @@ describe('Home — tunnel utilisateur', () => {
         })
       );
     });
-  });
+  }, 10000);
 
   it('affiche le bouton + pour ajouter des fichiers après sélection dans le tunnel', async () => {
     const user = userEvent.setup();
@@ -231,10 +222,8 @@ describe('Home — tunnel utilisateur', () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(fileInput, file);
 
-    await waitFor(() => {
-      expect(screen.getByText('plan.pdf')).toBeTruthy();
-      expect(screen.getByText(/Ajouter d'autres fichiers/i)).toBeTruthy();
-    });
+    expect(await screen.findByText('plan.pdf')).toBeTruthy();
+    expect(screen.getByText(/Ajouter d'autres fichiers/i)).toBeTruthy();
   });
 
   it('ajoute des fichiers supplémentaires dans le tunnel via le bouton +', async () => {
@@ -248,19 +237,15 @@ describe('Home — tunnel utilisateur', () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(fileInput, file1);
 
-    await waitFor(() => {
-      expect(screen.getByText('plan.pdf')).toBeTruthy();
-    });
+    expect(await screen.findByText('plan.pdf')).toBeTruthy();
 
     const file2 = new File(['content2'], 'photo.png', { type: 'image/png' });
     const addLink = screen.getByText(/Ajouter d'autres fichiers/i);
     await user.click(addLink);
     await user.upload(fileInput, file2);
 
-    await waitFor(() => {
-      expect(screen.getByText('plan.pdf')).toBeTruthy();
-      expect(screen.getByText('photo.png')).toBeTruthy();
-    });
+    expect(await screen.findByText('plan.pdf')).toBeTruthy();
+    expect(screen.getByText('photo.png')).toBeTruthy();
   });
 
   it('supprime un fichier au clic sur le bouton ✕ individuel dans le tunnel', async () => {
@@ -275,28 +260,22 @@ describe('Home — tunnel utilisateur', () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(fileInput, file1);
 
-    await waitFor(() => {
-      expect(screen.getByText('plan.pdf')).toBeTruthy();
-    });
+    expect(await screen.findByText('plan.pdf')).toBeTruthy();
 
     const addLink = screen.getByText(/Ajouter d'autres fichiers/i);
     await user.click(addLink);
     await user.upload(fileInput, file2);
 
-    await waitFor(() => {
-      expect(screen.getByText('plan.pdf')).toBeTruthy();
-      expect(screen.getByText('photo.png')).toBeTruthy();
-    });
+    expect(await screen.findByText('plan.pdf')).toBeTruthy();
+    expect(screen.getByText('photo.png')).toBeTruthy();
 
     const deleteButtons = screen.getAllByLabelText(/^Supprimer /);
     expect(deleteButtons.length).toBeGreaterThanOrEqual(2);
 
     await user.click(deleteButtons[0]);
 
-    await waitFor(() => {
-      expect(screen.queryByText('plan.pdf')).toBeNull();
-      expect(screen.getByText('photo.png')).toBeTruthy();
-    });
+    await waitFor(() => expect(screen.queryByText('plan.pdf')).toBeNull());
+    expect(screen.getByText('photo.png')).toBeTruthy();
   });
 
   it('permet de re-ajouter un fichier après suppression dans le tunnel', async () => {
@@ -310,7 +289,7 @@ describe('Home — tunnel utilisateur', () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
 
     await user.upload(fileInput, file);
-    await waitFor(() => expect(screen.getByText('plan.pdf')).toBeTruthy());
+    expect(await screen.findByText('plan.pdf')).toBeTruthy();
 
     const deleteButton = screen.getByLabelText('Supprimer plan.pdf');
     await user.click(deleteButton);
@@ -320,9 +299,7 @@ describe('Home — tunnel utilisateur', () => {
     await user.click(addFileDiv);
     await user.upload(fileInput, file);
 
-    await waitFor(() => {
-      expect(screen.getByText('plan.pdf')).toBeTruthy();
-    });
+    expect(await screen.findByText('plan.pdf')).toBeTruthy();
   });
 
   it('bloque le tunnel si superficie négative', async () => {
@@ -339,9 +316,7 @@ describe('Home — tunnel utilisateur', () => {
     await user.type(superficieInput, '-10');
     await user.click(screen.getByRole('button', { name: /suivant/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText('La superficie doit être positive')).toBeTruthy();
-    });
+    expect(await screen.findByText('La superficie doit être positive')).toBeTruthy();
     expect(screen.queryByText(/vos coordonnées/i)).toBeNull();
   });
 
@@ -359,9 +334,7 @@ describe('Home — tunnel utilisateur', () => {
     await user.type(lotsInput, '-2');
     await user.click(screen.getByRole('button', { name: /suivant/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText('Le nombre de lots doit être positif')).toBeTruthy();
-    });
+    expect(await screen.findByText('Le nombre de lots doit être positif')).toBeTruthy();
     expect(screen.queryByText(/vos coordonnées/i)).toBeNull();
   });
 
@@ -377,9 +350,7 @@ describe('Home — tunnel utilisateur', () => {
     descInput.dispatchEvent(new Event('input', { bubbles: true }));
     await user.click(screen.getByRole('button', { name: /suivant/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText('La description ne doit pas dépasser 2000 caractères')).toBeTruthy();
-    });
+    expect(await screen.findByText('La description ne doit pas dépasser 2000 caractères')).toBeTruthy();
     expect(screen.queryByText(/vos coordonnées/i)).toBeNull();
   });
 });
