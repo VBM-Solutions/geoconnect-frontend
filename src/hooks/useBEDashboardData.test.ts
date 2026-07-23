@@ -163,6 +163,61 @@ describe('useBEDashboardData', () => {
     expect(result.current.etudes).toEqual([]);
   });
 
+  it('normalise les reponses paginees content/data/items des APIs dashboard', async () => {
+    mockUseAuth();
+    (getBureauByUserId as any).mockResolvedValue(fakeBureau);
+    (getAllDemandeDevis as any).mockResolvedValue({ content: [fakeDemande] });
+    (getPropositionDevisByBureauId as any).mockResolvedValue({ data: [fakeProposition] });
+    (getPropositionDevisByDemandeId as any).mockResolvedValue({ items: [fakeProposition] });
+    (getEtudesByBureauId as any).mockResolvedValue({ items: [fakeEtude] });
+    (fetchEtudeDetails as any).mockResolvedValue({ data: [fakeEtude] });
+    (getNotificationPreferences as any).mockResolvedValue(fakePrefs);
+
+    const { result } = renderHook(() => useBEDashboardData());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.demandes).toEqual([fakeDemande]);
+    expect(result.current.myPropositions).toEqual([fakeProposition]);
+    expect(result.current.allPropositionsPerDemande).toEqual([[fakeProposition]]);
+    expect(result.current.etudes).toEqual([fakeEtude]);
+  });
+
+  it('retourne des listes vides pour les reponses non listees', async () => {
+    mockUseAuth();
+    (getBureauByUserId as any).mockResolvedValue(fakeBureau);
+    (getAllDemandeDevis as any).mockResolvedValue({ total: 1 });
+    (getPropositionDevisByBureauId as any).mockResolvedValue({ total: 1 });
+    (getEtudesByBureauId as any).mockResolvedValue({ total: 1 });
+    (fetchEtudeDetails as any).mockResolvedValue({ total: 1 });
+    (getNotificationPreferences as any).mockResolvedValue(fakePrefs);
+
+    const { result } = renderHook(() => useBEDashboardData());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.demandes).toEqual([]);
+    expect(result.current.myPropositions).toEqual([]);
+    expect(result.current.etudes).toEqual([]);
+    expect(getPropositionDevisByDemandeId).not.toHaveBeenCalled();
+  });
+
+  it('ne charge pas les donnees dependantes du bureau si le profil BE n a pas d id', async () => {
+    mockUseAuth();
+    const bureauWithoutId = { raisonSociale: 'Bureau sans id' };
+    (getBureauByUserId as any).mockResolvedValue(bureauWithoutId);
+    (getAllDemandeDevis as any).mockResolvedValue([]);
+    (getNotificationPreferences as any).mockResolvedValue(fakePrefs);
+
+    const { result } = renderHook(() => useBEDashboardData());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.bureau).toEqual(bureauWithoutId);
+    expect(getPropositionDevisByBureauId).not.toHaveBeenCalled();
+    expect(getEtudesByBureauId).not.toHaveBeenCalled();
+  });
+
   it('refetch() redéclenche le chargement', async () => {
     mockUseAuth();
     mockNominal();

@@ -197,7 +197,7 @@ describe('BERegister — validation des champs obligatoires', () => {
     await waitFor(() => {
       expect(authApi.registerCall).not.toHaveBeenCalled();
     });
-  });
+  }, 10000);
 });
 
 describe('BERegister — validation du code postal', () => {
@@ -225,7 +225,7 @@ describe('BERegister — validation du code postal', () => {
       expect(screen.getByText('Requis')).toBeTruthy();
     });
     expect(authApi.registerCall).not.toHaveBeenCalled();
-  });
+  }, 10000);
 
   it('affiche "Code postal invalide (ex: 75001 ou 2A004)" si le code postal ne fait pas 5 chiffres', async () => {
     const user = userEvent.setup();

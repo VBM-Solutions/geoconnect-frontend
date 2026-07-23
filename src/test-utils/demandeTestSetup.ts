@@ -6,6 +6,7 @@ import * as referentielApi from '../api/referentiel';
 import * as clientApi from '../api/client';
 import * as demandeDevisApi from '../api/demandeDevis';
 import * as documentApi from '../api/document';
+import * as addressAutocompleteApi from '../api/addressAutocomplete';
 
 export const MOCK_TYPES = [
   { code: 'G0', libelle: 'G0 — Étude préalable' },
@@ -30,6 +31,7 @@ export function setupDefaultDemandeMocks(options?: {
   vi.mocked(clientApi.getClientByUserId).mockResolvedValue(options?.client ?? MOCK_CLIENT);
   vi.mocked(demandeDevisApi.createDemandeDevis).mockResolvedValue(options?.demandeResponse ?? {});
   vi.mocked(documentApi.uploadDocuments).mockResolvedValue(options?.documentResponse ?? []);
+  vi.mocked(addressAutocompleteApi.searchAddressSuggestions).mockResolvedValue([]);
 }
 
 /**

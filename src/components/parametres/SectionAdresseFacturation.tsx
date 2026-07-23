@@ -3,6 +3,8 @@ import { Home } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { UseClientParametresReturn } from '../../hooks/useClientParametres';
 import { ParametresSectionCard } from './ParametresSectionCard';
+import { AddressAutocompleteField } from '../shared/AddressAutocompleteField';
+import { AddressSuggestionDTO } from '../../types';
 import {
   ParametresInlineFieldError,
   ParametresLoadErrorState,
@@ -73,6 +75,16 @@ export function SectionAdresseFacturation({
     return Object.keys(nextErrors).length === 0;
   };
 
+  const handleAddressSelect = (suggestion: AddressSuggestionDTO) => {
+    setAdresse((current) => ({
+      ...current,
+      rue: suggestion.rue ?? suggestion.label,
+      codePostal: suggestion.codePostal ?? current.codePostal,
+      ville: suggestion.ville ?? current.ville,
+    }));
+    setErrors({});
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -123,6 +135,13 @@ export function SectionAdresseFacturation({
       description="Renseignez l'adresse utilisée pour la facturation."
     >
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        <AddressAutocompleteField
+          id="adresse-facturation-autocomplete"
+          label="Rechercher une adresse"
+          placeholder="Tapez une adresse pour remplir les champs automatiquement"
+          onSelect={handleAddressSelect}
+        />
+
         <div className="space-y-1.5">
           <label htmlFor="adresse-rue" className="block text-sm font-medium text-slate-700">
             Rue

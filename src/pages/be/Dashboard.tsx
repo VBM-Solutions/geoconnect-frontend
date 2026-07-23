@@ -7,17 +7,19 @@ import { extractCodeDepartement } from '../../lib/utils';
 import { DemandeDevisDTO, PropositionDevisDTO, EtudeDetailDTO } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Calendar, ChevronRight, FlaskConical, User, Clock, AlertCircle, Archive, Globe, Sparkles, CircleDashed, CheckCircle2, FolderKanban, SlidersHorizontal } from 'lucide-react';
+import { Calendar, ChevronRight, FlaskConical, User, Clock, AlertCircle, Archive, Globe, Sparkles, CircleDashed, CheckCircle2, FolderKanban, SlidersHorizontal, Map as MapIcon } from 'lucide-react';
 import { beMustAct } from '../../components/etude/EtudeStatusBadge';
 import { EtudeCardHeader } from '../../components/etude/EtudeCardHeader';
 import { DashboardSidebarNav, type DashboardNavSection } from '../../components/ui/DashboardSidebarNav';
 import { DashboardMetricCard } from '../../components/ui/DashboardMetricCard';
 import { DashboardActivityFeed } from '../../components/ui/DashboardActivityFeed';
+import { BEInteractiveMap } from '../../components/map/BEInteractiveMap';
 import { Link, useSearchParams } from 'react-router-dom';
 import { buildBEActivityFeed } from './dashboardActivityFeed';
 import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 
-type TabType = 'OUVERT' | 'EN_ATTENTE' | 'ETUDE_EN_COURS' | 'ARCHIVES';
+type TabType = 'OUVERT' | 'EN_ATTENTE' | 'ETUDE_EN_COURS' | 'ARCHIVES' | 'CARTE';
+type DashboardContentView = 'CARTE' | 'LISTE';
 
 interface BEDashboardComputedData {
   readonly openDemandes: DemandeDevisDTO[];
@@ -264,6 +266,16 @@ function BEDashboardBody({
   renderDemandeCard,
   renderEtudeCard,
 }: Readonly<BEDashboardBodyProps>) {
+  const [contentView, setContentView] = useState<DashboardContentView>('CARTE');
+  const hasSwitchableMap = activeTab === 'OUVERT' || activeTab === 'ETUDE_EN_COURS';
+
+  useEffect(() => {
+    if (hasSwitchableMap) setContentView('CARTE');
+  }, [activeTab, hasSwitchableMap]);
+
+  const showIntegratedMap = hasSwitchableMap && contentView === 'CARTE';
+  const showListGrid = activeTab !== 'CARTE' && (!hasSwitchableMap || contentView === 'LISTE');
+
   return (
     <div className="min-w-0 flex-1 space-y-4">
       {/* Toggle "Mes départements" — visible uniquement sur l'onglet Missions Disponibles */}
@@ -292,7 +304,44 @@ function BEDashboardBody({
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {hasSwitchableMap && (
+        <div className="flex w-fit rounded-lg border border-slate-200 bg-slate-50 p-1 text-sm">
+          <button
+            type="button"
+            onClick={() => setContentView('CARTE')}
+            className={`rounded-md px-3 py-1.5 font-semibold transition-colors ${contentView === 'CARTE' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+          >
+            Carte
+          </button>
+          <button
+            type="button"
+            onClick={() => setContentView('LISTE')}
+            className={`rounded-md px-3 py-1.5 font-semibold transition-colors ${contentView === 'LISTE' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+          >
+            Liste
+          </button>
+        </div>
+      )}
+
+      {showIntegratedMap && activeTab === 'OUVERT' && (
+        <BEInteractiveMap
+          title="Missions disponibles géolocalisées"
+          context="MISSIONS_DISPONIBLES"
+          filters={{ kind: 'DEMANDE_DISPONIBLE' }}
+          defaultNotificationDepartments={notificationPreferences?.departementsSuivis ?? []}
+          defaultRestrictToNotificationDepartments={filterByDept}
+        />
+      )}
+
+      {showIntegratedMap && activeTab === 'ETUDE_EN_COURS' && (
+        <BEInteractiveMap title="Études en cours géolocalisées" context="ETUDES_EN_COURS" filters={{ kind: 'ETUDE_EN_COURS' }} />
+      )}
+
+      {activeTab === 'CARTE' && (
+        <BEInteractiveMap title="Vue géographique globale" context="GLOBAL" filters={{ withArchived: true }} height="full" />
+      )}
+
+      {showListGrid && <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {activeTab === 'OUVERT' && (
           <OpenDemandesContent
             filterByDept={filterByDept}
@@ -322,7 +371,7 @@ function BEDashboardBody({
             renderEtudeCard={renderEtudeCard}
           />
         )}
-      </div>
+      </div>}
     </div>
   );
 }
@@ -406,6 +455,14 @@ export default function BEDashboard() {
         { id: 'ARCHIVES', label: 'Études archivées', count: etudesArchivees.length, icon: <Archive className="w-4 h-4" /> },
       ],
     },
+    {
+      id: 'carte',
+      title: 'Carte',
+      defaultExpanded: true,
+      items: [
+        { id: 'CARTE', label: 'Vue carte', count: (filterByDept ? filteredOpenDemandes.length : openDemandes.length) + etudesEnCours.length, icon: <MapIcon className="w-4 h-4" /> },
+      ],
+    },
   ];
   const missionsCount = filterByDept ? filteredOpenDemandes.length : openDemandes.length;
   const sectionMeta: Record<TabType, { title: string; description: string }> = {
@@ -424,6 +481,10 @@ export default function BEDashboard() {
     ARCHIVES: {
       title: 'Études archivées',
       description: 'Retrouvez les études finalisées, les livrables remis et l’historique de vos missions.',
+    },
+    CARTE: {
+      title: 'Carte interactive',
+      description: 'Visualisez vos opportunités, propositions et études sur une carte centrée sur votre bureau.',
     },
   };
   const activityFeed = buildBEActivityFeed({

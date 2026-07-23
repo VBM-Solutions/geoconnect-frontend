@@ -3,6 +3,22 @@ export interface AdresseDTO {
   rue?: string;
   codePostal?: string;
   ville?: string;
+  latitude?: number;
+  longitude?: number;
+  geocodingScore?: number;
+  geocodingStatus?: 'NOT_GEOCODED' | 'GEOCODED' | 'FAILED' | 'AMBIGUOUS';
+  geocodedAt?: string;
+}
+
+export interface AddressSuggestionDTO {
+  label: string;
+  rue?: string;
+  codePostal?: string;
+  ville?: string;
+  latitude?: number;
+  longitude?: number;
+  score?: number;
+  source?: string;
 }
 
 export type Civilite = 'MR' | 'MME' | 'AUTRE';
@@ -254,5 +270,42 @@ export interface NotificationDTO {
   lienAction?: string;
   lue: boolean;
   createdAt: string;
+}
+
+export type BEMapMarkerKind =
+  | 'DEMANDE_DISPONIBLE'
+  | 'PROPOSITION_EN_ATTENTE'
+  | 'ETUDE_EN_COURS'
+  | 'ETUDE_ARCHIVEE';
+
+export interface BEMapMarkerDTO {
+  id: number;
+  kind: BEMapMarkerKind;
+  demandeDevisId?: number;
+  propositionDevisId?: number;
+  etudeId?: number;
+  type?: TypeDemandeDevis;
+  etatEtude?: EtatEtude;
+  statutProposition?: StatutProposition;
+  adresseProjet?: AdresseDTO;
+  ville?: string;
+  codePostal?: string;
+  description?: string;
+  prix?: number;
+  dateIntervention?: string;
+  dateRenduPrevue?: string;
+  actionUrl?: string;
+}
+
+export interface BEMapDTO {
+  bureau?: BureauEtudesDTO;
+  markers: BEMapMarkerDTO[];
+}
+
+export interface BEMapFilters {
+  type?: TypeDemandeDevis;
+  etatEtude?: EtatEtude;
+  kind?: BEMapMarkerKind;
+  withArchived?: boolean;
 }
 

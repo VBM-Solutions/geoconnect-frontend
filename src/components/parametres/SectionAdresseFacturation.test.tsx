@@ -2,12 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { SectionAdresseFacturation } from './SectionAdresseFacturation';
+import { searchAddressSuggestions } from '../../api/addressAutocomplete';
 
 const toastSuccess = vi.fn();
 const toastError = vi.fn();
 
 vi.mock('../../contexts/ToastContext', () => ({
   useToast: () => ({ toastSuccess, toastError }),
+}));
+
+vi.mock('../../api/addressAutocomplete', () => ({
+  searchAddressSuggestions: vi.fn(),
 }));
 
 const saveAdresseFacturation = vi.fn();
@@ -24,6 +29,7 @@ const props = {
 describe('SectionAdresseFacturation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(searchAddressSuggestions).mockResolvedValue([]);
   });
 
   it('affiche le spinner pendant le chargement', () => {

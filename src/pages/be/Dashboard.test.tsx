@@ -19,6 +19,10 @@ vi.mock('../../contexts/ToastContext', () => ({
   }),
 }));
 
+vi.mock('../../components/map/BEInteractiveMap', () => ({
+  BEInteractiveMap: ({ title }: { title: string }) => <div data-testid="be-interactive-map">{title}</div>,
+}));
+
 function renderDashboard(initialPath = '/be/dashboard') {
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
