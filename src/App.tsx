@@ -27,6 +27,7 @@ import BERequestDetail from './pages/be/RequestDetail';
 import BEEtudeDetail from './pages/be/EtudeDetail';
 import BERegister from './pages/be/BERegister';
 import BEParametresPage from './pages/be/ParametresPage';
+import FicheBureauEtudePage from './pages/be/FicheBureauEtudePage';
 import UtilisateursPage from './pages/admin/UtilisateursPage';
 import UtilisateurDetailPage from './pages/admin/UtilisateurDetailPage';
 import CreerUtilisateurPage from './pages/admin/CreerUtilisateurPage';
@@ -82,6 +83,7 @@ export default function App() {
               <Route path="/be/dashboard" element={<BEDashboard />} />
               <Route path="/be/demande/:id" element={<BERequestDetail />} />
               <Route path="/be/etude/:id" element={<BEEtudeDetail />} />
+              <Route path="/be/ma-fiche" element={<FicheBureauEtudePage />} />
               <Route path="/be/parametres" element={<BEParametresPage />} />
             </Route>
 

@@ -250,6 +250,55 @@ export interface NotificationPreferencesDTO {
   departementsSuivis: string[];
 }
 
+// ─── Fiche publique Bureau d'Études ────────────────────────────────────────
+
+export type StatutPublicationProfil = 'BROUILLON' | 'PUBLIE' | 'SUSPENDU';
+
+export interface ProfilPublicBureauEtudeDTO {
+  slug: string;
+  statut: StatutPublicationProfil;
+  raisonSociale: string;
+  adresse?: AdresseDTO;
+  adherentDepuis?: string;
+  descriptionCourte?: string;
+  descriptionLongue?: string;
+  siteWeb?: string;
+  anneesExperience?: number;
+  telephonePublic?: string;
+  emailPublic?: string;
+  afficherAdresseComplete: boolean;
+  typesEtude: TypeDemandeDevis[];
+  zonesIntervention: string[];
+  publishedAt?: string;
+  updatedAt?: string;
+}
+
+export interface UpdateProfilPublicBureauEtudePayload {
+  descriptionCourte?: string;
+  descriptionLongue?: string;
+  siteWeb?: string;
+  anneesExperience?: number;
+  telephonePublic?: string;
+  emailPublic?: string;
+  afficherAdresseComplete: boolean;
+  typesEtude: TypeDemandeDevis[];
+  zonesIntervention: string[];
+}
+
+export interface StatistiquesActiviteBureauEtudeDTO {
+  nombreDemandesRepondues: number;
+  nombrePropositionsEnvoyees: number;
+  nombrePropositionsAcceptees: number;
+  tauxAcceptation: number;
+  nombreRapportsRendus: number;
+  nombreRapportsRendusMoisCourant: number;
+}
+
+export interface FicheBureauEtudeDTO {
+  profilPublic: ProfilPublicBureauEtudeDTO;
+  activite: StatistiquesActiviteBureauEtudeDTO;
+}
+
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 export type NotificationType =

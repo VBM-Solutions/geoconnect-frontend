@@ -75,7 +75,10 @@ export default function MainLayout() {
   if (user?.role === 'CLIENT') {
     navItems = [{ label: 'Mon espace', path: '/client/dashboard' }];
   } else if (user?.role === 'BUREAU_ETUDE') {
-    navItems = [{ label: 'Acceuil', path: '/be/dashboard' }];
+    navItems = [
+      { label: 'Accueil', path: '/be/dashboard' },
+      { label: 'Ma fiche', path: '/be/ma-fiche' },
+    ];
   } else if (user?.role === 'ADMIN') {
     navItems = [{ label: 'Admin', path: '/admin/utilisateurs' }];
   }
