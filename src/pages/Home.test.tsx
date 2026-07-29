@@ -55,7 +55,7 @@ function renderHome() {
 
 async function startTunnel(user: ReturnType<typeof userEvent.setup>) {
   renderHome();
-  await user.click(screen.getByRole('button', { name: /démarrer le tunnel/i }));
+  await user.click(screen.getByRole('button', { name: /démarrer ma demande/i }));
   expect(await screen.findByText(/quel est votre besoin/i)).toBeTruthy();
 }
 

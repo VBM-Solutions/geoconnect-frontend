@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { FormEvent, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import {
@@ -12,7 +12,6 @@ import {
   Home as HomeIcon,
   KeyRound,
   Mail,
-  MessageSquareText,
   MapPin,
   SearchCheck,
   ShieldCheck,
@@ -36,11 +35,49 @@ import { getFieldMessage } from '../lib/formErrors';
 type StudyPreset = {
   code?: string;
   label: string;
+  postalCode?: string;
 };
+
+type JourneyCard = {
+  icon: typeof HomeIcon;
+  title: string;
+  description: string;
+  helpText: string;
+  buttonLabel: string;
+  preset: Omit<StudyPreset, 'postalCode'>;
+};
+
+const TRUST_ITEMS = [
+  'Une étude clé en main',
+  'Demande gratuite',
+  'Bureaux d’études qualifiés',
+  'Suivi en ligne',
+  'Documents centralisés',
+];
+
+const journeyCards: JourneyCard[] = [
+  {
+    icon: MapPin,
+    title: 'Vous vendez votre terrain ?',
+    description: "L'étude G1 peut être demandée avant la vente d'un terrain constructible, notamment en zone argileuse.",
+    helpText: 'Entrez le code postal du terrain pour préparer une demande adaptée.',
+    buttonLabel: 'Demander une étude G1',
+    preset: { code: 'G1', label: 'Vente de terrain' },
+  },
+  {
+    icon: HomeIcon,
+    title: 'Vous construisez ou agrandissez votre maison ?',
+    description: "Une étude G2 aide à dimensionner les fondations et à limiter les mauvaises surprises avant les travaux.",
+    helpText: 'Entrez le code postal du chantier pour démarrer votre demande.',
+    buttonLabel: 'Demander une étude G2',
+    preset: { code: 'G2_AVP', label: 'Construction ou agrandissement' },
+  },
+];
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
   const [selectedPreset, setSelectedPreset] = useState<StudyPreset | null>(null);
+  const [postalCodes, setPostalCodes] = useState<Record<string, string>>({});
   const formSectionRef = useRef<HTMLElement | null>(null);
 
   if (isAuthenticated) {
@@ -51,24 +88,20 @@ export default function Home() {
 
   const openTunnel = (preset?: StudyPreset) => {
     setSelectedPreset(preset ?? { label: 'Demande libre' });
-    window.setTimeout(() => {
+    globalThis.setTimeout(() => {
       formSectionRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     }, 0);
   };
 
-  const situationCards = [
-    {
-      icon: HomeIcon,
-      title: 'Je construis une maison',
-      text: 'Pour un permis, un constructeur ou une assurance.',
-      preset: { code: 'G2_AVP', label: 'Construction de maison' },
-    },
-    {
-      icon: MapPin,
-      title: 'Je vends un terrain',
-      text: "Pour rassurer l'acheteur ou répondre à une obligation.",
-      preset: { code: 'G1', label: 'Vente de terrain' },
-    },
+  const handleJourneySubmit = (event: FormEvent<HTMLFormElement>, card: JourneyCard) => {
+    event.preventDefault();
+    openTunnel({
+      ...card.preset,
+      postalCode: postalCodes[card.title]?.trim(),
+    });
+  };
+
+  const secondarySituations = [
     {
       icon: ClipboardList,
       title: "J'agrandis ou je rénove",
@@ -85,153 +118,211 @@ export default function Home() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-6 sm:px-6 lg:px-8">
-      <section className="space-y-8">
-        <div className="pt-4 lg:pt-8">
-          <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600 text-2xl font-black italic text-white shadow-sm">
-              G
+      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
+        <div className="grid lg:grid-cols-[1.06fr_0.94fr]">
+          <div className="p-5 sm:p-8 lg:p-10">
+            <div className="mb-7 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600 text-2xl font-black italic text-white shadow-sm">
+                G
+              </div>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700">GeoConnect</p>
+                <p className="text-xs font-medium text-slate-500">Votre étude de sol, plus simple</p>
+              </div>
             </div>
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700">GeoConnect</p>
-              <p className="text-xs font-medium text-slate-500">Votre étude de sol, plus simple</p>
-            </div>
-          </div>
 
-          <div className="max-w-4xl space-y-5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/80 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-blue-700 shadow-sm">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-blue-700">
               <ShieldCheck className="h-3.5 w-3.5" />
-              Demande gratuite et sans engagement
+              Pour les particuliers
             </div>
-            <h1 className="text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-              Besoin d'une étude de sol pour votre maison ou votre terrain ?
+            <h1 className="mt-5 max-w-3xl text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl">
+              Vous avez besoin d'une étude de sol ?
             </h1>
-            <p className="max-w-xl text-base leading-7 text-slate-600">
-              Décrivez votre projet avec vos mots. GeoConnect vous aide à préparer une demande claire, l'envoie à des bureaux d'études adaptés, puis vous laisse comparer les réponses tranquillement.
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
+              Vente de terrain, construction ou agrandissement : indiquez votre situation et le code postal du terrain. GeoConnect vous aide ensuite à transmettre une demande claire aux bureaux d'études.
             </p>
-            <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Button type="button" size="lg" className="gap-2" onClick={() => openTunnel()}>
-                Faire ma demande
+                Démarrer ma demande
                 <ArrowRight className="h-4 w-4" />
               </Button>
               <a
-                href="#situations"
-                className="gc-motion-fast inline-flex h-11 items-center justify-center rounded border border-slate-300 bg-white px-6 text-sm font-bold tracking-wide text-slate-700 shadow-sm transition-[color,background-color,border-color,box-shadow,transform] hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                href="#parcours"
+                className="gc-motion-fast inline-flex h-11 items-center justify-center rounded border border-slate-300 bg-white px-6 text-sm font-bold tracking-wide text-slate-700 shadow-sm transition-[color,background-color,border-color,box-shadow,transform] hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2"
               >
                 Voir les cas fréquents
               </a>
             </div>
           </div>
 
-          <div className="mt-7 max-w-4xl rounded-lg border border-blue-100 bg-blue-50/70 p-4 shadow-sm">
-            <div className="flex gap-3">
-              <CircleHelp className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
-              <div>
-                <h2 className="text-sm font-black text-slate-950">Pas sûr de savoir quelle étude choisir ?</h2>
-                <p className="mt-1 text-sm leading-6 text-slate-600">
-                  Ce n'est pas grave. Choisissez l'option la plus proche ou expliquez votre situation à l'étape suivante : les spécialistes pourront vous orienter.
-                </p>
-              </div>
+          <div className="relative min-h-[280px] bg-slate-100">
+            <img
+              src="https://images.unsplash.com/photo-1572120360610-d971b9d7767c?auto=format&fit=crop&w=1100&q=80"
+              alt="Maison individuelle entourée d'un terrain"
+              className="h-full min-h-[280px] w-full object-cover"
+            />
+            <div className="absolute inset-x-4 bottom-4 rounded-lg border border-white/70 bg-white/88 p-4 shadow-lg backdrop-blur">
+              <p className="text-sm font-black text-slate-950">Pas besoin de maîtriser le vocabulaire technique.</p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">
+                Décrivez le projet, les spécialistes préciseront le type d'étude utile.
+              </p>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div id="situations" className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {situationCards.map(({ icon: Icon, title, text, preset }) => (
-              <button
-                key={title}
-                type="button"
-                onClick={() => openTunnel(preset)}
-                className="group rounded-lg border border-slate-200 bg-white/80 p-4 text-left shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2"
-              >
-                <Icon className="mb-3 h-5 w-5 text-blue-600" />
-                <h2 className="text-sm font-bold text-slate-900">{title}</h2>
-                <p className="mt-1 text-xs leading-5 text-slate-500">{text}</p>
-              </button>
-            ))}
+      <section className="grid gap-3 rounded-lg border border-slate-200 bg-white/88 p-4 shadow-sm md:grid-cols-5">
+        {TRUST_ITEMS.map((item) => (
+          <div key={item} className="flex items-center gap-2 text-xs font-bold text-slate-700">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            {item}
           </div>
+        ))}
+      </section>
 
-          <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3 text-xs font-semibold text-slate-600">
-            {['Vous gardez le choix du devis', 'Compte créé seulement à la fin', 'Documents au même endroit', 'Aucun jargon obligatoire'].map((item) => (
-              <span key={item} className="inline-flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                {item}
-              </span>
-            ))}
+      <section id="parcours" className="grid gap-5 lg:grid-cols-2">
+        {journeyCards.map((card) => {
+          const Icon = card.icon;
+
+          return (
+            <form
+              key={card.title}
+              onSubmit={(event) => handleJourneySubmit(event, card)}
+              className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black tracking-tight text-slate-950">{card.title}</h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{card.description}</p>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-lg bg-slate-50 p-4">
+                <label htmlFor={`postal-${card.preset.code}`} className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                  Code postal du terrain
+                </label>
+                <div className="mt-2 grid gap-3 sm:grid-cols-[1fr_auto]">
+                  <input
+                    id={`postal-${card.preset.code}`}
+                    inputMode="numeric"
+                    maxLength={5}
+                    placeholder="Ex : 75001"
+                    value={postalCodes[card.title] ?? ''}
+                    onChange={(event) => setPostalCodes((current) => ({ ...current, [card.title]: event.target.value }))}
+                    className="h-11 rounded border border-slate-300 bg-white px-3 text-sm placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                  />
+                  <Button type="submit" size="lg" className="gap-2">
+                    {card.buttonLabel}
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="mt-2 text-xs leading-5 text-slate-500">{card.helpText}</p>
+              </div>
+            </form>
+          );
+        })}
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[0.78fr_1.22fr]">
+        <div className="rounded-lg border border-blue-100 bg-blue-50/80 p-5">
+          <div className="flex gap-3">
+            <CircleHelp className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
+            <div>
+              <h2 className="text-base font-black text-slate-950">Pas sûr de savoir quelle étude choisir ?</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Ce n'est pas grave. Choisissez le cas le plus proche ou démarrez une demande libre : les bureaux d'études pourront préciser la mission nécessaire.
+              </p>
+              <Button type="button" variant="outline" className="mt-4 gap-2" onClick={() => openTunnel()}>
+                Ouvrir le formulaire
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
-        <aside className="grid gap-5 rounded-lg border border-slate-200 bg-white/86 p-5 shadow-xl shadow-slate-900/5 lg:grid-cols-[1fr_1.7fr_auto] lg:items-center">
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-wider text-blue-700">Comment ça se passe ?</p>
-            <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
-              Vous commencez quand vous êtes prêt.
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              La page vous aide à choisir une situation. Le formulaire s'ouvre ensuite avec le bon contexte, sans compte à créer avant la fin.
-            </p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {[
-              'Vous pouvez expliquer votre projet simplement',
-              'Vous comparez les propositions reçues',
-              'Vous choisissez librement le devis qui vous convient',
-            ].map((item) => (
-              <div key={item} className="flex items-start gap-3 text-sm font-semibold text-slate-700">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                {item}
-              </div>
-            ))}
-          </div>
-          <Button type="button" size="lg" className="w-full gap-2 lg:w-auto" onClick={() => openTunnel()}>
-            Ouvrir le formulaire
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </aside>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {secondarySituations.map(({ icon: Icon, title, text, preset }) => (
+            <button
+              key={title}
+              type="button"
+              onClick={() => openTunnel(preset)}
+              className="rounded-lg border border-slate-200 bg-white p-5 text-left shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2"
+            >
+              <Icon className="mb-3 h-5 w-5 text-blue-600" />
+              <h2 className="text-sm font-bold text-slate-900">{title}</h2>
+              <p className="mt-1 text-xs leading-5 text-slate-500">{text}</p>
+            </button>
+          ))}
+        </div>
       </section>
 
       {selectedPreset && (
         <section id="demande" ref={formSectionRef} className="mx-auto w-full max-w-2xl scroll-mt-6">
-          <QuoteTunnel key={`${selectedPreset.label}-${selectedPreset.code ?? 'libre'}`} initialType={selectedPreset.code} presetLabel={selectedPreset.label} />
+          <QuoteTunnel
+            key={`${selectedPreset.label}-${selectedPreset.code ?? 'libre'}-${selectedPreset.postalCode ?? ''}`}
+            initialType={selectedPreset.code}
+            initialPostalCode={selectedPreset.postalCode}
+            presetLabel={selectedPreset.label}
+          />
         </section>
       )}
 
-      <section className="grid gap-4 border-y border-slate-200 py-6 md:grid-cols-5 md:items-center">
-        {[
-          { icon: MessageSquareText, label: 'Vous décrivez le projet' },
-          { icon: SearchCheck, label: 'Des spécialistes répondent' },
-          { icon: FileText, label: 'Vous comparez les devis' },
-          { icon: CalendarDays, label: "L'étude est planifiée" },
-          { icon: KeyRound, label: 'Vous recevez le rapport' },
-        ].map(({ icon: Icon, label }, index) => (
-          <div key={label} className="flex items-center gap-3 text-sm font-bold text-slate-700">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm ring-1 ring-slate-200">
-              <Icon className="h-4 w-4" />
-            </span>
-            <span>{label}</span>
-            {index < 4 && <ArrowRight className="ml-auto hidden h-4 w-4 text-slate-300 md:block" />}
-          </div>
-        ))}
+      <section className="rounded-lg border border-slate-200 bg-white/88 p-5 shadow-sm">
+        <div className="grid gap-4 md:grid-cols-5 md:items-center">
+          {[
+            { icon: ClipboardList, label: 'Vous décrivez le projet' },
+            { icon: SearchCheck, label: 'Des spécialistes répondent' },
+            { icon: FileText, label: 'Vous comparez les devis' },
+            { icon: CalendarDays, label: "L'étude est planifiée" },
+            { icon: KeyRound, label: 'Vous recevez le rapport' },
+          ].map(({ icon: Icon, label }, index) => (
+            <div key={label} className="flex items-center gap-3 text-sm font-bold text-slate-700">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm ring-1 ring-slate-200">
+                <Icon className="h-4 w-4" />
+              </span>
+              <span>{label}</span>
+              {index < 4 && <ArrowRight className="ml-auto hidden h-4 w-4 text-slate-300 md:block" />}
+            </div>
+          ))}
+        </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        {[
-          {
-            question: 'Une étude de sol est-elle obligatoire ?',
-            answer: "Cela dépend du terrain, de la zone et du projet. Si un notaire, un constructeur ou une mairie vous la demande, vous pouvez lancer la recherche ici.",
-          },
-          {
-            question: "Et si je ne connais pas le type G1 ou G2 ?",
-            answer: "Vous pouvez quand même continuer. Le formulaire sert à donner le contexte, et les bureaux d'études pourront préciser le type d'étude nécessaire.",
-          },
-          {
-            question: 'Suis-je engagé en déposant une demande ?',
-            answer: "Non. Vous recevez des propositions, puis vous choisissez librement celle qui vous convient.",
-          },
-        ].map(({ question, answer }) => (
-          <div key={question} className="rounded-lg border border-slate-200 bg-white/82 p-5 shadow-sm">
-            <h2 className="text-sm font-black text-slate-950">{question}</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">{answer}</p>
-          </div>
-        ))}
+      <section className="grid gap-4 lg:grid-cols-[0.88fr_1.12fr]">
+        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-[11px] font-black uppercase tracking-wider text-blue-700">La loi Élan</p>
+          <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+            Une étude de sol peut être obligatoire pour vendre ou construire.
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            Pour certains terrains constructibles exposés au retrait-gonflement des argiles, une étude géotechnique est demandée. Elle aide aussi à anticiper les risques liés aux fondations.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            {
+              question: 'Mon terrain est-il concerné ?',
+              answer: "Cela dépend de sa localisation et de l'exposition aux argiles. Le code postal aide à orienter la demande.",
+            },
+            {
+              question: "Et si je ne connais pas G1 ou G2 ?",
+              answer: "Vous pouvez quand même continuer. Décrivez votre situation, les spécialistes vous guideront.",
+            },
+            {
+              question: 'Suis-je engagé ?',
+              answer: "Non. Vous recevez des propositions, puis vous choisissez librement celle qui vous convient.",
+            },
+          ].map(({ question, answer }) => (
+            <div key={question} className="rounded-lg border border-slate-200 bg-white/82 p-5 shadow-sm">
+              <h2 className="text-sm font-black text-slate-950">{question}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{answer}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="grid gap-4 pb-8 md:grid-cols-[1fr_auto] md:items-center">
@@ -243,7 +334,7 @@ export default function Home() {
         </div>
         <Link
           to="/bureau-etudes/inscription"
-          className="gc-motion-fast inline-flex h-11 w-full items-center justify-center rounded border border-slate-300 bg-white px-6 text-sm font-bold tracking-wide text-slate-700 shadow-sm transition-[color,background-color,border-color,box-shadow,transform] hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white md:w-auto"
+          className="gc-motion-fast inline-flex h-11 w-full items-center justify-center rounded border border-slate-300 bg-white px-6 text-sm font-bold tracking-wide text-slate-700 shadow-sm transition-[color,background-color,border-color,box-shadow,transform] hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 md:w-auto"
         >
           Rejoindre le réseau
         </Link>
@@ -252,7 +343,11 @@ export default function Home() {
   );
 }
 
-function QuoteTunnel({ initialType, presetLabel }: Readonly<{ initialType?: string; presetLabel?: string }>) {
+function QuoteTunnel({
+  initialType,
+  initialPostalCode,
+  presetLabel,
+}: Readonly<{ initialType?: string; initialPostalCode?: string; presetLabel?: string }>) {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -266,6 +361,7 @@ function QuoteTunnel({ initialType, presetLabel }: Readonly<{ initialType?: stri
   const { register: formRegister, handleSubmit, getValues, watch, formState: { errors } } = useForm<Record<string, unknown>>({
     defaultValues: {
       type: initialType ?? '',
+      codePostalProjet: initialPostalCode ?? '',
     },
   });
   const passwordValue = watch('password', '');
