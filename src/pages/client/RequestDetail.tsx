@@ -6,7 +6,7 @@ import { DemandeDevisDTO, PropositionDevisDTO } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
-import { MapPin, Clock, Building2, CheckCircle2, ExternalLink, FileText } from 'lucide-react';
+import { MapPin, Clock, Building2, CheckCircle2, FileText } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { buildDemandeDocuments } from '../../lib/formatters';
 import { DocumentList } from '../../components/etude/DocumentList';
@@ -197,13 +197,10 @@ export default function ClientRequestDetail() {
                             </div>
                             {prop.bureauEtude?.profilPublicSlug && (
                               <a
-                                href={`/bureaux-etudes/${prop.bureauEtude.profilPublicSlug}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                                href={`/bureaux-etudes/${prop.bureauEtude.profilPublicSlug}?retour=${encodeURIComponent(`/client/demande/${id}`)}`}
                                 className="mt-1 ml-4.5 inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 hover:text-blue-800 hover:underline"
                               >
                                 Voir la fiche du bureau
-                                <ExternalLink className="h-2.5 w-2.5" aria-hidden="true" />
                               </a>
                             )}
                           </td>

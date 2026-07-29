@@ -138,6 +138,11 @@ describe('FicheBureauEtudePage', () => {
     render(<FicheBureauEtudePage />);
 
     expect(screen.getByRole('link', { name: /voir ma page publique/i }))
-      .toHaveAttribute('href', '/bureaux-etudes/geo-atlantique-nantes-42');
+      .toHaveAttribute(
+        'href',
+        '/bureaux-etudes/geo-atlantique-nantes-42?retour=%2Fbe%2Fma-fiche',
+      );
+    expect(screen.getByRole('link', { name: /voir ma page publique/i }))
+      .not.toHaveAttribute('target');
   });
 });

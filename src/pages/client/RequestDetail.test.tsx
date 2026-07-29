@@ -62,8 +62,10 @@ describe('ClientRequestDetail — identité du bureau', () => {
     expect(await screen.findByText('Géo Conseil Atlantique')).toBeTruthy();
     expect(screen.getByText('Saint-Herblain')).toBeTruthy();
     const lien = screen.getByRole('link', { name: /voir la fiche du bureau/i });
-    expect(lien.getAttribute('href')).toBe('/bureaux-etudes/geo-conseil-atlantique');
-    expect(lien.getAttribute('target')).toBe('_blank');
+    expect(lien.getAttribute('href')).toBe(
+      '/bureaux-etudes/geo-conseil-atlantique?retour=%2Fclient%2Fdemande%2F12',
+    );
+    expect(lien.getAttribute('target')).toBeNull();
   });
 
   it('affiche toujours le nom réel quand la fiche publique nest pas publiée', async () => {
