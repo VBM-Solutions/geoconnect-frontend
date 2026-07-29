@@ -125,4 +125,19 @@ describe('FicheBureauEtudePage', () => {
     expect(screen.getByText(/sélectionner au moins un type d’étude/i)).toBeTruthy();
     expect(screen.getByRole('button', { name: /publier ma fiche/i })).toBeDisabled();
   });
+
+  it('propose un lien vers la page SSR lorsque le profil est publié', () => {
+    useFicheMock.mockReturnValue({
+      ...useFicheMock(),
+      fiche: {
+        ...fiche,
+        profilPublic: { ...fiche.profilPublic, statut: 'PUBLIE' },
+      },
+    });
+
+    render(<FicheBureauEtudePage />);
+
+    expect(screen.getByRole('link', { name: /voir ma page publique/i }))
+      .toHaveAttribute('href', '/bureaux-etudes/geo-atlantique-nantes-42');
+  });
 });

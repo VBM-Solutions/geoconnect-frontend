@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle2, Eye, Pencil, RefreshCw } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ExternalLink, Eye, Pencil, RefreshCw } from 'lucide-react';
 import { getDepartements } from '../../api/referentiel';
 import { ProfilBureauEtudeForm } from '../../components/profil-be/ProfilBureauEtudeForm';
 import { ProfilBureauEtudePreview } from '../../components/profil-be/ProfilBureauEtudePreview';
@@ -134,10 +134,16 @@ export default function FicheBureauEtudePage() {
             Présentez votre expertise aux particuliers et maîtrisez les informations rendues publiques.
           </p>
           {isPublished && (
-            <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-green-700">
+            <a
+              href={`/bureaux-etudes/${fiche.profilPublic.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-green-700 hover:text-green-800 hover:underline"
+            >
               <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-              Votre profil est visible sous l’adresse /bureaux-etudes/{fiche.profilPublic.slug}
-            </p>
+              Voir ma page publique
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
           )}
         </div>
 
