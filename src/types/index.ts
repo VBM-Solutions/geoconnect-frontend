@@ -189,6 +189,7 @@ export interface BureauEtudesDetail {
   emailContact?: string;
   telContact?: string;
   adresse?: AdresseDTO;
+  profilPublicSlug?: string;
 }
 
 export interface DemandeDevisDetail {

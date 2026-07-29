@@ -61,7 +61,7 @@ describe('ClientRequestDetail — identité du bureau', () => {
 
     expect(await screen.findByText('Géo Conseil Atlantique')).toBeTruthy();
     expect(screen.getByText('Saint-Herblain')).toBeTruthy();
-    const lien = screen.getByRole('link', { name: /voir la fiche du bureau/i });
+    const lien = screen.getByRole('link', { name: /consulter la fiche de géo conseil atlantique/i });
     expect(lien.getAttribute('href')).toBe(
       '/bureaux-etudes/geo-conseil-atlantique?retour=%2Fclient%2Fdemande%2F12',
     );
@@ -84,6 +84,6 @@ describe('ClientRequestDetail — identité du bureau', () => {
     renderPage();
 
     expect(await screen.findByText('Sols & Structures')).toBeTruthy();
-    expect(screen.queryByRole('link', { name: /voir la fiche du bureau/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /consulter la fiche/i })).toBeNull();
   });
 });

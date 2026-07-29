@@ -14,6 +14,7 @@ import { EtudeCardHeader } from '../../components/etude/EtudeCardHeader';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { EtudeDetailDTO } from '../../types';
 import { formatDelaiWithProjection } from '../../lib/delaiProjection';
+import { BureauEtudeProfileLink } from '../../components/profil-be/BureauEtudeProfileLink';
 
 type TabType = 'DEMANDES' | 'ETUDES' | 'ARCHIVES';
 
@@ -138,7 +139,11 @@ function EtudeCard(props: Readonly<EtudeCardProps>) {
           <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded border border-slate-100 text-[11px]">
             <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
             <span className="text-slate-500 font-bold uppercase tracking-wider mr-1">Bureau :</span>
-            <span className="font-semibold text-slate-700">{bureau.raisonSociale || '—'}</span>
+            <BureauEtudeProfileLink
+              raisonSociale={bureau.raisonSociale || '—'}
+              slug={bureau.profilPublicSlug}
+              returnTo="/client/dashboard"
+            />
           </div>
         )}
 

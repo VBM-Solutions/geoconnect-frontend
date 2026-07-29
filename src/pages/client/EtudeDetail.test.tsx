@@ -41,7 +41,7 @@ function makeEtude(etat: string, rapportId?: number) {
     id: 42,
     etat,
     propositionDevis: {
-      bureauEtude: { raisonSociale: 'Geo Test' },
+      bureauEtude: { raisonSociale: 'Geo Test', profilPublicSlug: 'geo-test' },
       prix: 1200,
       delaiMaxRendu: 3,
       demandeDevis: {
@@ -72,6 +72,8 @@ describe('ClientEtudeDetail — RapportDownloadCard', () => {
   it('affiche le RapportDownloadCard quand etat = PAIEMENT_EFFECTUE et rapport présent', () => {
     renderPage('/client/etude/42');
     expect(screen.getByRole('button', { name: /Télécharger mon rapport/i })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /consulter la fiche de geo test/i }).getAttribute('href'))
+      .toBe('/bureaux-etudes/geo-test?retour=%2Fclient%2Fetude%2F42');
   });
 
   it('n\'affiche PAS le RapportDownloadCard quand etat != PAIEMENT_EFFECTUE', () => {
