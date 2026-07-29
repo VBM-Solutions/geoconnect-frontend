@@ -333,11 +333,37 @@ export interface SyntheseEvaluationsDTO {
   qualiteRapport?: number;
   adequationBesoin?: number;
   avis: Array<{
+    evaluationId?: number;
     noteGlobale: number;
     commentaire: string;
     createdAt: string;
     etudeVerifiee: boolean;
+    statutSignalement?: StatutSignalementEvaluation;
   }>;
+}
+
+export type MotifSignalementEvaluation =
+  | 'DONNEES_PERSONNELLES'
+  | 'PROPOS_INJURIEUX'
+  | 'CONTENU_HORS_SUJET'
+  | 'INFORMATION_FAUSSE'
+  | 'AUTRE';
+
+export type StatutSignalementEvaluation =
+  | 'AUCUN'
+  | 'EN_ATTENTE'
+  | 'COMMENTAIRE_MASQUE'
+  | 'REJETE';
+
+export interface EvaluationSignaleeDTO {
+  id: number;
+  etudeId: number;
+  noteGlobale: number;
+  commentaire: string;
+  motif: MotifSignalementEvaluation;
+  details?: string;
+  statut: StatutSignalementEvaluation;
+  signaleAt: string;
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

@@ -48,6 +48,25 @@ export default defineConfig(({mode}) => {
         },
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/leaflet')
+              || id.includes('node_modules/react-leaflet')) {
+              return 'vendor-map';
+            }
+            if (/node_modules\/(react|react-dom|react-router|react-router-dom)\//.test(id)) {
+              return 'vendor-react';
+            }
+            if (id.includes('node_modules/lucide-react')) {
+              return 'vendor-icons';
+            }
+            return undefined;
+          },
+        },
+      },
+    },
     test: {
       globals: true,
       environment: 'jsdom',

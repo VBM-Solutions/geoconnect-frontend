@@ -80,16 +80,19 @@ export default function MainLayout() {
       { label: 'Ma fiche', path: '/be/ma-fiche' },
     ];
   } else if (user?.role === 'ADMIN') {
-    navItems = [{ label: 'Admin', path: '/admin/utilisateurs' }];
+    navItems = [
+      { label: 'Utilisateurs', path: '/admin/utilisateurs' },
+      { label: 'Modération', path: '/admin/evaluations/moderation' },
+    ];
   }
 
   return (
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900 font-sans flex flex-col overflow-hidden">
-      <nav className="h-14 bg-slate-900 text-white flex items-center justify-between px-6 shrink-0">
+      <nav className="h-14 bg-slate-900 text-white flex items-center justify-between px-4 sm:px-6 shrink-0">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center font-bold text-xl italic">G</div>
-            <span className="font-bold tracking-tight text-lg">MON ÉTUDE DE SOL</span>
+            <span className="font-bold tracking-tight text-sm sm:text-lg">MON ÉTUDE DE SOL</span>
           </Link>
 
           {isAuthenticated && (

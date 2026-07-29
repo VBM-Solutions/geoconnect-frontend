@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -11,26 +12,33 @@ import ProtectedRoute from './components/layout/ProtectedRoute';
 import { ApiInterceptorSetup } from './components/layout/ApiInterceptorSetup';
 import { SessionTimeoutGuard } from './components/layout/SessionTimeoutGuard';
 
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Success from './pages/Success';
-import Forbidden from './pages/Forbidden';
+const Home = lazy(() => import('./pages/Home'));
+const Login = lazy(() => import('./pages/Login'));
+const Success = lazy(() => import('./pages/Success'));
+const Forbidden = lazy(() => import('./pages/Forbidden'));
+const ClientDashboard = lazy(() => import('./pages/client/Dashboard'));
+const ClientRequestDetail = lazy(() => import('./pages/client/RequestDetail'));
+const ClientEtudeDetail = lazy(() => import('./pages/client/EtudeDetail'));
+const NewRequest = lazy(() => import('./pages/client/NewRequest'));
+const ClientParametresPage = lazy(() => import('./pages/client/ParametresPage'));
+const BEDashboard = lazy(() => import('./pages/be/Dashboard'));
+const BERequestDetail = lazy(() => import('./pages/be/RequestDetail'));
+const BEEtudeDetail = lazy(() => import('./pages/be/EtudeDetail'));
+const BERegister = lazy(() => import('./pages/be/BERegister'));
+const BEParametresPage = lazy(() => import('./pages/be/ParametresPage'));
+const FicheBureauEtudePage = lazy(() => import('./pages/be/FicheBureauEtudePage'));
+const UtilisateursPage = lazy(() => import('./pages/admin/UtilisateursPage'));
+const UtilisateurDetailPage = lazy(() => import('./pages/admin/UtilisateurDetailPage'));
+const CreerUtilisateurPage = lazy(() => import('./pages/admin/CreerUtilisateurPage'));
+const ModerationEvaluationsPage = lazy(() => import('./pages/admin/ModerationEvaluationsPage'));
 
-import ClientDashboard from './pages/client/Dashboard';
-import ClientRequestDetail from './pages/client/RequestDetail';
-import ClientEtudeDetail from './pages/client/EtudeDetail';
-import NewRequest from './pages/client/NewRequest';
-import ClientParametresPage from './pages/client/ParametresPage';
-
-import BEDashboard from './pages/be/Dashboard';
-import BERequestDetail from './pages/be/RequestDetail';
-import BEEtudeDetail from './pages/be/EtudeDetail';
-import BERegister from './pages/be/BERegister';
-import BEParametresPage from './pages/be/ParametresPage';
-import FicheBureauEtudePage from './pages/be/FicheBureauEtudePage';
-import UtilisateursPage from './pages/admin/UtilisateursPage';
-import UtilisateurDetailPage from './pages/admin/UtilisateurDetailPage';
-import CreerUtilisateurPage from './pages/admin/CreerUtilisateurPage';
+function PageFallback() {
+  return (
+    <div className="flex min-h-48 items-center justify-center text-sm text-slate-500" role="status">
+      Chargement de la page…
+    </div>
+  );
+}
 
 // Redirige automatiquement selon le rôle si connecté, sinon affiche Home
 function RootRedirect() {
@@ -60,8 +68,9 @@ export default function App() {
         <Router>
           <ApiInterceptorSetup />
           <SessionTimeoutGuard />
-          <Routes>
-          <Route element={<MainLayout />}>
+          <Suspense fallback={<PageFallback />}>
+            <Routes>
+            <Route element={<MainLayout />}>
             <Route path="/" element={<RootRedirect />} />
             <Route path="/login" element={<Login />} />
             <Route path="/success" element={<Success />} />
@@ -92,12 +101,14 @@ export default function App() {
               <Route path="/admin/utilisateurs" element={<UtilisateursPage />} />
               <Route path="/admin/utilisateurs/nouveau" element={<CreerUtilisateurPage />} />
               <Route path="/admin/utilisateurs/:id" element={<UtilisateurDetailPage />} />
+              <Route path="/admin/evaluations/moderation" element={<ModerationEvaluationsPage />} />
             </Route>
 
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
+            </Route>
+            </Routes>
+          </Suspense>
       </Router>
     </AuthProvider>
     </ToastProvider>

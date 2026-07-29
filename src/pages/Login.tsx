@@ -73,7 +73,7 @@ export default function Login() {
               <a href="#" className="text-[10px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider">Mot de passe oublié ?</a>
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex-col items-stretch">
             <Button type="submit" className="w-full" isLoading={isLoading}>
               CONNEXION SECURISEE
             </Button>

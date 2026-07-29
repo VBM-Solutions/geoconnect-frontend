@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getBEMapData } from '../api/beMap';
+import { BEMapMarkerKind } from '../types';
 import { useBEMapData } from './useBEMapData';
 
 vi.mock('../api/beMap', () => ({
@@ -17,7 +18,7 @@ beforeEach(() => vi.clearAllMocks());
 
 describe('useBEMapData', () => {
   it('charge les donnees de carte avec les filtres fournis', async () => {
-    const filters = { distanceKm: 50 };
+    const filters = { kind: 'ETUDE_EN_COURS' as const };
     (getBEMapData as ReturnType<typeof vi.fn>).mockResolvedValueOnce(fakeMapData);
 
     const { result } = renderHook(() => useBEMapData(filters));
@@ -48,17 +49,17 @@ describe('useBEMapData', () => {
       .mockResolvedValueOnce({ ...fakeMapData, demandes: [{ id: 10 }] });
 
     const { rerender, result } = renderHook(
-      ({ distanceKm }) => useBEMapData({ distanceKm }),
-      { initialProps: { distanceKm: 25 } },
+      ({ kind }: { kind: BEMapMarkerKind }) => useBEMapData({ kind }),
+      { initialProps: { kind: 'DEMANDE_DISPONIBLE' as BEMapMarkerKind } },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    rerender({ distanceKm: 75 });
+    rerender({ kind: 'ETUDE_EN_COURS' as const });
 
     await waitFor(() => expect(getBEMapData).toHaveBeenCalledTimes(2));
 
-    expect(getBEMapData).toHaveBeenLastCalledWith({ distanceKm: 75 });
+    expect(getBEMapData).toHaveBeenLastCalledWith({ kind: 'ETUDE_EN_COURS' });
   });
 
   it('refetch redeclenche le chargement avec les memes filtres', async () => {
@@ -66,7 +67,7 @@ describe('useBEMapData', () => {
       .mockResolvedValueOnce(fakeMapData)
       .mockResolvedValueOnce({ ...fakeMapData, etudes: [{ id: 20 }] });
 
-    const filters = { departements: ['75'] };
+    const filters = { type: 'G2_AVP' as const };
     const { result } = renderHook(() => useBEMapData(filters));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -88,7 +89,7 @@ describe('useBEMapData', () => {
       }),
     );
 
-    const { result, unmount } = renderHook(() => useBEMapData({ distanceKm: 25 }));
+    const { result, unmount } = renderHook(() => useBEMapData({ kind: 'ETUDE_EN_COURS' }));
 
     expect(result.current.isLoading).toBe(true);
     unmount();
@@ -97,7 +98,7 @@ describe('useBEMapData', () => {
       resolveRequest(fakeMapData);
     });
 
-    expect(getBEMapData).toHaveBeenCalledWith({ distanceKm: 25 });
+    expect(getBEMapData).toHaveBeenCalledWith({ kind: 'ETUDE_EN_COURS' });
   });
 
   it('ignore l erreur si le composant est demonte avant la fin du chargement', async () => {
@@ -108,7 +109,7 @@ describe('useBEMapData', () => {
       }),
     );
 
-    const { result, unmount } = renderHook(() => useBEMapData({ distanceKm: 25 }));
+    const { result, unmount } = renderHook(() => useBEMapData({ kind: 'ETUDE_EN_COURS' }));
 
     expect(result.current.isLoading).toBe(true);
     unmount();
@@ -117,6 +118,6 @@ describe('useBEMapData', () => {
       rejectRequest(new Error('KO'));
     });
 
-    expect(getBEMapData).toHaveBeenCalledWith({ distanceKm: 25 });
+    expect(getBEMapData).toHaveBeenCalledWith({ kind: 'ETUDE_EN_COURS' });
   });
 });

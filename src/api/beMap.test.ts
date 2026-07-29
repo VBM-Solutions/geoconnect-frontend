@@ -28,9 +28,10 @@ describe('getBEMapData', () => {
 
   it('transmet les filtres a l API', async () => {
     const filters = {
-      distanceKm: 50,
-      etatsEtude: ['DEVIS_SIGNE'],
-      departements: ['75', '92'],
+      type: 'G2_AVP' as const,
+      etatEtude: 'DEVIS_SIGNE' as const,
+      kind: 'ETUDE_EN_COURS' as const,
+      withArchived: false,
     };
     (api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: fakeMapData });
 
