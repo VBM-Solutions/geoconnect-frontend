@@ -13,6 +13,7 @@ vi.mock('../api/propositionDevis', () => ({
   getPropositionDevisByDemandeId: vi.fn(),
 }));
 vi.mock('../api/etude', () => ({
+  getEtudeIdsAEvaluer: vi.fn(),
   getEtudesByClientId: vi.fn(),
   fetchEtudeDetails:   vi.fn(),
 }));
@@ -20,7 +21,7 @@ vi.mock('../api/etude', () => ({
 import { getClientByUserId } from '../api/client';
 import { getAllDemandeDevis } from '../api/demandeDevis';
 import { getPropositionDevisByDemandeId } from '../api/propositionDevis';
-import { getEtudesByClientId, fetchEtudeDetails } from '../api/etude';
+import { getEtudeIdsAEvaluer, getEtudesByClientId, fetchEtudeDetails } from '../api/etude';
 
 const fakeClient  = { id: 3, nom: 'Dupont', prenom: 'Jean', utilisateurId: 1 };
 const fakeDemande = { id: 7, description: 'Travaux toit' };
@@ -38,7 +39,10 @@ function mockUseAuth(userId = 1) {
 }
 
 describe('useClientDashboardData', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (getEtudeIdsAEvaluer as any).mockResolvedValue([]);
+  });
 
   it('ne charge rien si user est null', () => {
     vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
@@ -72,6 +76,7 @@ describe('useClientDashboardData', () => {
     (getPropositionDevisByDemandeId as any).mockResolvedValue([fakePropo]);
     (getEtudesByClientId as any).mockResolvedValue([fakeEtude]);
     (fetchEtudeDetails as any).mockResolvedValue([fakeEtude]);
+    (getEtudeIdsAEvaluer as any).mockResolvedValue([20]);
 
     const { result } = renderHook(() => useClientDashboardData());
 
@@ -81,6 +86,7 @@ describe('useClientDashboardData', () => {
     expect(result.current.demandes).toHaveLength(1);
     expect(result.current.demandes[0].propositions).toEqual([fakePropo]);
     expect(result.current.etudes).toEqual([fakeEtude]);
+    expect(result.current.etudeIdsAEvaluer).toEqual([20]);
     expect(result.current.error).toBeNull();
   });
 

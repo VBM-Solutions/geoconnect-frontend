@@ -8,10 +8,10 @@ import { DashboardSidebarNav, type DashboardNavSection } from '../../components/
 import { DashboardEmptyState } from '../../components/ui/DashboardEmptyState';
 import { DashboardMetricCard } from '../../components/ui/DashboardMetricCard';
 import { DashboardActivityFeed, type DashboardActivityItem } from '../../components/ui/DashboardActivityFeed';
-import { MapPin, Calendar, Clock, FileText, ChevronRight, FlaskConical, Building2, AlertCircle, Archive, Plus, Layers3, CheckCircle2, Sparkles } from 'lucide-react';
+import { MapPin, Calendar, Clock, FileText, ChevronRight, FlaskConical, Building2, AlertCircle, Archive, Plus, Layers3, CheckCircle2, MessageSquareHeart, Sparkles } from 'lucide-react';
 import { clientMustAct } from '../../components/etude/EtudeStatusBadge';
 import { EtudeCardHeader } from '../../components/etude/EtudeCardHeader';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { EtudeDetailDTO } from '../../types';
 import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 
@@ -23,13 +23,16 @@ interface EtudeCardProps {
   readonly etude: EtudeDetailDTO;
   /** true = onglet Archives (paiement effectué) */
   readonly archived?: boolean;
+  readonly evaluationPending?: boolean;
 }
 
 function buildActivityFeed(
   demandesEnCours: Array<{ propositions?: Array<{ statut?: string }> }>,
   etudesEnCours: EtudeDetailDTO[],
   etudesArchivees: EtudeDetailDTO[],
+  etudeIdsAEvaluer: number[],
   onNavigate: (tab: TabType) => void,
+  onOpenEvaluation: (etudeId: number) => void,
 ): DashboardActivityItem[] {
   const demandesAvecPropositions = demandesEnCours.filter((demande) => (demande.propositions?.length ?? 0) > 0).length;
   const etudesAvecAction = etudesEnCours.filter((etude) => clientMustAct(etude.etat)).length;
@@ -72,6 +75,18 @@ function buildActivityFeed(
     });
   }
 
+  if (etudeIdsAEvaluer.length > 0) {
+    feed.push({
+      id: 'evaluations',
+      title: 'Votre avis compte',
+      description: `${etudeIdsAEvaluer.length} étude${etudeIdsAEvaluer.length > 1 ? 's peuvent' : ' peut'} encore être évaluée${etudeIdsAEvaluer.length > 1 ? 's' : ''}. Cette étape reste facultative.`,
+      icon: <MessageSquareHeart className="h-4 w-4" />,
+      toneClassName: 'bg-violet-50 text-violet-700 border-violet-200',
+      actionLabel: 'Donner mon avis',
+      onAction: () => onOpenEvaluation(etudeIdsAEvaluer[0]),
+    });
+  }
+
   if (etudesArchivees.length > 0) {
     feed.push({
       id: 'archives',
@@ -96,11 +111,11 @@ function buildActivityFeed(
     });
   }
 
-  return feed.slice(0, 4);
+  return feed.slice(0, 5);
 }
 
 function EtudeCard(props: Readonly<EtudeCardProps>) {
-  const { etude, archived = false } = props;
+  const { etude, archived = false, evaluationPending = false } = props;
   const prop     = etude.propositionDevis;
   const demande  = prop?.demandeDevis;
   const bureau   = prop?.bureauEtude;
@@ -124,6 +139,13 @@ function EtudeCard(props: Readonly<EtudeCardProps>) {
             <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
             <span className="text-slate-500 font-bold uppercase tracking-wider mr-1">Bureau :</span>
             <span className="font-semibold text-slate-700">{bureau.raisonSociale || '—'}</span>
+          </div>
+        )}
+
+        {evaluationPending && (
+          <div className="flex items-center gap-2 rounded border border-violet-200 bg-violet-50 p-2 text-[11px] font-semibold text-violet-700">
+            <MessageSquareHeart className="h-3.5 w-3.5 shrink-0" />
+            Votre avis facultatif est attendu
           </div>
         )}
 
@@ -154,8 +176,13 @@ function EtudeCard(props: Readonly<EtudeCardProps>) {
           <Link to={`/client/etude/${etude.id}`} className="w-full">
             {archived ? (
               <Button variant="outline" size="sm" className="w-full group border-green-300 text-green-700 hover:border-green-400 hover:bg-green-50">
-                <Archive className="w-3 h-3 mr-1.5 text-green-500" />
-                Consulter l'étude <ChevronRight className="w-3.5 h-3.5 ml-1.5 group-hover:translate-x-1 transition-transform" />
+                {evaluationPending ? (
+                  <MessageSquareHeart className="w-3 h-3 mr-1.5 text-violet-500" />
+                ) : (
+                  <Archive className="w-3 h-3 mr-1.5 text-green-500" />
+                )}
+                {evaluationPending ? 'Consulter et noter' : "Consulter l'étude"}
+                <ChevronRight className="w-3.5 h-3.5 ml-1.5 group-hover:translate-x-1 transition-transform" />
               </Button>
             ) : (
               <Button
@@ -178,7 +205,8 @@ function EtudeCard(props: Readonly<EtudeCardProps>) {
 
 export default function ClientDashboard() {
   const { toastError } = useToast();
-  const { demandes, etudes, isLoading, error } = useClientDashboardData();
+  const { demandes, etudes, etudeIdsAEvaluer = [], isLoading, error } = useClientDashboardData();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as TabType | null;
   const [activeTab, setActiveTab] = useState<TabType>(tabParam ?? 'DEMANDES');
@@ -255,7 +283,14 @@ export default function ClientDashboard() {
       description: 'Retrouvez l historique des missions finalisées et payées.',
     },
   };
-  const activityFeed = buildActivityFeed(demandesEnCours, etudesEnCours, etudesArchivees, handleTabChange);
+  const activityFeed = buildActivityFeed(
+    demandesEnCours,
+    etudesEnCours,
+    etudesArchivees,
+    etudeIdsAEvaluer,
+    handleTabChange,
+    etudeId => navigate(`/client/etude/${etudeId}`),
+  );
 
   return (
     <div className="space-y-6">
@@ -422,7 +457,11 @@ export default function ClientDashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-6 gap-4">
                 {etudesArchivees.map((etude, index) => (
                   <React.Fragment key={etude.id ?? `archive-${index}`}>
-                    <EtudeCard etude={etude} archived />
+                    <EtudeCard
+                      etude={etude}
+                      archived
+                      evaluationPending={etude.id != null && etudeIdsAEvaluer.includes(etude.id)}
+                    />
                   </React.Fragment>
                 ))}
               </div>

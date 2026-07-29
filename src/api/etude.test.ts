@@ -16,6 +16,7 @@ import {
   getEtudeDocuments,
   definirDateRenduPrevue,
   fetchEtudeDetails,
+  getEtudeIdsAEvaluer,
   getStatutEvaluation,
   evaluerEtude,
 } from './etude';
@@ -38,6 +39,13 @@ const fakeEtude  = { id: 1, etat: 'EN_COURS' };
 beforeEach(() => vi.clearAllMocks());
 
 describe('évaluation d’étude', () => {
+  it('charge en une requête les études encore à évaluer', async () => {
+    (api.get as any).mockResolvedValueOnce({ data: [44, 42] });
+
+    await expect(getEtudeIdsAEvaluer()).resolves.toEqual([44, 42]);
+    expect(api.get).toHaveBeenCalledWith('/etude/evaluations/a-faire');
+  });
+
   it('charge le statut de notation', async () => {
     (api.get as any).mockResolvedValueOnce({ data: { eligible: true } });
 

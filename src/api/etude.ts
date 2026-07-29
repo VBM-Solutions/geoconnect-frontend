@@ -104,6 +104,11 @@ export const getStatutEvaluation = async (id: number): Promise<StatutEvaluationE
   return data;
 };
 
+export const getEtudeIdsAEvaluer = async (): Promise<number[]> => {
+  const { data } = await api.get('/etude/evaluations/a-faire');
+  return data ?? [];
+};
+
 export const evaluerEtude = async (
   id: number,
   evaluation: EvaluationEtudePayload,
