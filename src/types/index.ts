@@ -97,7 +97,12 @@ export interface PropositionDevisDTO {
   statut?: StatutProposition;
 
   // Relations embarquées (usage front uniquement)
-  bureauEtude?: BureauEtudesDTO;
+  bureauEtude?: {
+    id: number;
+    raisonSociale: string;
+    ville?: string;
+    profilPublicSlug?: string;
+  };
   demandeDevis?: DemandeDevisDTO;
 }
 
