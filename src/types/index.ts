@@ -250,6 +250,26 @@ export interface NotificationPreferencesDTO {
   departementsSuivis: string[];
 }
 
+export interface EvaluationEtudePayload {
+  qualiteEchanges: number;
+  respectDelais: number;
+  qualiteRapport: number;
+  adequationBesoin: number;
+  commentaire?: string;
+}
+
+export interface EvaluationEtudeDTO extends EvaluationEtudePayload {
+  id: number;
+  etudeId: number;
+  noteGlobale: number;
+  createdAt: string;
+}
+
+export interface StatutEvaluationEtudeDTO {
+  eligible: boolean;
+  evaluation?: EvaluationEtudeDTO;
+}
+
 // ─── Fiche publique Bureau d'Études ────────────────────────────────────────
 
 export type StatutPublicationProfil = 'BROUILLON' | 'PUBLIE' | 'SUSPENDU';
@@ -297,6 +317,22 @@ export interface StatistiquesActiviteBureauEtudeDTO {
 export interface FicheBureauEtudeDTO {
   profilPublic: ProfilPublicBureauEtudeDTO;
   activite: StatistiquesActiviteBureauEtudeDTO;
+  evaluations: SyntheseEvaluationsDTO;
+}
+
+export interface SyntheseEvaluationsDTO {
+  nombreEvaluations: number;
+  noteGlobale?: number;
+  qualiteEchanges?: number;
+  respectDelais?: number;
+  qualiteRapport?: number;
+  adequationBesoin?: number;
+  avis: Array<{
+    noteGlobale: number;
+    commentaire: string;
+    createdAt: string;
+    etudeVerifiee: boolean;
+  }>;
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

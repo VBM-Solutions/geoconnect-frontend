@@ -13,6 +13,7 @@ import { formatDateLong } from '../../lib/formatters';
 import { useEtudeDetail } from '../../hooks/useEtudeDetail';
 import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 import { EtudeInfoMetric } from '../../components/etude/EtudeInfoMetric';
+import { EvaluationEtudeCard } from '../../components/etude/EvaluationEtudeCard';
 
 export default function ClientEtudeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +39,9 @@ export default function ClientEtudeDetail() {
       {/* Carte rapport final — CTA dédiée, visible uniquement post-paiement avec rapport */}
       {etat === 'PAIEMENT_EFFECTUE' && documents?.rapport?.id != null && (
         <RapportDownloadCard rapport={documents.rapport} />
+      )}
+      {etat === 'PAIEMENT_EFFECTUE' && etude.id != null && (
+        <EvaluationEtudeCard etudeId={etude.id} />
       )}
 
       {/* Carte bureau d'études */}

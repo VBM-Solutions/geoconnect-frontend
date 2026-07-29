@@ -11,6 +11,10 @@ vi.mock('../../hooks/useEtudeDetail', () => ({
   useEtudeDetail: (id: string | undefined) => mockUseEtudeDetail(id),
 }));
 
+vi.mock('../../components/etude/EvaluationEtudeCard', () => ({
+  EvaluationEtudeCard: () => <div data-testid="evaluation-etude-card" />,
+}));
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function renderPage(path: string) {

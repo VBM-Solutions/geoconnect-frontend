@@ -4,6 +4,7 @@ import { getDepartements } from '../../api/referentiel';
 import { ProfilBureauEtudeForm } from '../../components/profil-be/ProfilBureauEtudeForm';
 import { ProfilBureauEtudePreview } from '../../components/profil-be/ProfilBureauEtudePreview';
 import { ProfilBureauEtudeStats } from '../../components/profil-be/ProfilBureauEtudeStats';
+import { ProfilBureauEtudeEvaluations } from '../../components/profil-be/ProfilBureauEtudeEvaluations';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
@@ -185,6 +186,7 @@ export default function FicheBureauEtudePage() {
       </header>
 
       <ProfilBureauEtudeStats stats={fiche.activite} />
+      <ProfilBureauEtudeEvaluations evaluations={fiche.evaluations} />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Card>

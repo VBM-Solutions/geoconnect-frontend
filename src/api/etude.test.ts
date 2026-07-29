@@ -16,6 +16,8 @@ import {
   getEtudeDocuments,
   definirDateRenduPrevue,
   fetchEtudeDetails,
+  getStatutEvaluation,
+  evaluerEtude,
 } from './etude';
 
 vi.mock('./index', () => ({
@@ -34,6 +36,29 @@ const fakeDetail = { id: 1, etat: 'DEVIS_VALIDE', bureauEtude: null, demandeDevi
 const fakeEtude  = { id: 1, etat: 'EN_COURS' };
 
 beforeEach(() => vi.clearAllMocks());
+
+describe('évaluation d’étude', () => {
+  it('charge le statut de notation', async () => {
+    (api.get as any).mockResolvedValueOnce({ data: { eligible: true } });
+
+    await expect(getStatutEvaluation(42)).resolves.toEqual({ eligible: true });
+    expect(api.get).toHaveBeenCalledWith('/etude/42/evaluation');
+  });
+
+  it('soumet les quatre critères au backend', async () => {
+    const payload = {
+      qualiteEchanges: 5,
+      respectDelais: 4,
+      qualiteRapport: 5,
+      adequationBesoin: 4,
+    };
+    (api.post as any).mockResolvedValueOnce({ data: { id: 1, ...payload } });
+
+    await evaluerEtude(42, payload);
+
+    expect(api.post).toHaveBeenCalledWith('/etude/42/evaluation', payload);
+  });
+});
 
 // ─── Transitions d'état ───────────────────────────────────────────────────────
 
