@@ -1,26 +1,84 @@
-import { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { FormEvent, useRef, useState } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import {
+  ArrowRight,
+  Briefcase,
+  CalendarDays,
+  CheckCircle2,
+  CircleHelp,
+  ClipboardList,
+  FileText,
+  Home as HomeIcon,
+  KeyRound,
+  Mail,
+  MapPin,
+  SearchCheck,
+  ShieldCheck,
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { registerCall } from '../api/auth';
+import { createClient, getClientByUserId } from '../api/client';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/Card';
 import { CadastralReferencesField } from '../components/ui/CadastralReferencesField';
 import { PasswordRequirementsHint } from '../components/ui/PasswordRequirementsHint';
 import { FileUploader } from '../components/shared/FileUploader';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../components/ui/Card';
-import { useForm } from 'react-hook-form';
-import { createClient, getClientByUserId } from '../api/client';
+import { TypeEtudeSelect } from '../components/project/TypeEtudeSelect';
 import { useTypesEtude } from '../hooks/useTypesEtude';
 import { useDemandeSubmission } from '../hooks/useDemandeSubmission';
-import { TypeEtudeSelect } from '../components/project/TypeEtudeSelect';
-import { MapPin, Briefcase, Mail } from 'lucide-react';
 import { buildDemandePayload, mapFormFieldsToPayloadBase } from '../lib/demandePayload';
 import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules } from '../lib/validators';
 import { getFieldMessage } from '../lib/formErrors';
 
+type StudyPreset = {
+  code?: string;
+  label: string;
+  postalCode?: string;
+};
+
+type JourneyCard = {
+  icon: typeof HomeIcon;
+  title: string;
+  description: string;
+  helpText: string;
+  buttonLabel: string;
+  preset: Omit<StudyPreset, 'postalCode'>;
+};
+
+const TRUST_ITEMS = [
+  'Une étude clé en main',
+  'Demande gratuite',
+  'Bureaux d’études qualifiés',
+  'Suivi en ligne',
+  'Documents centralisés',
+];
+
+const journeyCards: JourneyCard[] = [
+  {
+    icon: MapPin,
+    title: 'Vous vendez votre terrain ?',
+    description: "L'étude G1 peut être demandée avant la vente d'un terrain constructible, notamment en zone argileuse.",
+    helpText: 'Entrez le code postal du terrain pour préparer une demande adaptée.',
+    buttonLabel: 'Demander une étude G1',
+    preset: { code: 'G1', label: 'Vente de terrain' },
+  },
+  {
+    icon: HomeIcon,
+    title: 'Vous construisez ou agrandissez votre maison ?',
+    description: "Une étude G2 aide à dimensionner les fondations et à limiter les mauvaises surprises avant les travaux.",
+    helpText: 'Entrez le code postal du chantier pour démarrer votre demande.',
+    buttonLabel: 'Demander une étude G2',
+    preset: { code: 'G2_AVP', label: 'Construction ou agrandissement' },
+  },
+];
+
 export default function Home() {
-  const [step, setStep] = useState(0);
   const { user, isAuthenticated } = useAuth();
+  const [selectedPreset, setSelectedPreset] = useState<StudyPreset | null>(null);
+  const [postalCodes, setPostalCodes] = useState<Record<string, string>>({});
+  const formSectionRef = useRef<HTMLElement | null>(null);
 
   if (isAuthenticated) {
     if (user?.role === 'ADMIN') return <Navigate to="/admin/utilisateurs" replace />;
@@ -28,29 +86,268 @@ export default function Home() {
     if (user?.role === 'BUREAU_ETUDE') return <Navigate to="/be/dashboard" replace />;
   }
 
-  if (step === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center text-center mt-12 max-w-2xl mx-auto space-y-6">
-        <div className="w-16 h-16 bg-blue-500 rounded-lg flex items-center justify-center font-bold text-white text-4xl italic mb-2">
-          G
-        </div>
-        <h1 className="text-3xl md:text-4xl font-bold text-slate-800 leading-tight">
-          CONNECTEZ-VOUS AUX EXPERTS GEOTECHNIQUES
-        </h1>
-        <p className="text-sm text-slate-500 max-w-lg leading-relaxed">
-          Un portail simple et sécurisé pour débloquer l'accès à un réseau qualifié de bureaux d'études.
-        </p>
-        <Button size="lg" onClick={() => setStep(1)} className="mt-4">
-          DÉMARRER LE TUNNEL
-        </Button>
-      </div>
-    );
-  }
+  const openTunnel = (preset?: StudyPreset) => {
+    setSelectedPreset(preset ?? { label: 'Demande libre' });
+    globalThis.setTimeout(() => {
+      formSectionRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  };
 
-  return <QuoteTunnel />;
+  const handleJourneySubmit = (event: FormEvent<HTMLFormElement>, card: JourneyCard) => {
+    event.preventDefault();
+    openTunnel({
+      ...card.preset,
+      postalCode: postalCodes[card.title]?.trim(),
+    });
+  };
+
+  const secondarySituations = [
+    {
+      icon: ClipboardList,
+      title: "J'agrandis ou je rénove",
+      text: 'Pour vérifier le sol avant des travaux importants.',
+      preset: { code: 'G5', label: 'Travaux ou rénovation' },
+    },
+    {
+      icon: FileText,
+      title: 'On me demande une étude',
+      text: 'Notaire, constructeur, banque : vous pouvez déposer la demande ici.',
+      preset: { label: 'Étude demandée par un tiers' },
+    },
+  ];
+
+  return (
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-6 sm:px-6 lg:px-8">
+      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
+        <div className="grid lg:grid-cols-[1.06fr_0.94fr]">
+          <div className="p-5 sm:p-8 lg:p-10">
+            <div className="mb-7 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600 text-2xl font-black italic text-white shadow-sm">
+                G
+              </div>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700">GeoConnect</p>
+                <p className="text-xs font-medium text-slate-500">Votre étude de sol, plus simple</p>
+              </div>
+            </div>
+
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-blue-700">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Pour les particuliers
+            </div>
+            <h1 className="mt-5 max-w-3xl text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl">
+              Vous avez besoin d'une étude de sol ?
+            </h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
+              Vente de terrain, construction ou agrandissement : indiquez votre situation et le code postal du terrain. GeoConnect vous aide ensuite à transmettre une demande claire aux bureaux d'études.
+            </p>
+
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Button type="button" size="lg" className="gap-2" onClick={() => openTunnel()}>
+                Démarrer ma demande
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+              <a
+                href="#parcours"
+                className="gc-motion-fast inline-flex h-11 items-center justify-center rounded border border-slate-300 bg-white px-6 text-sm font-bold tracking-wide text-slate-700 shadow-sm transition-[color,background-color,border-color,box-shadow,transform] hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2"
+              >
+                Voir les cas fréquents
+              </a>
+            </div>
+          </div>
+
+          <div className="relative min-h-[280px] bg-slate-100">
+            <img
+              src="https://images.unsplash.com/photo-1572120360610-d971b9d7767c?auto=format&fit=crop&w=1100&q=80"
+              alt="Maison individuelle entourée d'un terrain"
+              className="h-full min-h-[280px] w-full object-cover"
+            />
+            <div className="absolute inset-x-4 bottom-4 rounded-lg border border-white/70 bg-white/88 p-4 shadow-lg backdrop-blur">
+              <p className="text-sm font-black text-slate-950">Pas besoin de maîtriser le vocabulaire technique.</p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">
+                Décrivez le projet, les spécialistes préciseront le type d'étude utile.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-3 rounded-lg border border-slate-200 bg-white/88 p-4 shadow-sm md:grid-cols-5">
+        {TRUST_ITEMS.map((item) => (
+          <div key={item} className="flex items-center gap-2 text-xs font-bold text-slate-700">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            {item}
+          </div>
+        ))}
+      </section>
+
+      <section id="parcours" className="grid gap-5 lg:grid-cols-2">
+        {journeyCards.map((card) => {
+          const Icon = card.icon;
+
+          return (
+            <form
+              key={card.title}
+              onSubmit={(event) => handleJourneySubmit(event, card)}
+              className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black tracking-tight text-slate-950">{card.title}</h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{card.description}</p>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-lg bg-slate-50 p-4">
+                <label htmlFor={`postal-${card.preset.code}`} className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                  Code postal du terrain
+                </label>
+                <div className="mt-2 grid gap-3 sm:grid-cols-[1fr_auto]">
+                  <input
+                    id={`postal-${card.preset.code}`}
+                    inputMode="numeric"
+                    maxLength={5}
+                    placeholder="Ex : 75001"
+                    value={postalCodes[card.title] ?? ''}
+                    onChange={(event) => setPostalCodes((current) => ({ ...current, [card.title]: event.target.value }))}
+                    className="h-11 rounded border border-slate-300 bg-white px-3 text-sm placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                  />
+                  <Button type="submit" size="lg" className="gap-2">
+                    {card.buttonLabel}
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="mt-2 text-xs leading-5 text-slate-500">{card.helpText}</p>
+              </div>
+            </form>
+          );
+        })}
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[0.78fr_1.22fr]">
+        <div className="rounded-lg border border-blue-100 bg-blue-50/80 p-5">
+          <div className="flex gap-3">
+            <CircleHelp className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
+            <div>
+              <h2 className="text-base font-black text-slate-950">Pas sûr de savoir quelle étude choisir ?</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Ce n'est pas grave. Choisissez le cas le plus proche ou démarrez une demande libre : les bureaux d'études pourront préciser la mission nécessaire.
+              </p>
+              <Button type="button" variant="outline" className="mt-4 gap-2" onClick={() => openTunnel()}>
+                Ouvrir le formulaire
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {secondarySituations.map(({ icon: Icon, title, text, preset }) => (
+            <button
+              key={title}
+              type="button"
+              onClick={() => openTunnel(preset)}
+              className="rounded-lg border border-slate-200 bg-white p-5 text-left shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2"
+            >
+              <Icon className="mb-3 h-5 w-5 text-blue-600" />
+              <h2 className="text-sm font-bold text-slate-900">{title}</h2>
+              <p className="mt-1 text-xs leading-5 text-slate-500">{text}</p>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {selectedPreset && (
+        <section id="demande" ref={formSectionRef} className="mx-auto w-full max-w-2xl scroll-mt-6">
+          <QuoteTunnel
+            key={`${selectedPreset.label}-${selectedPreset.code ?? 'libre'}-${selectedPreset.postalCode ?? ''}`}
+            initialType={selectedPreset.code}
+            initialPostalCode={selectedPreset.postalCode}
+            presetLabel={selectedPreset.label}
+          />
+        </section>
+      )}
+
+      <section className="rounded-lg border border-slate-200 bg-white/88 p-5 shadow-sm">
+        <div className="grid gap-4 md:grid-cols-5 md:items-center">
+          {[
+            { icon: ClipboardList, label: 'Vous décrivez le projet' },
+            { icon: SearchCheck, label: 'Des spécialistes répondent' },
+            { icon: FileText, label: 'Vous comparez les devis' },
+            { icon: CalendarDays, label: "L'étude est planifiée" },
+            { icon: KeyRound, label: 'Vous recevez le rapport' },
+          ].map(({ icon: Icon, label }, index) => (
+            <div key={label} className="flex items-center gap-3 text-sm font-bold text-slate-700">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm ring-1 ring-slate-200">
+                <Icon className="h-4 w-4" />
+              </span>
+              <span>{label}</span>
+              {index < 4 && <ArrowRight className="ml-auto hidden h-4 w-4 text-slate-300 md:block" />}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[0.88fr_1.12fr]">
+        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-[11px] font-black uppercase tracking-wider text-blue-700">La loi Élan</p>
+          <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+            Une étude de sol peut être obligatoire pour vendre ou construire.
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            Pour certains terrains constructibles exposés au retrait-gonflement des argiles, une étude géotechnique est demandée. Elle aide aussi à anticiper les risques liés aux fondations.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            {
+              question: 'Mon terrain est-il concerné ?',
+              answer: "Cela dépend de sa localisation et de l'exposition aux argiles. Le code postal aide à orienter la demande.",
+            },
+            {
+              question: "Et si je ne connais pas G1 ou G2 ?",
+              answer: "Vous pouvez quand même continuer. Décrivez votre situation, les spécialistes vous guideront.",
+            },
+            {
+              question: 'Suis-je engagé ?',
+              answer: "Non. Vous recevez des propositions, puis vous choisissez librement celle qui vous convient.",
+            },
+          ].map(({ question, answer }) => (
+            <div key={question} className="rounded-lg border border-slate-200 bg-white/82 p-5 shadow-sm">
+              <h2 className="text-sm font-black text-slate-950">{question}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{answer}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-4 pb-8 md:grid-cols-[1fr_auto] md:items-center">
+        <div>
+          <h2 className="text-xl font-black tracking-tight text-slate-950">Vous représentez un bureau d'études ?</h2>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
+            Rejoignez le réseau GeoConnect pour consulter les demandes disponibles, proposer vos devis et piloter vos études depuis un espace dédié.
+          </p>
+        </div>
+        <Link
+          to="/bureau-etudes/inscription"
+          className="gc-motion-fast inline-flex h-11 w-full items-center justify-center rounded border border-slate-300 bg-white px-6 text-sm font-bold tracking-wide text-slate-700 shadow-sm transition-[color,background-color,border-color,box-shadow,transform] hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 md:w-auto"
+        >
+          Rejoindre le réseau
+        </Link>
+      </section>
+    </div>
+  );
 }
 
-function QuoteTunnel() {
+function QuoteTunnel({
+  initialType,
+  initialPostalCode,
+  presetLabel,
+}: Readonly<{ initialType?: string; initialPostalCode?: string; presetLabel?: string }>) {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +358,12 @@ function QuoteTunnel() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const { register: formRegister, handleSubmit, getValues, watch, formState: { errors } } = useForm();
+  const { register: formRegister, handleSubmit, getValues, watch, formState: { errors } } = useForm<Record<string, unknown>>({
+    defaultValues: {
+      type: initialType ?? '',
+      codePostalProjet: initialPostalCode ?? '',
+    },
+  });
   const passwordValue = watch('password', '');
 
   const { submit } = useDemandeSubmission({
@@ -90,7 +392,7 @@ function QuoteTunnel() {
 
       login(authRes);
 
-      let client = await createClient({
+      const client = await createClient({
         civilite: data.civilite as 'MR' | 'MME' | 'AUTRE',
         nom: data.nom as string,
         prenom: data.prenom as string,
@@ -131,41 +433,48 @@ function QuoteTunnel() {
     }
   };
 
+  const steps = [
+    { number: 1, label: 'Projet' },
+    { number: 2, label: 'Détails' },
+    { number: 3, label: 'Coordonnées' },
+  ];
+
   return (
-    <div className="max-w-xl mx-auto mt-8">
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          {[1, 2, 3].map((s) => (
-            <div key={s} className="flex items-center">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center font-medium ${
-                  s <= step ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'
-                }`}
-              >
-                {s}
-              </div>
-              {s < 3 && (
-                <div
-                  className={`h-1 w-16 sm:w-32 mx-2 rounded ${
-                    s < step ? 'bg-blue-600' : 'bg-slate-200'
-                  }`}
-                />
-              )}
+    <div className="w-full">
+      <div className="mb-4 rounded-lg border border-slate-200 bg-white/75 p-3 shadow-sm">
+        <div className="grid grid-cols-3 gap-2">
+          {steps.map(({ number, label }) => (
+            <div
+              key={number}
+              className={`rounded-md px-3 py-2 text-center ${
+                number <= step ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'
+              }`}
+            >
+              <div className="text-[10px] font-black uppercase tracking-wider">Étape {number}</div>
+              <div className="mt-0.5 text-xs font-bold">{label}</div>
             </div>
           ))}
         </div>
       </div>
 
-      <Card>
+      <Card className="border-slate-200/90 bg-white/95 shadow-xl shadow-slate-900/5">
         {step === 1 && (
           <form onSubmit={handleSubmit(handleNext)}>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Briefcase className="w-5 h-5 mr-2 text-blue-600" /> Quel est votre besoin ?
+            <CardHeader className="gap-1 bg-white px-5 py-4">
+              <CardTitle className="flex items-center text-base">
+                <Briefcase className="mr-2 h-5 w-5 text-blue-600" /> Quel est votre besoin ?
               </CardTitle>
-              <CardDescription>Qualifions rapidement votre projet géotechnique.</CardDescription>
+              <CardDescription className="text-xs">Commencez par situer le terrain et choisir l'option qui ressemble le plus à votre projet.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-5">
+              {presetLabel && (
+                <div className="rounded-md border border-blue-100 bg-blue-50/80 p-3 text-xs leading-5 text-blue-900">
+                  Point de départ choisi : <span className="font-bold">{presetLabel}</span>. Vous pouvez modifier le type de mission si besoin.
+                </div>
+              )}
+              <div className="rounded-md border border-emerald-100 bg-emerald-50/80 p-3 text-xs leading-5 text-emerald-900">
+                Vous hésitez entre plusieurs types de mission ? Sélectionnez la plus proche, puis expliquez votre situation ensuite.
+              </div>
               <TypeEtudeSelect
                 id="type-step1"
                 register={formRegister}
@@ -174,7 +483,7 @@ function QuoteTunnel() {
                 error={errors.type ? 'Requis' : undefined}
                 label="Type de mission *"
                 labelClassName="block text-sm font-medium text-slate-700"
-                selectClassName="w-full flex h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                selectClassName="w-full flex h-10 rounded border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                 placeholder="Sélectionnez un type"
               />
 
@@ -183,6 +492,7 @@ function QuoteTunnel() {
                 placeholder="Ex : 15 Avenue des Champs-Élysées"
                 {...formRegister('rueProjet', { required: true })}
                 error={errors.rueProjet ? 'Requis' : undefined}
+                className="h-10 text-sm"
               />
               <div className="grid grid-cols-2 gap-4">
                 <Input
@@ -190,17 +500,20 @@ function QuoteTunnel() {
                   placeholder="Ex : 75001"
                   {...formRegister('codePostalProjet', codePostalRules)}
                   error={getFieldMessage(errors.codePostalProjet)}
+                  className="h-10 text-sm"
                 />
                 <Input
                   label="Ville *"
                   {...formRegister('villeProjet', { required: true })}
                   error={errors.villeProjet ? 'Requis' : undefined}
+                  className="h-10 text-sm"
                 />
               </div>
             </CardContent>
-            <CardFooter>
-              <Button type="submit" className="w-full">
-                Suivant
+            <CardFooter className="bg-slate-50/80 px-5 py-4">
+              <Button type="submit" size="lg" className="w-full gap-2">
+                Continuer ma demande
+                <ArrowRight className="h-4 w-4" />
               </Button>
             </CardFooter>
           </form>
@@ -208,23 +521,23 @@ function QuoteTunnel() {
 
         {step === 2 && (
           <form onSubmit={handleSubmit(handleNext)}>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <MapPin className="w-5 h-5 mr-2 text-blue-600" /> Détails du projet
+            <CardHeader className="gap-1 bg-white px-5 py-4">
+              <CardTitle className="flex items-center text-base">
+                <MapPin className="mr-2 h-5 w-5 text-blue-600" /> Détails du projet
               </CardTitle>
-              <CardDescription>Donnez plus de contexte à votre demande.</CardDescription>
+              <CardDescription className="text-xs">Quelques phrases suffisent pour aider les spécialistes à comprendre votre situation.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-5">
               <div className="space-y-1">
                 <label htmlFor="description-step2" className="block text-sm font-medium text-slate-700">Description du projet *</label>
                 <textarea
                   id="description-step2"
                   maxLength={2000}
                   {...formRegister('description', { required: true, maxLength: { value: 2000, message: 'La description ne doit pas dépasser 2000 caractères' } })}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
-                  placeholder="Décrivez votre besoin, contraintes particulières..."
+                  className="min-h-[112px] w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Ex : Je construis une maison individuelle, mon constructeur me demande une G2 AVP, le terrain est en pente légère..."
                 />
-                {errors.description && <span className="text-red-500 text-xs">{getFieldMessage(errors.description) ?? 'Requis'}</span>}
+                {errors.description && <span className="text-xs text-red-500">{getFieldMessage(errors.description) ?? 'Requis'}</span>}
               </div>
               <CadastralReferencesField
                 value={referencesCadastrales}
@@ -262,40 +575,43 @@ function QuoteTunnel() {
                 setDocFiles={setDocFiles}
               />
             </CardContent>
-            <CardFooter className="flex justify-between">
+            <CardFooter className="flex justify-between bg-slate-50/80 px-5 py-4">
               <Button type="button" variant="outline" onClick={() => setStep(1)}>
                 Retour
               </Button>
-              <Button type="submit">Suivant</Button>
+              <Button type="submit" className="gap-2">
+                Suivant
+                <ArrowRight className="h-4 w-4" />
+              </Button>
             </CardFooter>
           </form>
         )}
 
         {step === 3 && (
           <form onSubmit={handleSubmit(handleNext)}>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Mail className="w-5 h-5 mr-2 text-blue-600" /> Vos coordonnées
+            <CardHeader className="gap-1 bg-white px-5 py-4">
+              <CardTitle className="flex items-center text-base">
+                <Mail className="mr-2 h-5 w-5 text-blue-600" /> Vos coordonnées
               </CardTitle>
-              <CardDescription>Créez votre compte pour recevoir vos devis.</CardDescription>
+              <CardDescription className="text-xs">Votre compte est créé maintenant pour recevoir les réponses et retrouver votre demande.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-5">
               {error && (
-                <div className="p-3 bg-red-50 text-red-700 text-sm rounded-md">{error}</div>
+                <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
               )}
               <div className="space-y-1">
                 <label htmlFor="civilite" className="block text-sm font-medium text-slate-700">Civilité *</label>
                 <select
                   id="civilite"
                   {...formRegister('civilite', { required: true })}
-                  className="w-full flex h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex h-10 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">—</option>
                   <option value="MR">M.</option>
                   <option value="MME">Mme</option>
                   <option value="AUTRE">Autre</option>
                 </select>
-                {errors.civilite && <span className="text-red-500 text-xs">Requis</span>}
+                {errors.civilite && <span className="text-xs text-red-500">Requis</span>}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <Input
@@ -359,7 +675,7 @@ function QuoteTunnel() {
                 showPasswordToggle
               />
             </CardContent>
-            <CardFooter className="flex justify-between">
+            <CardFooter className="flex justify-between bg-slate-50/80 px-5 py-4">
               <Button type="button" variant="outline" onClick={() => setStep(2)}>
                 Retour
               </Button>
