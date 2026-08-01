@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { registerCall } from '../../api/auth';
-import { createBureauEtude } from '../../api/bureauEtude';
+import { registerBureauEtudeCall } from '../../api/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { Building2, FileText, Upload } from 'lucide-react';
-import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules } from '../../lib/validators';
+import { createConfirmPasswordRules, passwordRules, phoneRules } from '../../lib/validators';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { PasswordRequirementsHint } from '../../components/ui/PasswordRequirementsHint';
+import { AddressAutocompleteField } from '../../components/shared/AddressAutocompleteField';
+import { AddressSuggestionDTO } from '../../types';
 
 export default function BERegister() {
   const navigate = useNavigate();
@@ -18,35 +19,36 @@ export default function BERegister() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
   const [success, setSuccess] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState<AddressSuggestionDTO | null>(null);
+  const [addressError, setAddressError] = useState('');
   const passwordValue = watch('password', '');
 
   const onSubmit = async (data: any) => {
+    if (!selectedAddress?.rue || !selectedAddress.codePostal || !selectedAddress.ville) {
+      setAddressError('Veuillez sélectionner une adresse parmi les propositions.');
+      return;
+    }
     setIsSubmitting(true);
     setErrorDetails('');
     try {
-      // 1. Register User (Role: BUREAU_ETUDE)
-      const authRes = await registerCall({
+      const authRes = await registerBureauEtudeCall({
         login: data.email,
         password: data.password,
-        role: 'BUREAU_ETUDE'
+        raisonSociale: data.raisonSociale,
+        telContact: data.telContact,
+        adresse: {
+          rue: selectedAddress.rue,
+          codePostal: selectedAddress.codePostal,
+          ville: selectedAddress.ville,
+          latitude: selectedAddress.latitude,
+          longitude: selectedAddress.longitude,
+          geocodingScore: selectedAddress.score,
+        },
       });
 
       // Persist the token via AuthContext (gère sessionStorage + état global)
       login(authRes);
 
-      // 2. Create Bureau d'Etude Profile
-      await createBureauEtude({
-        raisonSociale: data.raisonSociale,
-        emailContact: data.email,
-        telContact: data.telContact,
-        utilisateurId: authRes.userId,
-        adresse: {
-          rue: data.rue,
-          codePostal: data.codePostal,
-          ville: data.ville,
-        }
-      });
-      
       // Usually, it requires admin validation, so let's show a success message
       setSuccess(true);
     } catch (err: any) {
@@ -151,25 +153,21 @@ export default function BERegister() {
 
               <div className="space-y-4 pt-4 border-t border-slate-100">
                 <h4 className="text-sm font-semibold text-slate-800">Adresse de l'entreprise</h4>
-                <Input
-                  label="Rue *"
-                  placeholder="10 rue de la Géologie"
-                  {...register('rue', { required: true })}
-                  error={errors.rue ? "Requis" : undefined}
+                <AddressAutocompleteField
+                  id="adresse-bureau-etude"
+                  label="Adresse *"
+                  placeholder="Rechercher l'adresse de l'entreprise"
+                  disabled={isSubmitting}
+                  onInputChange={() => {
+                    setSelectedAddress(null);
+                    setAddressError('');
+                  }}
+                  onSelect={(suggestion) => {
+                    setSelectedAddress(suggestion);
+                    setAddressError('');
+                  }}
                 />
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    label="Code Postal *"
-                    placeholder="Ex : 75001"
-                    {...register('codePostal', codePostalRules)}
-                    error={errors.codePostal ? (errors.codePostal.message as string) : undefined}
-                  />
-                  <Input
-                    label="Ville *"
-                    {...register('ville', { required: true })}
-                    error={errors.ville ? "Requis" : undefined}
-                  />
-                </div>
+                {addressError && <p className="text-sm text-red-600" role="alert">{addressError}</p>}
               </div>
 
               <div className="space-y-4 pt-4 border-t border-slate-100">

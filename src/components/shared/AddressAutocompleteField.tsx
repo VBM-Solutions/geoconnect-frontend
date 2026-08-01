@@ -11,6 +11,7 @@ interface AddressAutocompleteFieldProps {
   disabled?: boolean;
   className?: string;
   onSelect: (suggestion: AddressSuggestionDTO) => void;
+  onInputChange?: () => void;
 }
 
 export function AddressAutocompleteField({
@@ -20,6 +21,7 @@ export function AddressAutocompleteField({
   disabled = false,
   className,
   onSelect,
+  onInputChange,
 }: Readonly<AddressAutocompleteFieldProps>) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<AddressSuggestionDTO[]>([]);
@@ -84,6 +86,7 @@ export function AddressAutocompleteField({
           disabled={disabled}
           onChange={(event) => {
             selectedLabelRef.current = null;
+            onInputChange?.();
             setQuery(event.target.value);
           }}
           onFocus={() => setIsOpen(suggestions.length > 0)}
