@@ -83,6 +83,7 @@ describe('MainLayout', () => {
     renderLayout('/be/dashboard');
 
     await waitFor(() => expect(screen.getByTestId('parametres-button').getAttribute('data-to')).toBe('/be/parametres'));
+    expect(screen.getByRole('link', { name: /ma fiche/i }).getAttribute('href')).toBe('/be/ma-fiche');
   });
 
   it('n’affiche pas de bouton paramètres pour l’admin', () => {

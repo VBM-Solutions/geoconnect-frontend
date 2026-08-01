@@ -12,6 +12,7 @@ import { buildDemandeDocuments } from '../../lib/formatters';
 import { DocumentList } from '../../components/etude/DocumentList';
 import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 import { DetailPageShell } from '../../components/ui/DetailPageShell';
+import { BureauEtudeProfileLink } from '../../components/profil-be/BureauEtudeProfileLink';
 
 export default function ClientRequestDetail() {
   const { id } = useParams<{ id: string }>();
@@ -188,11 +189,17 @@ export default function ClientRequestDetail() {
                       return (
                         <tr key={prop.id} className={`border-b border-slate-50 ${rowClassName}`}>
                           <td className="px-4 py-3">
-                            <div className="font-semibold text-slate-800 flex items-center">
+                            <div className="flex items-center">
                               <Building2 className="w-3 h-3 mr-1.5 text-slate-400"/>
-                              {prop.bureauEtude?.raisonSociale || 'BE Partenaire'}
+                              <BureauEtudeProfileLink
+                                raisonSociale={prop.bureauEtude?.raisonSociale}
+                                slug={prop.bureauEtude?.profilPublicSlug}
+                                returnTo={`/client/demande/${id}`}
+                              />
                             </div>
-                            <div className="text-[10px] text-slate-500 mt-0.5 ml-4.5">{prop.bureauEtude?.adresse?.ville || 'France'}</div>
+                            <div className="text-[10px] text-slate-500 mt-0.5 ml-4.5">
+                              {prop.bureauEtude?.ville || 'France'}
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-right font-mono font-bold text-slate-900">
                             {prop.prix} €

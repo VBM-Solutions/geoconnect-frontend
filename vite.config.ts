@@ -31,6 +31,40 @@ export default defineConfig(({mode}) => {
           target: env.VITE_API_URL || 'http://localhost:8080',
           changeOrigin: true,
         },
+        '/bureaux-etudes': {
+          target: env.VITE_API_URL || 'http://localhost:8080',
+          changeOrigin: true,
+          rewrite: path => `/api/public/seo${path}`,
+        },
+        '/sitemap.xml': {
+          target: env.VITE_API_URL || 'http://localhost:8080',
+          changeOrigin: true,
+          rewrite: () => '/api/public/seo/sitemap.xml',
+        },
+        '/robots.txt': {
+          target: env.VITE_API_URL || 'http://localhost:8080',
+          changeOrigin: true,
+          rewrite: () => '/api/public/seo/robots.txt',
+        },
+      },
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/leaflet')
+              || id.includes('node_modules/react-leaflet')) {
+              return 'vendor-map';
+            }
+            if (/node_modules\/(react|react-dom|react-router|react-router-dom)\//.test(id)) {
+              return 'vendor-react';
+            }
+            if (id.includes('node_modules/lucide-react')) {
+              return 'vendor-icons';
+            }
+            return undefined;
+          },
+        },
       },
     },
     test: {

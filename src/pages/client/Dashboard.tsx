@@ -8,12 +8,13 @@ import { DashboardSidebarNav, type DashboardNavSection } from '../../components/
 import { DashboardEmptyState } from '../../components/ui/DashboardEmptyState';
 import { DashboardMetricCard } from '../../components/ui/DashboardMetricCard';
 import { DashboardActivityFeed, type DashboardActivityItem } from '../../components/ui/DashboardActivityFeed';
-import { MapPin, Calendar, Clock, FileText, ChevronRight, FlaskConical, Building2, AlertCircle, Archive, Plus, Layers3, CheckCircle2, Sparkles } from 'lucide-react';
+import { MapPin, Calendar, Clock, FileText, ChevronRight, FlaskConical, Building2, AlertCircle, Archive, Plus, Layers3, CheckCircle2, MessageSquareHeart, Sparkles } from 'lucide-react';
 import { clientMustAct } from '../../components/etude/EtudeStatusBadge';
 import { EtudeCardHeader } from '../../components/etude/EtudeCardHeader';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { EtudeDetailDTO } from '../../types';
 import { formatDelaiWithProjection } from '../../lib/delaiProjection';
+import { BureauEtudeProfileLink } from '../../components/profil-be/BureauEtudeProfileLink';
 
 type TabType = 'DEMANDES' | 'ETUDES' | 'ARCHIVES';
 
@@ -23,84 +24,127 @@ interface EtudeCardProps {
   readonly etude: EtudeDetailDTO;
   /** true = onglet Archives (paiement effectué) */
   readonly archived?: boolean;
+  readonly evaluationPending?: boolean;
+}
+
+function createPropositionsActivity(
+  count: number,
+  onNavigate: (tab: TabType) => void,
+): DashboardActivityItem | null {
+  if (count === 0) return null;
+  return {
+    id: 'propositions',
+    title: 'De nouvelles offres sont arrivées',
+    description: `${count} demande${count > 1 ? 's ont' : ' a'} déjà reçu une ou plusieurs propositions à comparer.`,
+    icon: <FileText className="h-4 w-4" />,
+    toneClassName: 'bg-blue-50 text-blue-700 border-blue-200',
+    actionLabel: 'Voir les demandes',
+    onAction: () => onNavigate('DEMANDES'),
+  };
+}
+
+function createActionsActivity(
+  count: number,
+  onNavigate: (tab: TabType) => void,
+): DashboardActivityItem | null {
+  if (count === 0) return null;
+  return {
+    id: 'actions',
+    title: 'Une action de votre part est attendue',
+    description: `${count} étude${count > 1 ? 's nécessitent' : ' nécessite'} votre validation ou votre suivi.`,
+    icon: <AlertCircle className="h-4 w-4" />,
+    toneClassName: 'bg-amber-50 text-amber-700 border-amber-200',
+    actionLabel: 'Reprendre le suivi',
+    onAction: () => onNavigate('ETUDES'),
+  };
+}
+
+function createProgressActivity(
+  count: number,
+  onNavigate: (tab: TabType) => void,
+): DashboardActivityItem | null {
+  if (count === 0) return null;
+  return {
+    id: 'progression',
+    title: 'Vos études avancent',
+    description: `${count} étude${count > 1 ? 's sont' : ' est'} actuellement en cours avec un bureau d études.`,
+    icon: <FlaskConical className="h-4 w-4" />,
+    toneClassName: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+    actionLabel: 'Voir la progression',
+    onAction: () => onNavigate('ETUDES'),
+  };
+}
+
+function createEvaluationActivity(
+  etudeIds: number[],
+  onOpenEvaluation: (etudeId: number) => void,
+): DashboardActivityItem | null {
+  if (etudeIds.length === 0) return null;
+  const count = etudeIds.length;
+  return {
+    id: 'evaluations',
+    title: 'Votre avis compte',
+    description: `${count} étude${count > 1 ? 's peuvent' : ' peut'} encore être évaluée${count > 1 ? 's' : ''}. Cette étape reste facultative.`,
+    icon: <MessageSquareHeart className="h-4 w-4" />,
+    toneClassName: 'bg-violet-50 text-violet-700 border-violet-200',
+    actionLabel: 'Donner mon avis',
+    onAction: () => onOpenEvaluation(etudeIds[0]),
+  };
+}
+
+function createArchivesActivity(
+  count: number,
+  onNavigate: (tab: TabType) => void,
+): DashboardActivityItem | null {
+  if (count === 0) return null;
+  return {
+    id: 'archives',
+    title: 'Des livrables sont disponibles',
+    description: `${count} étude${count > 1 ? 's archivées sont' : ' archivée est'} accessible${count > 1 ? 's' : ''} à tout moment.`,
+    icon: <Archive className="h-4 w-4" />,
+    toneClassName: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    actionLabel: 'Consulter les archives',
+    onAction: () => onNavigate('ARCHIVES'),
+  };
+}
+
+function createWelcomeActivity(onNavigate: (tab: TabType) => void): DashboardActivityItem {
+  return {
+    id: 'welcome',
+    title: 'Votre espace est prêt',
+    description: 'Commencez par créer une première demande pour recevoir des propositions adaptées à votre projet.',
+    icon: <Sparkles className="h-4 w-4" />,
+    toneClassName: 'bg-violet-50 text-violet-700 border-violet-200',
+    actionLabel: 'Voir mes demandes',
+    onAction: () => onNavigate('DEMANDES'),
+  };
 }
 
 function buildActivityFeed(
   demandesEnCours: Array<{ propositions?: Array<{ statut?: string }> }>,
   etudesEnCours: EtudeDetailDTO[],
   etudesArchivees: EtudeDetailDTO[],
+  etudeIdsAEvaluer: number[],
   onNavigate: (tab: TabType) => void,
+  onOpenEvaluation: (etudeId: number) => void,
 ): DashboardActivityItem[] {
-  const demandesAvecPropositions = demandesEnCours.filter((demande) => (demande.propositions?.length ?? 0) > 0).length;
-  const etudesAvecAction = etudesEnCours.filter((etude) => clientMustAct(etude.etat)).length;
+  const demandesAvecPropositions = demandesEnCours.filter(
+    demande => (demande.propositions?.length ?? 0) > 0,
+  ).length;
+  const etudesAvecAction = etudesEnCours.filter(etude => clientMustAct(etude.etat)).length;
+  const activities = [
+    createPropositionsActivity(demandesAvecPropositions, onNavigate),
+    createActionsActivity(etudesAvecAction, onNavigate),
+    createProgressActivity(etudesEnCours.length, onNavigate),
+    createEvaluationActivity(etudeIdsAEvaluer, onOpenEvaluation),
+    createArchivesActivity(etudesArchivees.length, onNavigate),
+  ].filter((activity): activity is DashboardActivityItem => activity !== null);
 
-  const feed: DashboardActivityItem[] = [];
-
-  if (demandesAvecPropositions > 0) {
-    feed.push({
-      id: 'propositions',
-      title: 'De nouvelles offres sont arrivées',
-      description: `${demandesAvecPropositions} demande${demandesAvecPropositions > 1 ? 's ont' : ' a'} déjà reçu une ou plusieurs propositions à comparer.`,
-      icon: <FileText className="h-4 w-4" />,
-      toneClassName: 'bg-blue-50 text-blue-700 border-blue-200',
-      actionLabel: 'Voir les demandes',
-      onAction: () => onNavigate('DEMANDES'),
-    });
-  }
-
-  if (etudesAvecAction > 0) {
-    feed.push({
-      id: 'actions',
-      title: 'Une action de votre part est attendue',
-      description: `${etudesAvecAction} étude${etudesAvecAction > 1 ? 's nécessitent' : ' nécessite'} votre validation ou votre suivi.`,
-      icon: <AlertCircle className="h-4 w-4" />,
-      toneClassName: 'bg-amber-50 text-amber-700 border-amber-200',
-      actionLabel: 'Reprendre le suivi',
-      onAction: () => onNavigate('ETUDES'),
-    });
-  }
-
-  if (etudesEnCours.length > 0) {
-    feed.push({
-      id: 'progression',
-      title: 'Vos études avancent',
-      description: `${etudesEnCours.length} étude${etudesEnCours.length > 1 ? 's sont' : ' est'} actuellement en cours avec un bureau d études.`,
-      icon: <FlaskConical className="h-4 w-4" />,
-      toneClassName: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-      actionLabel: 'Voir la progression',
-      onAction: () => onNavigate('ETUDES'),
-    });
-  }
-
-  if (etudesArchivees.length > 0) {
-    feed.push({
-      id: 'archives',
-      title: 'Des livrables sont disponibles',
-      description: `${etudesArchivees.length} étude${etudesArchivees.length > 1 ? 's archivées sont' : ' archivée est'} accessible${etudesArchivees.length > 1 ? 's' : ''} à tout moment.`,
-      icon: <Archive className="h-4 w-4" />,
-      toneClassName: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      actionLabel: 'Consulter les archives',
-      onAction: () => onNavigate('ARCHIVES'),
-    });
-  }
-
-  if (feed.length === 0) {
-    feed.push({
-      id: 'welcome',
-      title: 'Votre espace est prêt',
-      description: 'Commencez par créer une première demande pour recevoir des propositions adaptées à votre projet.',
-      icon: <Sparkles className="h-4 w-4" />,
-      toneClassName: 'bg-violet-50 text-violet-700 border-violet-200',
-      actionLabel: 'Voir mes demandes',
-      onAction: () => onNavigate('DEMANDES'),
-    });
-  }
-
-  return feed.slice(0, 4);
+  return (activities.length > 0 ? activities : [createWelcomeActivity(onNavigate)]).slice(0, 5);
 }
 
 function EtudeCard(props: Readonly<EtudeCardProps>) {
-  const { etude, archived = false } = props;
+  const { etude, archived = false, evaluationPending = false } = props;
   const prop     = etude.propositionDevis;
   const demande  = prop?.demandeDevis;
   const bureau   = prop?.bureauEtude;
@@ -123,7 +167,18 @@ function EtudeCard(props: Readonly<EtudeCardProps>) {
           <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded border border-slate-100 text-[11px]">
             <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
             <span className="text-slate-500 font-bold uppercase tracking-wider mr-1">Bureau :</span>
-            <span className="font-semibold text-slate-700">{bureau.raisonSociale || '—'}</span>
+            <BureauEtudeProfileLink
+              raisonSociale={bureau.raisonSociale || '—'}
+              slug={bureau.profilPublicSlug}
+              returnTo="/client/dashboard"
+            />
+          </div>
+        )}
+
+        {evaluationPending && (
+          <div className="flex items-center gap-2 rounded border border-violet-200 bg-violet-50 p-2 text-[11px] font-semibold text-violet-700">
+            <MessageSquareHeart className="h-3.5 w-3.5 shrink-0" />
+            Votre avis facultatif est attendu
           </div>
         )}
 
@@ -154,8 +209,13 @@ function EtudeCard(props: Readonly<EtudeCardProps>) {
           <Link to={`/client/etude/${etude.id}`} className="w-full">
             {archived ? (
               <Button variant="outline" size="sm" className="w-full group border-green-300 text-green-700 hover:border-green-400 hover:bg-green-50">
-                <Archive className="w-3 h-3 mr-1.5 text-green-500" />
-                Consulter l'étude <ChevronRight className="w-3.5 h-3.5 ml-1.5 group-hover:translate-x-1 transition-transform" />
+                {evaluationPending ? (
+                  <MessageSquareHeart className="w-3 h-3 mr-1.5 text-violet-500" />
+                ) : (
+                  <Archive className="w-3 h-3 mr-1.5 text-green-500" />
+                )}
+                {evaluationPending ? 'Consulter et noter' : "Consulter l'étude"}
+                <ChevronRight className="w-3.5 h-3.5 ml-1.5 group-hover:translate-x-1 transition-transform" />
               </Button>
             ) : (
               <Button
@@ -178,7 +238,8 @@ function EtudeCard(props: Readonly<EtudeCardProps>) {
 
 export default function ClientDashboard() {
   const { toastError } = useToast();
-  const { demandes, etudes, isLoading, error } = useClientDashboardData();
+  const { demandes, etudes, etudeIdsAEvaluer = [], isLoading, error } = useClientDashboardData();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as TabType | null;
   const [activeTab, setActiveTab] = useState<TabType>(tabParam ?? 'DEMANDES');
@@ -255,7 +316,14 @@ export default function ClientDashboard() {
       description: 'Retrouvez l historique des missions finalisées et payées.',
     },
   };
-  const activityFeed = buildActivityFeed(demandesEnCours, etudesEnCours, etudesArchivees, handleTabChange);
+  const activityFeed = buildActivityFeed(
+    demandesEnCours,
+    etudesEnCours,
+    etudesArchivees,
+    etudeIdsAEvaluer,
+    handleTabChange,
+    etudeId => navigate(`/client/etude/${etudeId}`),
+  );
 
   return (
     <div className="space-y-6">
@@ -422,7 +490,11 @@ export default function ClientDashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-6 gap-4">
                 {etudesArchivees.map((etude, index) => (
                   <React.Fragment key={etude.id ?? `archive-${index}`}>
-                    <EtudeCard etude={etude} archived />
+                    <EtudeCard
+                      etude={etude}
+                      archived
+                      evaluationPending={etude.id != null && etudeIdsAEvaluer.includes(etude.id)}
+                    />
                   </React.Fragment>
                 ))}
               </div>

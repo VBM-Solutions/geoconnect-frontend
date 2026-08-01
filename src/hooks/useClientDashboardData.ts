@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getClientByUserId } from '../api/client';
 import { getAllDemandeDevis } from '../api/demandeDevis';
 import { getPropositionDevisByDemandeId } from '../api/propositionDevis';
-import { getEtudesByClientId, fetchEtudeDetails } from '../api/etude';
+import { getEtudeIdsAEvaluer, getEtudesByClientId, fetchEtudeDetails } from '../api/etude';
 import { ClientDTO, DemandeDevisDTO, PropositionDevisDTO, EtudeDTO, EtudeDetailDTO } from '../types';
 import { extractErrorMessage } from '../lib/utils';
 
@@ -13,6 +13,7 @@ interface ClientDashboardData {
   client: ClientDTO | null;
   demandes: DemandeWithPropositions[];
   etudes: EtudeDetailDTO[];
+  etudeIdsAEvaluer: number[];
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
@@ -23,6 +24,7 @@ export function useClientDashboardData(): ClientDashboardData {
   const [client, setClient] = useState<ClientDTO | null>(null);
   const [demandes, setDemandes] = useState<DemandeWithPropositions[]>([]);
   const [etudes, setEtudes] = useState<EtudeDetailDTO[]>([]);
+  const [etudeIdsAEvaluer, setEtudeIdsAEvaluer] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -51,7 +53,7 @@ export function useClientDashboardData(): ClientDashboardData {
         const rawDemandes = await getAllDemandeDevis();
         if (cancelled) return;
 
-        const [enrichedDemandes, rawEtudes] = await Promise.all([
+        const [enrichedDemandes, rawEtudes, idsAEvaluer] = await Promise.all([
           Promise.all(
             rawDemandes.map(async (d): Promise<DemandeWithPropositions> => {
               try {
@@ -63,10 +65,12 @@ export function useClientDashboardData(): ClientDashboardData {
             })
           ),
           getEtudesByClientId(myClient.id).catch((): EtudeDTO[] => []),
+          getEtudeIdsAEvaluer().catch((): number[] => []),
         ]);
 
         if (cancelled) return;
         setDemandes(enrichedDemandes);
+        setEtudeIdsAEvaluer(idsAEvaluer);
 
         const details = await fetchEtudeDetails(rawEtudes);
 
@@ -84,6 +88,6 @@ export function useClientDashboardData(): ClientDashboardData {
     return () => { cancelled = true; };
   }, [user, tick]);
 
-  return { client, demandes, etudes, isLoading, error, refetch };
+  return { client, demandes, etudes, etudeIdsAEvaluer, isLoading, error, refetch };
 }
 

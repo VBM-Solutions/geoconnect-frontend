@@ -52,7 +52,7 @@ describe('ClientDashboard', () => {
             statut: 'ACCEPTEE',
             delaiMaxRendu: 4,
             delaiMaxIntervention: 2,
-            bureauEtude: { raisonSociale: 'Geo Atlantic' },
+            bureauEtude: { raisonSociale: 'Geo Atlantic', profilPublicSlug: 'geo-atlantic' },
             demandeDevis: {
               id: 10,
               description: 'Maison individuelle',
@@ -69,7 +69,7 @@ describe('ClientDashboard', () => {
             statut: 'ACCEPTEE',
             delaiMaxRendu: 3,
             delaiMaxIntervention: 1,
-            bureauEtude: { raisonSociale: 'Geo Archive' },
+            bureauEtude: { raisonSociale: 'Geo Archive', profilPublicSlug: 'geo-archive' },
             demandeDevis: {
               id: 11,
               description: 'Extension',
@@ -79,6 +79,7 @@ describe('ClientDashboard', () => {
           },
         },
       ],
+      etudeIdsAEvaluer: [2],
       isLoading: false,
       error: null,
       refetch: vi.fn(),
@@ -101,11 +102,12 @@ describe('ClientDashboard', () => {
 
     expect(screen.getByText(/de nouvelles offres sont arrivées/i)).toBeTruthy();
     expect(screen.getByText(/des livrables sont disponibles/i)).toBeTruthy();
+    expect(screen.getByText(/votre avis compte/i)).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: /consulter les archives/i }));
 
     expect(screen.getByRole('heading', { name: /études archivées/i })).toBeTruthy();
-    expect(screen.getByText(/consulter l'étude/i)).toBeTruthy();
+    expect(screen.getByText(/consulter et noter/i)).toBeTruthy();
   });
 
   it('prend en compte l onglet actif transmis dans l URL', () => {
@@ -114,6 +116,9 @@ describe('ClientDashboard', () => {
     expect(screen.getByRole('heading', { name: /études archivées/i })).toBeTruthy();
     expect(screen.queryByText(/les études dont le paiement a été effectué apparaîtront ici\./i)).toBeNull();
     expect(screen.getByText(/geo archive/i)).toBeTruthy();
+    expect(screen.getByText(/votre avis facultatif est attendu/i)).toBeTruthy();
+    expect(screen.getByRole('link', { name: /consulter la fiche de geo archive/i }).getAttribute('href'))
+      .toBe('/bureaux-etudes/geo-archive?retour=%2Fclient%2Fdashboard');
   });
 
   it('centre la vue sur le panneau des études via le CTA hero', async () => {

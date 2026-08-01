@@ -13,6 +13,8 @@ import { formatDateLong } from '../../lib/formatters';
 import { useEtudeDetail } from '../../hooks/useEtudeDetail';
 import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 import { EtudeInfoMetric } from '../../components/etude/EtudeInfoMetric';
+import { EvaluationEtudeCard } from '../../components/etude/EvaluationEtudeCard';
+import { BureauEtudeProfileLink } from '../../components/profil-be/BureauEtudeProfileLink';
 
 export default function ClientEtudeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +41,9 @@ export default function ClientEtudeDetail() {
       {etat === 'PAIEMENT_EFFECTUE' && documents?.rapport?.id != null && (
         <RapportDownloadCard rapport={documents.rapport} />
       )}
+      {etat === 'PAIEMENT_EFFECTUE' && etude.id != null && (
+        <EvaluationEtudeCard etudeId={etude.id} />
+      )}
 
       {/* Carte bureau d'études */}
       <Card>
@@ -48,7 +53,12 @@ export default function ClientEtudeDetail() {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-3 space-y-1.5 text-xs">
-          <p className="font-bold text-slate-800">{bureau?.raisonSociale || '—'}</p>
+          <BureauEtudeProfileLink
+            raisonSociale={bureau?.raisonSociale || '—'}
+            slug={bureau?.profilPublicSlug}
+            returnTo={`/client/etude/${id}`}
+            className="font-bold"
+          />
           {bureau?.emailContact && <p className="text-slate-500">{bureau.emailContact}</p>}
           {bureau?.telContact && <p className="text-slate-500">{bureau.telContact}</p>}
           <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 mt-1">

@@ -16,6 +16,9 @@ import {
   getEtudeDocuments,
   definirDateRenduPrevue,
   fetchEtudeDetails,
+  getEtudeIdsAEvaluer,
+  getStatutEvaluation,
+  evaluerEtude,
 } from './etude';
 
 vi.mock('./index', () => ({
@@ -34,6 +37,42 @@ const fakeDetail = { id: 1, etat: 'DEVIS_VALIDE', bureauEtude: null, demandeDevi
 const fakeEtude  = { id: 1, etat: 'EN_COURS' };
 
 beforeEach(() => vi.clearAllMocks());
+
+describe('évaluation d’étude', () => {
+  it('charge en une requête les études encore à évaluer', async () => {
+    (api.get as any).mockResolvedValueOnce({ data: [44, 42] });
+
+    await expect(getEtudeIdsAEvaluer()).resolves.toEqual([44, 42]);
+    expect(api.get).toHaveBeenCalledWith('/etude/evaluations/a-faire');
+  });
+
+  it('retourne une liste vide si aucune étude à évaluer n’est fournie', async () => {
+    (api.get as any).mockResolvedValueOnce({ data: null });
+
+    await expect(getEtudeIdsAEvaluer()).resolves.toEqual([]);
+  });
+
+  it('charge le statut de notation', async () => {
+    (api.get as any).mockResolvedValueOnce({ data: { eligible: true } });
+
+    await expect(getStatutEvaluation(42)).resolves.toEqual({ eligible: true });
+    expect(api.get).toHaveBeenCalledWith('/etude/42/evaluation');
+  });
+
+  it('soumet les quatre critères au backend', async () => {
+    const payload = {
+      qualiteEchanges: 5,
+      respectDelais: 4,
+      qualiteRapport: 5,
+      adequationBesoin: 4,
+    };
+    (api.post as any).mockResolvedValueOnce({ data: { id: 1, ...payload } });
+
+    await evaluerEtude(42, payload);
+
+    expect(api.post).toHaveBeenCalledWith('/etude/42/evaluation', payload);
+  });
+});
 
 // ─── Transitions d'état ───────────────────────────────────────────────────────
 
@@ -213,6 +252,89 @@ describe('getEtudeDetailById', () => {
   it('propage l\'erreur', async () => {
     (api.get as any).mockRejectedValueOnce(new Error('Not found'));
     await expect(getEtudeDetailById(999)).rejects.toThrow('Not found');
+  });
+
+  it("récupère le slug publié depuis la proposition lorsqu'il manque au détail", async () => {
+    const detailSansSlug = {
+      id: 1,
+      propositionDevis: {
+        id: 55,
+        bureauEtude: { id: 7, raisonSociale: 'Test Bureau' },
+      },
+    };
+    (api.get as any)
+      .mockResolvedValueOnce({ data: detailSansSlug })
+      .mockResolvedValueOnce({
+        data: {
+          id: 55,
+          bureauEtude: {
+            id: 7,
+            raisonSociale: 'Test Bureau',
+            profilPublicSlug: 'test-bureau-7',
+          },
+        },
+      });
+
+    const result = await getEtudeDetailById(1);
+
+    expect(api.get).toHaveBeenNthCalledWith(1, '/etude/1/detail');
+    expect(api.get).toHaveBeenNthCalledWith(2, '/propositionDevis/55');
+    expect(result.propositionDevis?.bureauEtude?.profilPublicSlug).toBe('test-bureau-7');
+  });
+
+  it('ne recharge pas la proposition lorsque le détail contient déjà le slug', async () => {
+    const detailAvecSlug = {
+      id: 1,
+      propositionDevis: {
+        id: 55,
+        bureauEtude: {
+          id: 7,
+          raisonSociale: 'Test Bureau',
+          profilPublicSlug: 'test-bureau-7',
+        },
+      },
+    };
+    (api.get as any).mockResolvedValueOnce({ data: detailAvecSlug });
+
+    const result = await getEtudeDetailById(1);
+
+    expect(api.get).toHaveBeenCalledOnce();
+    expect(result).toEqual(detailAvecSlug);
+  });
+
+  it("conserve le détail lorsque l'enrichissement du slug échoue", async () => {
+    const detailSansSlug = {
+      id: 1,
+      propositionDevis: {
+        id: 55,
+        bureauEtude: { id: 7, raisonSociale: 'Test Bureau' },
+      },
+    };
+    (api.get as any)
+      .mockResolvedValueOnce({ data: detailSansSlug })
+      .mockRejectedValueOnce(new Error('Proposition indisponible'));
+
+    await expect(getEtudeDetailById(1)).resolves.toEqual(detailSansSlug);
+  });
+
+  it("conserve le détail lorsque la proposition complète n'a pas de slug", async () => {
+    const detailSansSlug = {
+      id: 1,
+      propositionDevis: {
+        id: 55,
+        bureauEtude: { id: 7, raisonSociale: 'Test Bureau' },
+      },
+    };
+    (api.get as any)
+      .mockResolvedValueOnce({ data: detailSansSlug })
+      .mockResolvedValueOnce({
+        data: {
+          id: 55,
+          bureauEtude: { id: 7, raisonSociale: 'Test Bureau' },
+        },
+      });
+
+    await expect(getEtudeDetailById(1)).resolves.toEqual(detailSansSlug);
   });
 });
 

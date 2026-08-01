@@ -97,7 +97,12 @@ export interface PropositionDevisDTO {
   statut?: StatutProposition;
 
   // Relations embarquées (usage front uniquement)
-  bureauEtude?: BureauEtudesDTO;
+  bureauEtude?: {
+    id: number;
+    raisonSociale: string;
+    ville?: string;
+    profilPublicSlug?: string;
+  };
   demandeDevis?: DemandeDevisDTO;
 }
 
@@ -184,6 +189,7 @@ export interface BureauEtudesDetail {
   emailContact?: string;
   telContact?: string;
   adresse?: AdresseDTO;
+  profilPublicSlug?: string;
 }
 
 export interface DemandeDevisDetail {
@@ -248,6 +254,117 @@ export interface NotificationPreferencesDTO {
   notifierTousDepartements: boolean;
   /** Codes des départements souscrits — pertinent uniquement si notifierTousDepartements = false. */
   departementsSuivis: string[];
+}
+
+export interface EvaluationEtudePayload {
+  qualiteEchanges: number;
+  respectDelais: number;
+  qualiteRapport: number;
+  adequationBesoin: number;
+  commentaire?: string;
+}
+
+export interface EvaluationEtudeDTO extends EvaluationEtudePayload {
+  id: number;
+  etudeId: number;
+  noteGlobale: number;
+  createdAt: string;
+}
+
+export interface StatutEvaluationEtudeDTO {
+  eligible: boolean;
+  evaluation?: EvaluationEtudeDTO;
+}
+
+// ─── Fiche publique Bureau d'Études ────────────────────────────────────────
+
+export type StatutPublicationProfil = 'BROUILLON' | 'PUBLIE' | 'SUSPENDU';
+
+export interface ProfilPublicBureauEtudeDTO {
+  slug: string;
+  statut: StatutPublicationProfil;
+  raisonSociale: string;
+  adresse?: AdresseDTO;
+  adherentDepuis?: string;
+  descriptionCourte?: string;
+  descriptionLongue?: string;
+  siteWeb?: string;
+  anneesExperience?: number;
+  telephonePublic?: string;
+  emailPublic?: string;
+  afficherAdresseComplete: boolean;
+  typesEtude: TypeDemandeDevis[];
+  zonesIntervention: string[];
+  publishedAt?: string;
+  updatedAt?: string;
+}
+
+export interface UpdateProfilPublicBureauEtudePayload {
+  descriptionCourte?: string;
+  descriptionLongue?: string;
+  siteWeb?: string;
+  anneesExperience?: number;
+  telephonePublic?: string;
+  emailPublic?: string;
+  afficherAdresseComplete: boolean;
+  typesEtude: TypeDemandeDevis[];
+  zonesIntervention: string[];
+}
+
+export interface StatistiquesActiviteBureauEtudeDTO {
+  nombreDemandesRepondues: number;
+  nombrePropositionsEnvoyees: number;
+  nombrePropositionsAcceptees: number;
+  tauxAcceptation: number;
+  nombreRapportsRendus: number;
+  nombreRapportsRendusMoisCourant: number;
+}
+
+export interface FicheBureauEtudeDTO {
+  profilPublic: ProfilPublicBureauEtudeDTO;
+  activite: StatistiquesActiviteBureauEtudeDTO;
+  evaluations: SyntheseEvaluationsDTO;
+}
+
+export interface SyntheseEvaluationsDTO {
+  nombreEvaluations: number;
+  noteGlobale?: number;
+  qualiteEchanges?: number;
+  respectDelais?: number;
+  qualiteRapport?: number;
+  adequationBesoin?: number;
+  avis: Array<{
+    evaluationId?: number;
+    noteGlobale: number;
+    commentaire: string;
+    createdAt: string;
+    etudeVerifiee: boolean;
+    statutSignalement?: StatutSignalementEvaluation;
+  }>;
+}
+
+export type MotifSignalementEvaluation =
+  | 'DONNEES_PERSONNELLES'
+  | 'PROPOS_INJURIEUX'
+  | 'CONTENU_HORS_SUJET'
+  | 'INFORMATION_FAUSSE'
+  | 'AUTRE';
+
+export type StatutSignalementEvaluation =
+  | 'AUCUN'
+  | 'EN_ATTENTE'
+  | 'COMMENTAIRE_MASQUE'
+  | 'REJETE';
+
+export interface EvaluationSignaleeDTO {
+  id: number;
+  etudeId: number;
+  noteGlobale: number;
+  commentaire: string;
+  motif: MotifSignalementEvaluation;
+  details?: string;
+  statut: StatutSignalementEvaluation;
+  signaleAt: string;
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────
