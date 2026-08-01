@@ -15,8 +15,9 @@ vi.mock('../../contexts/ToastContext', () => ({
 }));
 
 const mockLogout = vi.fn();
+let mockIsAuthenticated = true;
 vi.mock('../../contexts/AuthContext', () => ({
-  useAuth: () => ({ logout: mockLogout }),
+  useAuth: () => ({ logout: mockLogout, isAuthenticated: mockIsAuthenticated }),
 }));
 
 // Stocke le handler d'erreur enregistré par l'intercepteur
@@ -61,6 +62,7 @@ describe('ApiInterceptorSetup', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     capturedErrorHandler = null;
+    mockIsAuthenticated = true;
   });
 
   afterEach(() => {
@@ -86,6 +88,16 @@ describe('ApiInterceptorSetup', () => {
 
     expect(mockLogout).toHaveBeenCalledOnce();
     expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true });
+  });
+
+  it('ne redirige pas un visiteur anonyme si un endpoint public retourne 401', async () => {
+    mockIsAuthenticated = false;
+    renderSetup();
+
+    await expect(capturedErrorHandler!(makeAxiosError(401))).rejects.toBeDefined();
+
+    expect(mockLogout).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('appelle toastError avec le message backend sur une erreur 403', async () => {

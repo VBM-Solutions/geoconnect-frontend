@@ -156,6 +156,10 @@ export interface AuthResponseDTO {
   role: 'CLIENT' | 'BUREAU_ETUDE' | 'ADMIN';
 }
 
+export interface ClientRegistrationResponseDTO extends AuthResponseDTO {
+  clientId: number;
+}
+
 export type Role = AuthResponseDTO['role'];
 
 export interface UtilisateurDTO {
