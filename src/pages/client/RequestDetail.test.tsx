@@ -65,7 +65,8 @@ describe('ClientRequestDetail — identité du bureau', () => {
     expect(lien.getAttribute('href')).toBe(
       '/bureaux-etudes/geo-conseil-atlantique?retour=%2Fclient%2Fdemande%2F12',
     );
-    expect(lien.getAttribute('target')).toBeNull();
+    expect(lien.getAttribute('target')).toBe('_blank');
+    expect(lien.getAttribute('rel')).toBe('noopener noreferrer');
   });
 
   it('affiche toujours le nom réel quand la fiche publique nest pas publiée', async () => {

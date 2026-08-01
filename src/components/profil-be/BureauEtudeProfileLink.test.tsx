@@ -15,7 +15,8 @@ describe('BureauEtudeProfileLink', () => {
     const lien = screen.getByRole('link', { name: /consulter la fiche de géo conseil/i });
     expect(lien.getAttribute('href'))
       .toBe('/bureaux-etudes/geo-conseil?retour=%2Fclient%2Fdashboard');
-    expect(lien.getAttribute('target')).toBeNull();
+    expect(lien.getAttribute('target')).toBe('_blank');
+    expect(lien.getAttribute('rel')).toBe('noopener noreferrer');
   });
 
   it('conserve le nom sans lien lorsque le profil nest pas publié', () => {

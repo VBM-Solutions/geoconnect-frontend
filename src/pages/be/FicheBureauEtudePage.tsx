@@ -137,6 +137,8 @@ export default function FicheBureauEtudePage() {
           {isPublished && (
             <a
               href={`/bureaux-etudes/${fiche.profilPublic.slug}?retour=${encodeURIComponent('/be/ma-fiche')}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-green-700 hover:text-green-800 hover:underline"
             >
               <CheckCircle2 className="h-4 w-4" aria-hidden="true" />

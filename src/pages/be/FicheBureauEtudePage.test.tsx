@@ -143,6 +143,8 @@ describe('FicheBureauEtudePage', () => {
         '/bureaux-etudes/geo-atlantique-nantes-42?retour=%2Fbe%2Fma-fiche',
       );
     expect(screen.getByRole('link', { name: /voir ma page publique/i }))
-      .not.toHaveAttribute('target');
+      .toHaveAttribute('target', '_blank');
+    expect(screen.getByRole('link', { name: /voir ma page publique/i }))
+      .toHaveAttribute('rel', 'noopener noreferrer');
   });
 });
