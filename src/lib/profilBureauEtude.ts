@@ -3,6 +3,16 @@ import {
   UpdateProfilPublicBureauEtudePayload,
 } from '../types';
 
+function isValidPublicEmail(email: string): boolean {
+  const atIndex = email.indexOf('@');
+  const lastDotIndex = email.lastIndexOf('.');
+  return atIndex > 0
+    && atIndex === email.lastIndexOf('@')
+    && lastDotIndex > atIndex + 1
+    && lastDotIndex < email.length - 1
+    && !/\s/.test(email);
+}
+
 export function toProfilPublicPayload(
   profil: ProfilPublicBureauEtudeDTO,
 ): UpdateProfilPublicBureauEtudePayload {
@@ -32,7 +42,7 @@ export function getProfilValidationErrors(
   if (profil.siteWeb && !/^https?:\/\/.+/i.test(profil.siteWeb)) {
     errors.push('Le site web doit commencer par http:// ou https://.');
   }
-  if (profil.emailPublic && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profil.emailPublic)) {
+  if (profil.emailPublic && !isValidPublicEmail(profil.emailPublic)) {
     errors.push('L’adresse e-mail publique est invalide.');
   }
   if (

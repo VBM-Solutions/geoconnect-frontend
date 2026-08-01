@@ -27,6 +27,99 @@ interface EtudeCardProps {
   readonly evaluationPending?: boolean;
 }
 
+function createPropositionsActivity(
+  count: number,
+  onNavigate: (tab: TabType) => void,
+): DashboardActivityItem | null {
+  if (count === 0) return null;
+  return {
+    id: 'propositions',
+    title: 'De nouvelles offres sont arrivées',
+    description: `${count} demande${count > 1 ? 's ont' : ' a'} déjà reçu une ou plusieurs propositions à comparer.`,
+    icon: <FileText className="h-4 w-4" />,
+    toneClassName: 'bg-blue-50 text-blue-700 border-blue-200',
+    actionLabel: 'Voir les demandes',
+    onAction: () => onNavigate('DEMANDES'),
+  };
+}
+
+function createActionsActivity(
+  count: number,
+  onNavigate: (tab: TabType) => void,
+): DashboardActivityItem | null {
+  if (count === 0) return null;
+  return {
+    id: 'actions',
+    title: 'Une action de votre part est attendue',
+    description: `${count} étude${count > 1 ? 's nécessitent' : ' nécessite'} votre validation ou votre suivi.`,
+    icon: <AlertCircle className="h-4 w-4" />,
+    toneClassName: 'bg-amber-50 text-amber-700 border-amber-200',
+    actionLabel: 'Reprendre le suivi',
+    onAction: () => onNavigate('ETUDES'),
+  };
+}
+
+function createProgressActivity(
+  count: number,
+  onNavigate: (tab: TabType) => void,
+): DashboardActivityItem | null {
+  if (count === 0) return null;
+  return {
+    id: 'progression',
+    title: 'Vos études avancent',
+    description: `${count} étude${count > 1 ? 's sont' : ' est'} actuellement en cours avec un bureau d études.`,
+    icon: <FlaskConical className="h-4 w-4" />,
+    toneClassName: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+    actionLabel: 'Voir la progression',
+    onAction: () => onNavigate('ETUDES'),
+  };
+}
+
+function createEvaluationActivity(
+  etudeIds: number[],
+  onOpenEvaluation: (etudeId: number) => void,
+): DashboardActivityItem | null {
+  if (etudeIds.length === 0) return null;
+  const count = etudeIds.length;
+  return {
+    id: 'evaluations',
+    title: 'Votre avis compte',
+    description: `${count} étude${count > 1 ? 's peuvent' : ' peut'} encore être évaluée${count > 1 ? 's' : ''}. Cette étape reste facultative.`,
+    icon: <MessageSquareHeart className="h-4 w-4" />,
+    toneClassName: 'bg-violet-50 text-violet-700 border-violet-200',
+    actionLabel: 'Donner mon avis',
+    onAction: () => onOpenEvaluation(etudeIds[0]),
+  };
+}
+
+function createArchivesActivity(
+  count: number,
+  onNavigate: (tab: TabType) => void,
+): DashboardActivityItem | null {
+  if (count === 0) return null;
+  return {
+    id: 'archives',
+    title: 'Des livrables sont disponibles',
+    description: `${count} étude${count > 1 ? 's archivées sont' : ' archivée est'} accessible${count > 1 ? 's' : ''} à tout moment.`,
+    icon: <Archive className="h-4 w-4" />,
+    toneClassName: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    actionLabel: 'Consulter les archives',
+    onAction: () => onNavigate('ARCHIVES'),
+  };
+}
+
+function createWelcomeActivity(onNavigate: (tab: TabType) => void): DashboardActivityItem {
+  return {
+    id: 'welcome',
+    title: 'Votre espace est prêt',
+    description: 'Commencez par créer une première demande pour recevoir des propositions adaptées à votre projet.',
+    icon: <Sparkles className="h-4 w-4" />,
+    toneClassName: 'bg-violet-50 text-violet-700 border-violet-200',
+    actionLabel: 'Voir mes demandes',
+    onAction: () => onNavigate('DEMANDES'),
+  };
+}
+
 function buildActivityFeed(
   demandesEnCours: Array<{ propositions?: Array<{ statut?: string }> }>,
   etudesEnCours: EtudeDetailDTO[],
@@ -35,84 +128,19 @@ function buildActivityFeed(
   onNavigate: (tab: TabType) => void,
   onOpenEvaluation: (etudeId: number) => void,
 ): DashboardActivityItem[] {
-  const demandesAvecPropositions = demandesEnCours.filter((demande) => (demande.propositions?.length ?? 0) > 0).length;
-  const etudesAvecAction = etudesEnCours.filter((etude) => clientMustAct(etude.etat)).length;
+  const demandesAvecPropositions = demandesEnCours.filter(
+    demande => (demande.propositions?.length ?? 0) > 0,
+  ).length;
+  const etudesAvecAction = etudesEnCours.filter(etude => clientMustAct(etude.etat)).length;
+  const activities = [
+    createPropositionsActivity(demandesAvecPropositions, onNavigate),
+    createActionsActivity(etudesAvecAction, onNavigate),
+    createProgressActivity(etudesEnCours.length, onNavigate),
+    createEvaluationActivity(etudeIdsAEvaluer, onOpenEvaluation),
+    createArchivesActivity(etudesArchivees.length, onNavigate),
+  ].filter((activity): activity is DashboardActivityItem => activity !== null);
 
-  const feed: DashboardActivityItem[] = [];
-
-  if (demandesAvecPropositions > 0) {
-    feed.push({
-      id: 'propositions',
-      title: 'De nouvelles offres sont arrivées',
-      description: `${demandesAvecPropositions} demande${demandesAvecPropositions > 1 ? 's ont' : ' a'} déjà reçu une ou plusieurs propositions à comparer.`,
-      icon: <FileText className="h-4 w-4" />,
-      toneClassName: 'bg-blue-50 text-blue-700 border-blue-200',
-      actionLabel: 'Voir les demandes',
-      onAction: () => onNavigate('DEMANDES'),
-    });
-  }
-
-  if (etudesAvecAction > 0) {
-    feed.push({
-      id: 'actions',
-      title: 'Une action de votre part est attendue',
-      description: `${etudesAvecAction} étude${etudesAvecAction > 1 ? 's nécessitent' : ' nécessite'} votre validation ou votre suivi.`,
-      icon: <AlertCircle className="h-4 w-4" />,
-      toneClassName: 'bg-amber-50 text-amber-700 border-amber-200',
-      actionLabel: 'Reprendre le suivi',
-      onAction: () => onNavigate('ETUDES'),
-    });
-  }
-
-  if (etudesEnCours.length > 0) {
-    feed.push({
-      id: 'progression',
-      title: 'Vos études avancent',
-      description: `${etudesEnCours.length} étude${etudesEnCours.length > 1 ? 's sont' : ' est'} actuellement en cours avec un bureau d études.`,
-      icon: <FlaskConical className="h-4 w-4" />,
-      toneClassName: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-      actionLabel: 'Voir la progression',
-      onAction: () => onNavigate('ETUDES'),
-    });
-  }
-
-  if (etudeIdsAEvaluer.length > 0) {
-    feed.push({
-      id: 'evaluations',
-      title: 'Votre avis compte',
-      description: `${etudeIdsAEvaluer.length} étude${etudeIdsAEvaluer.length > 1 ? 's peuvent' : ' peut'} encore être évaluée${etudeIdsAEvaluer.length > 1 ? 's' : ''}. Cette étape reste facultative.`,
-      icon: <MessageSquareHeart className="h-4 w-4" />,
-      toneClassName: 'bg-violet-50 text-violet-700 border-violet-200',
-      actionLabel: 'Donner mon avis',
-      onAction: () => onOpenEvaluation(etudeIdsAEvaluer[0]),
-    });
-  }
-
-  if (etudesArchivees.length > 0) {
-    feed.push({
-      id: 'archives',
-      title: 'Des livrables sont disponibles',
-      description: `${etudesArchivees.length} étude${etudesArchivees.length > 1 ? 's archivées sont' : ' archivée est'} accessible${etudesArchivees.length > 1 ? 's' : ''} à tout moment.`,
-      icon: <Archive className="h-4 w-4" />,
-      toneClassName: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      actionLabel: 'Consulter les archives',
-      onAction: () => onNavigate('ARCHIVES'),
-    });
-  }
-
-  if (feed.length === 0) {
-    feed.push({
-      id: 'welcome',
-      title: 'Votre espace est prêt',
-      description: 'Commencez par créer une première demande pour recevoir des propositions adaptées à votre projet.',
-      icon: <Sparkles className="h-4 w-4" />,
-      toneClassName: 'bg-violet-50 text-violet-700 border-violet-200',
-      actionLabel: 'Voir mes demandes',
-      onAction: () => onNavigate('DEMANDES'),
-    });
-  }
-
-  return feed.slice(0, 5);
+  return (activities.length > 0 ? activities : [createWelcomeActivity(onNavigate)]).slice(0, 5);
 }
 
 function EtudeCard(props: Readonly<EtudeCardProps>) {

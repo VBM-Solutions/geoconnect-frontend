@@ -62,15 +62,17 @@ export default function ModerationEvaluationsPage() {
         </p>
       </header>
 
-      {loading ? (
+      {loading && (
         <p className="text-sm text-slate-500">Chargement des signalements…</p>
-      ) : evaluations.length === 0 ? (
+      )}
+      {!loading && evaluations.length === 0 && (
         <Card>
           <CardContent className="flex items-center gap-2 py-8 text-sm text-emerald-700">
             <CheckCircle2 className="h-5 w-5" /> Aucun commentaire en attente.
           </CardContent>
         </Card>
-      ) : (
+      )}
+      {!loading && evaluations.length > 0 && (
         <div className="grid gap-4 lg:grid-cols-2">
           {evaluations.map(evaluation => (
             <Card key={evaluation.id} className="border-amber-200">

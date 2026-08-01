@@ -42,6 +42,16 @@ const payload = {
   zonesIntervention: ['44'],
 };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('useFicheBureauEtude', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -56,6 +66,40 @@ describe('useFicheBureauEtude', () => {
     expect(result.current.fiche).toEqual(fiche);
   });
 
+  it('expose une erreur lorsque le chargement échoue', async () => {
+    (getMaFicheBureauEtude as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('Service indisponible'),
+    );
+    const { result } = renderHook(() => useFicheBureauEtude());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.loadError).toBe('Service indisponible');
+    expect(result.current.fiche).toBeNull();
+  });
+
+  it('ignore le résultat du chargement après démontage', async () => {
+    const request = deferred<typeof fiche>();
+    (getMaFicheBureauEtude as ReturnType<typeof vi.fn>).mockReturnValue(request.promise);
+    const { unmount } = renderHook(() => useFicheBureauEtude());
+
+    unmount();
+    await act(async () => request.resolve(fiche));
+
+    expect(getMaFicheBureauEtude).toHaveBeenCalledOnce();
+  });
+
+  it('ignore également une erreur de chargement après démontage', async () => {
+    const request = deferred<typeof fiche>();
+    (getMaFicheBureauEtude as ReturnType<typeof vi.fn>).mockReturnValue(request.promise);
+    const { unmount } = renderHook(() => useFicheBureauEtude());
+
+    unmount();
+    await act(async () => request.reject(new Error('Service indisponible')));
+
+    expect(getMaFicheBureauEtude).toHaveBeenCalledOnce();
+  });
+
   it('sauvegarde le brouillon et remplace le profil sans perdre les statistiques', async () => {
     const updated = { ...profile, descriptionCourte: payload.descriptionCourte };
     (updateMonProfilPublic as ReturnType<typeof vi.fn>).mockResolvedValue(updated);
@@ -66,6 +110,32 @@ describe('useFicheBureauEtude', () => {
 
     expect(result.current.fiche?.profilPublic).toEqual(updated);
     expect(result.current.fiche?.activite).toEqual(fiche.activite);
+  });
+
+  it('conserve une fiche absente lorsqu’une sauvegarde précède le chargement', async () => {
+    const loadRequest = deferred<typeof fiche>();
+    (getMaFicheBureauEtude as ReturnType<typeof vi.fn>).mockReturnValue(loadRequest.promise);
+    (updateMonProfilPublic as ReturnType<typeof vi.fn>).mockResolvedValue(profile);
+    const { result, unmount } = renderHook(() => useFicheBureauEtude());
+
+    await act(() => result.current.save(payload));
+
+    expect(result.current.fiche).toBeNull();
+    unmount();
+  });
+
+  it('ignore la fin d’une action après démontage', async () => {
+    const updateRequest = deferred<typeof profile>();
+    (updateMonProfilPublic as ReturnType<typeof vi.fn>).mockReturnValue(updateRequest.promise);
+    const { result, unmount } = renderHook(() => useFicheBureauEtude());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const saving = result.current.save(payload);
+    unmount();
+    await act(async () => updateRequest.resolve(profile));
+    await saving;
+
+    expect(updateMonProfilPublic).toHaveBeenCalledWith(payload);
   });
 
   it('sauvegarde avant de publier', async () => {

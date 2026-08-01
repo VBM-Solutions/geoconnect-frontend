@@ -117,7 +117,7 @@ export function ProfilBureauEtudeEvaluations({
                   {selectedEvaluationId === avis.evaluationId && (
                     <div className="mt-3 space-y-2 rounded-md bg-slate-50 p-3">
                       <label className="block font-semibold text-slate-700">
-                        Motif
+                        <span>Motif</span>
                         <select
                           value={motif}
                           onChange={event => setMotif(event.target.value as MotifSignalementEvaluation)}
@@ -129,7 +129,8 @@ export function ProfilBureauEtudeEvaluations({
                         </select>
                       </label>
                       <label className="block font-semibold text-slate-700">
-                        Précisions <span className="font-normal text-slate-400">(facultatif)</span>
+                        <span>Précisions</span>{' '}
+                        <span className="font-normal text-slate-400">(facultatif)</span>
                         <textarea
                           value={details}
                           onChange={event => setDetails(event.target.value)}

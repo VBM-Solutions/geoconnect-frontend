@@ -34,9 +34,9 @@ const ModerationEvaluationsPage = lazy(() => import('./pages/admin/ModerationEva
 
 function PageFallback() {
   return (
-    <div className="flex min-h-48 items-center justify-center text-sm text-slate-500" role="status">
+    <output className="flex min-h-48 items-center justify-center text-sm text-slate-500">
       Chargement de la page…
-    </div>
+    </output>
   );
 }
 

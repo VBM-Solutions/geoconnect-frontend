@@ -28,6 +28,17 @@ describe('evaluationModeration', () => {
     );
   });
 
+  it.each([undefined, '   '])('omet les précisions vides (%s)', async details => {
+    (api.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: { id: 9 } });
+
+    await signalerEvaluation(9, 'AUTRE', details);
+
+    expect(api.post).toHaveBeenCalledWith(
+      '/bureauEtude/me/evaluations/9/signalement',
+      { motif: 'AUTRE', details: undefined },
+    );
+  });
+
   it('liste puis modère les commentaires signalés', async () => {
     (api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: [{ id: 9 }] });
     (api.patch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
@@ -42,5 +53,11 @@ describe('evaluationModeration', () => {
       '/admin/evaluations/9/moderation',
       { decision: 'MASQUER' },
     );
+  });
+
+  it('retourne une liste vide lorsque le backend ne fournit aucune donnée', async () => {
+    (api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: null });
+
+    await expect(listerEvaluationsSignalees()).resolves.toEqual([]);
   });
 });

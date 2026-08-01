@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useClientDashboardData } from './useClientDashboardData';
 import * as AuthContextModule from '../contexts/AuthContext';
 
@@ -27,6 +27,16 @@ const fakeClient  = { id: 3, nom: 'Dupont', prenom: 'Jean', utilisateurId: 1 };
 const fakeDemande = { id: 7, description: 'Travaux toit' };
 const fakePropo   = { id: 12, demandeId: 7, statut: 'EN_ATTENTE' };
 const fakeEtude   = { id: 20, etat: 'DEVIS_VALIDE' };
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
 
 function mockUseAuth(userId = 1) {
   vi.spyOn(AuthContextModule, 'useAuth').mockReturnValue({
@@ -118,6 +128,20 @@ describe('useClientDashboardData', () => {
     expect(result.current.demandes[0].propositions).toEqual([]);
   });
 
+  it('normalise à [] des propositions nulles', async () => {
+    mockUseAuth();
+    (getClientByUserId as any).mockResolvedValue(fakeClient);
+    (getAllDemandeDevis as any).mockResolvedValue([fakeDemande]);
+    (getPropositionDevisByDemandeId as any).mockResolvedValue(null);
+    (getEtudesByClientId as any).mockResolvedValue([]);
+    (fetchEtudeDetails as any).mockResolvedValue([]);
+
+    const { result } = renderHook(() => useClientDashboardData());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.demandes[0].propositions).toEqual([]);
+  });
+
   it('retourne etudes=[] si getEtudesByClientId échoue (catch silencieux)', async () => {
     mockUseAuth();
     (getClientByUserId as any).mockResolvedValue(fakeClient);
@@ -131,6 +155,90 @@ describe('useClientDashboardData', () => {
 
     expect(result.current.error).toBeNull();
     expect(result.current.etudes).toEqual([]);
+  });
+
+  it('retourne etudeIdsAEvaluer=[] si leur chargement échoue', async () => {
+    mockUseAuth();
+    (getClientByUserId as any).mockResolvedValue(fakeClient);
+    (getAllDemandeDevis as any).mockResolvedValue([]);
+    (getEtudesByClientId as any).mockResolvedValue([]);
+    (fetchEtudeDetails as any).mockResolvedValue([]);
+    (getEtudeIdsAEvaluer as any).mockRejectedValue(new Error('KO'));
+
+    const { result } = renderHook(() => useClientDashboardData());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error).toBeNull();
+    expect(result.current.etudeIdsAEvaluer).toEqual([]);
+  });
+
+  it('interrompt le chargement si le composant est démonté avant le retour du client', async () => {
+    mockUseAuth();
+    const request = deferred<typeof fakeClient>();
+    (getClientByUserId as any).mockReturnValue(request.promise);
+    const { unmount } = renderHook(() => useClientDashboardData());
+
+    unmount();
+    await act(async () => request.resolve(fakeClient));
+
+    expect(getAllDemandeDevis).not.toHaveBeenCalled();
+  });
+
+  it('interrompt le chargement après la récupération des demandes', async () => {
+    mockUseAuth();
+    const request = deferred<typeof fakeDemande[]>();
+    (getClientByUserId as any).mockResolvedValue(fakeClient);
+    (getAllDemandeDevis as any).mockReturnValue(request.promise);
+    const { unmount } = renderHook(() => useClientDashboardData());
+    await waitFor(() => expect(getAllDemandeDevis).toHaveBeenCalled());
+
+    unmount();
+    await act(async () => request.resolve([]));
+
+    expect(getEtudesByClientId).not.toHaveBeenCalled();
+  });
+
+  it('interrompt le chargement après les appels parallèles', async () => {
+    mockUseAuth();
+    const request = deferred<typeof fakeEtude[]>();
+    (getClientByUserId as any).mockResolvedValue(fakeClient);
+    (getAllDemandeDevis as any).mockResolvedValue([]);
+    (getEtudesByClientId as any).mockReturnValue(request.promise);
+    const { unmount } = renderHook(() => useClientDashboardData());
+    await waitFor(() => expect(getEtudesByClientId).toHaveBeenCalled());
+
+    unmount();
+    await act(async () => request.resolve([]));
+
+    expect(fetchEtudeDetails).not.toHaveBeenCalled();
+  });
+
+  it('ignore les détails arrivant après démontage', async () => {
+    mockUseAuth();
+    const request = deferred<typeof fakeEtude[]>();
+    (getClientByUserId as any).mockResolvedValue(fakeClient);
+    (getAllDemandeDevis as any).mockResolvedValue([]);
+    (getEtudesByClientId as any).mockResolvedValue([fakeEtude]);
+    (fetchEtudeDetails as any).mockReturnValue(request.promise);
+    const { unmount } = renderHook(() => useClientDashboardData());
+    await waitFor(() => expect(fetchEtudeDetails).toHaveBeenCalled());
+
+    unmount();
+    await act(async () => request.resolve([fakeEtude]));
+
+    expect(fetchEtudeDetails).toHaveBeenCalledWith([fakeEtude]);
+  });
+
+  it('ignore une erreur arrivant après démontage', async () => {
+    mockUseAuth();
+    const request = deferred<typeof fakeClient>();
+    (getClientByUserId as any).mockReturnValue(request.promise);
+    const { unmount } = renderHook(() => useClientDashboardData());
+
+    unmount();
+    await act(async () => request.reject(new Error('KO')));
+
+    expect(getAllDemandeDevis).not.toHaveBeenCalled();
   });
 
   it('refetch() redéclenche le chargement', async () => {

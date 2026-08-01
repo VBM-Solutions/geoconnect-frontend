@@ -159,7 +159,9 @@ export function ProfilBureauEtudeForm({
           />
           <span>
             <strong className="block">Afficher mon adresse complète</strong>
-            Sinon, seuls la ville et le département seront visibles sur la page publique.
+            <span className="block">
+              Sinon, seuls la ville et le département seront visibles sur la page publique.
+            </span>
           </span>
         </label>
       </fieldset>

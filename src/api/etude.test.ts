@@ -46,6 +46,12 @@ describe('évaluation d’étude', () => {
     expect(api.get).toHaveBeenCalledWith('/etude/evaluations/a-faire');
   });
 
+  it('retourne une liste vide si aucune étude à évaluer n’est fournie', async () => {
+    (api.get as any).mockResolvedValueOnce({ data: null });
+
+    await expect(getEtudeIdsAEvaluer()).resolves.toEqual([]);
+  });
+
   it('charge le statut de notation', async () => {
     (api.get as any).mockResolvedValueOnce({ data: { eligible: true } });
 
@@ -307,6 +313,26 @@ describe('getEtudeDetailById', () => {
     (api.get as any)
       .mockResolvedValueOnce({ data: detailSansSlug })
       .mockRejectedValueOnce(new Error('Proposition indisponible'));
+
+    await expect(getEtudeDetailById(1)).resolves.toEqual(detailSansSlug);
+  });
+
+  it("conserve le détail lorsque la proposition complète n'a pas de slug", async () => {
+    const detailSansSlug = {
+      id: 1,
+      propositionDevis: {
+        id: 55,
+        bureauEtude: { id: 7, raisonSociale: 'Test Bureau' },
+      },
+    };
+    (api.get as any)
+      .mockResolvedValueOnce({ data: detailSansSlug })
+      .mockResolvedValueOnce({
+        data: {
+          id: 55,
+          bureauEtude: { id: 7, raisonSociale: 'Test Bureau' },
+        },
+      });
 
     await expect(getEtudeDetailById(1)).resolves.toEqual(detailSansSlug);
   });
