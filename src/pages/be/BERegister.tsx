@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { registerBureauEtudeCall } from '../../api/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { Building2, FileText, Upload } from 'lucide-react';
-import { createConfirmPasswordRules, passwordRules, phoneRules } from '../../lib/validators';
+import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules } from '../../lib/validators';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -15,7 +15,7 @@ import { AddressSuggestionDTO } from '../../types';
 export default function BERegister() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const { register, handleSubmit, getValues, watch, formState: { errors } } = useForm();
+  const { register, handleSubmit, getValues, setValue, watch, formState: { errors } } = useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorDetails, setErrorDetails] = useState('');
   const [success, setSuccess] = useState(false);
@@ -37,9 +37,9 @@ export default function BERegister() {
         raisonSociale: data.raisonSociale,
         telContact: data.telContact,
         adresse: {
-          rue: selectedAddress.rue,
-          codePostal: selectedAddress.codePostal,
-          ville: selectedAddress.ville,
+          rue: data.rue,
+          codePostal: data.codePostal,
+          ville: data.ville,
           latitude: selectedAddress.latitude,
           longitude: selectedAddress.longitude,
           geocodingScore: selectedAddress.score,
@@ -163,10 +163,42 @@ export default function BERegister() {
                     setAddressError('');
                   }}
                   onSelect={(suggestion) => {
+                    setValue('rue', suggestion.rue ?? suggestion.label, { shouldValidate: true });
+                    setValue('codePostal', suggestion.codePostal ?? '', { shouldValidate: true });
+                    setValue('ville', suggestion.ville ?? '', { shouldValidate: true });
                     setSelectedAddress(suggestion);
                     setAddressError('');
                   }}
                 />
+                <Input
+                  label="Rue *"
+                  placeholder="Ex : 10 rue de la Géologie"
+                  {...register('rue', {
+                    required: true,
+                    onChange: () => setSelectedAddress(null),
+                  })}
+                  error={errors.rue ? 'Requis' : undefined}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Code Postal *"
+                    placeholder="Ex : 75001"
+                    {...register('codePostal', {
+                      ...codePostalRules,
+                      onChange: () => setSelectedAddress(null),
+                    })}
+                    error={errors.codePostal ? (errors.codePostal.message as string) : undefined}
+                  />
+                  <Input
+                    label="Ville *"
+                    placeholder="Ex : Paris"
+                    {...register('ville', {
+                      required: true,
+                      onChange: () => setSelectedAddress(null),
+                    })}
+                    error={errors.ville ? 'Requis' : undefined}
+                  />
+                </div>
                 {addressError && <p className="text-sm text-red-600" role="alert">{addressError}</p>}
               </div>
 

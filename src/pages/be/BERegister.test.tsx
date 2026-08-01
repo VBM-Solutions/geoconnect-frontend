@@ -68,13 +68,18 @@ describe('BERegister', () => {
   it('affiche la saisie d’adresse uniformisée', () => {
     renderPage();
     expect(screen.getByLabelText('Adresse *')).toBeTruthy();
-    expect(screen.queryByLabelText('Ville *')).toBeNull();
+    expect(screen.getByLabelText('Rue *')).toBeTruthy();
+    expect(screen.getByLabelText('Code Postal *')).toBeTruthy();
+    expect(screen.getByLabelText('Ville *')).toBeTruthy();
   });
 
   it('bloque la création tant qu’aucune proposition complète n’est sélectionnée', async () => {
     const user = userEvent.setup();
     renderPage();
     await fillIdentity(user);
+    await user.type(screen.getByLabelText('Rue *'), '10 rue libre');
+    await user.type(screen.getByLabelText('Code Postal *'), '75001');
+    await user.type(screen.getByLabelText('Ville *'), 'Paris');
     await user.click(screen.getByRole('button', { name: /soumettre ma candidature/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/sélectionner une adresse/i);
     expect(authApi.registerBureauEtudeCall).not.toHaveBeenCalled();
@@ -85,6 +90,9 @@ describe('BERegister', () => {
     const { login } = renderPage();
     await fillIdentity(user);
     await selectAddress(user);
+    expect(screen.getByLabelText('Rue *')).toHaveValue('10 rue de la Géologie');
+    expect(screen.getByLabelText('Code Postal *')).toHaveValue('75001');
+    expect(screen.getByLabelText('Ville *')).toHaveValue('Paris');
     await user.click(screen.getByRole('button', { name: /soumettre ma candidature/i }));
 
     await waitFor(() => expect(authApi.registerBureauEtudeCall).toHaveBeenCalledWith({
@@ -111,6 +119,17 @@ describe('BERegister', () => {
     await fillIdentity(user);
     await selectAddress(user);
     await user.type(screen.getByLabelText('Adresse *'), ' bis');
+    await user.click(screen.getByRole('button', { name: /soumettre ma candidature/i }));
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(authApi.registerBureauEtudeCall).not.toHaveBeenCalled();
+  });
+
+  it('invalide aussi la sélection lorsqu’un champ prérempli est modifié', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await fillIdentity(user);
+    await selectAddress(user);
+    await user.type(screen.getByLabelText('Ville *'), ' 1er');
     await user.click(screen.getByRole('button', { name: /soumettre ma candidature/i }));
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(authApi.registerBureauEtudeCall).not.toHaveBeenCalled();
