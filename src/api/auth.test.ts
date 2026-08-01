@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { loginCall, registerCall, logoutCall } from './auth';
+import { loginCall, registerCall, registerClientCall, logoutCall } from './auth';
 
 vi.mock('./index', () => ({
   default: {
@@ -57,6 +57,25 @@ describe('registerCall', () => {
     await expect(
       registerCall({ login: '', password: '', role: 'CLIENT' })
     ).rejects.toThrow('Bad request');
+  });
+});
+
+describe('registerClientCall', () => {
+  it('crée atomiquement le compte et le profil client', async () => {
+    const registration = {
+      login: 'client@test.com',
+      password: 'Password123!',
+      civilite: 'MR' as const,
+      nom: 'Dupont',
+      prenom: 'Jean',
+      telContact: '0612345678',
+      adresseFacturation: { rue: '12 rue de la Paix', codePostal: '75001', ville: 'Paris' },
+    };
+    const response = { ...fakeAuthResponse, clientId: 10 };
+    (api.post as any).mockResolvedValueOnce({ data: response });
+
+    await expect(registerClientCall(registration)).resolves.toEqual(response);
+    expect(api.post).toHaveBeenCalledWith('/auth/register/client', registration);
   });
 });
 

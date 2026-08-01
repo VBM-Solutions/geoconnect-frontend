@@ -8,6 +8,7 @@ import * as clientApi from '../api/client';
 import * as demandeDevisApi from '../api/demandeDevis';
 import * as documentApi from '../api/document';
 import * as referentielApi from '../api/referentiel';
+import * as addressAutocompleteApi from '../api/addressAutocomplete';
 import * as AuthContextModule from '../contexts/AuthContext';
 import { setupDefaultDemandeMocks } from '../test-utils/demandeTestSetup';
 import { getLastMockCallPayload } from '../test-utils/mockHelpers';
@@ -29,6 +30,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
 
 const MOCK_AUTH_RESPONSE = {
   userId: 42,
+  clientId: 10,
   token: 'tok-client',
   role: 'CLIENT' as const,
   login: 'client@test.fr',
@@ -110,11 +112,31 @@ describe('Home — tunnel utilisateur', () => {
       { code: 'G2_PRO', libelle: 'G2 PRO — Projet' },
       { code: 'G5', libelle: 'Mission G5' },
     ]);
-    vi.mocked(authApi.registerCall).mockResolvedValue(MOCK_AUTH_RESPONSE);
-    vi.mocked(clientApi.createClient).mockResolvedValue({ id: 10 });
+    vi.mocked(authApi.registerClientCall).mockResolvedValue(MOCK_AUTH_RESPONSE);
     vi.mocked(clientApi.getClientByUserId).mockResolvedValue({ id: 10 });
     vi.mocked(demandeDevisApi.createDemandeDevis).mockResolvedValue({});
     vi.mocked(documentApi.uploadDocuments).mockResolvedValue([]);
+    vi.mocked(addressAutocompleteApi.searchAddressSuggestions).mockResolvedValue([]);
+  });
+
+  it("remplit l'adresse du projet depuis une suggestion officielle", async () => {
+    vi.mocked(addressAutocompleteApi.searchAddressSuggestions).mockResolvedValue([
+      {
+        label: '10 Rue de la Paix 75002 Paris',
+        rue: '10 Rue de la Paix',
+        codePostal: '75002',
+        ville: 'Paris',
+      },
+    ]);
+    const user = userEvent.setup();
+    await startTunnel(user);
+
+    await user.type(screen.getByLabelText("Rechercher l'adresse du projet"), '10 rue de la paix');
+    await user.click(await screen.findByRole('button', { name: /10 Rue de la Paix 75002 Paris/i }));
+
+    expect(screen.getByPlaceholderText(/15 Avenue des Champs/i)).toHaveValue('10 Rue de la Paix');
+    expect(document.querySelector('#codePostalProjet')).toHaveValue('75002');
+    expect(document.querySelector('#villeProjet')).toHaveValue('Paris');
   });
 
   it('envoie plusieurs références cadastrales dans le même format que la nouvelle demande', async () => {
@@ -134,10 +156,18 @@ describe('Home — tunnel utilisateur', () => {
     await user.click(screen.getByRole('button', { name: /publier ma demande/i }));
 
     await waitFor(() => {
-      expect(vi.mocked(authApi.registerCall)).toHaveBeenCalledWith({
+      expect(vi.mocked(authApi.registerClientCall)).toHaveBeenCalledWith({
         login: 'jean.dupont@test.fr',
         password: VALID_PASSWORD,
-        role: 'CLIENT',
+        civilite: 'MR',
+        nom: 'Dupont',
+        prenom: 'Jean',
+        telContact: '0612345678',
+        adresseFacturation: {
+          rue: '12 Rue de la République',
+          codePostal: '75001',
+          ville: 'Paris',
+        },
       });
       expect(vi.mocked(demandeDevisApi.createDemandeDevis)).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -163,7 +193,7 @@ describe('Home — tunnel utilisateur', () => {
 
     expect(await screen.findByText('Les mots de passe ne correspondent pas')).toBeTruthy();
 
-    expect(vi.mocked(authApi.registerCall)).not.toHaveBeenCalled();
+    expect(vi.mocked(authApi.registerClientCall)).not.toHaveBeenCalled();
     expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
   }, 20000);
 
@@ -181,7 +211,7 @@ describe('Home — tunnel utilisateur', () => {
     expect(screen.getByLabelText('Critère manquant : Un chiffre')).toBeTruthy();
     expect(screen.getByLabelText('Critère manquant : Un caractère spécial')).toBeTruthy();
 
-    expect(vi.mocked(authApi.registerCall)).not.toHaveBeenCalled();
+    expect(vi.mocked(authApi.registerClientCall)).not.toHaveBeenCalled();
     expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
   }, 10000);
 

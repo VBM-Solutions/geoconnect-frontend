@@ -17,20 +17,21 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { registerCall } from '../api/auth';
-import { createClient, getClientByUserId } from '../api/client';
+import { registerClientCall } from '../api/auth';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/Card';
 import { CadastralReferencesField } from '../components/ui/CadastralReferencesField';
 import { PasswordRequirementsHint } from '../components/ui/PasswordRequirementsHint';
 import { FileUploader } from '../components/shared/FileUploader';
+import { AddressAutocompleteField } from '../components/shared/AddressAutocompleteField';
 import { TypeEtudeSelect } from '../components/project/TypeEtudeSelect';
 import { useTypesEtude } from '../hooks/useTypesEtude';
 import { useDemandeSubmission } from '../hooks/useDemandeSubmission';
 import { buildDemandePayload, mapFormFieldsToPayloadBase } from '../lib/demandePayload';
 import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules } from '../lib/validators';
 import { getFieldMessage } from '../lib/formErrors';
+import { AddressSuggestionDTO } from '../types';
 
 type StudyPreset = {
   code?: string;
@@ -261,9 +262,13 @@ export default function Home() {
       </section>
 
       {selectedPreset && (
-        <section id="demande" ref={formSectionRef} className="mx-auto w-full max-w-2xl scroll-mt-6">
+        <section
+          key={`${selectedPreset.label}-${selectedPreset.code ?? 'libre'}-${selectedPreset.postalCode ?? ''}`}
+          id="demande"
+          ref={formSectionRef}
+          className="mx-auto w-full max-w-2xl scroll-mt-6"
+        >
           <QuoteTunnel
-            key={`${selectedPreset.label}-${selectedPreset.code ?? 'libre'}-${selectedPreset.postalCode ?? ''}`}
             initialType={selectedPreset.code}
             initialPostalCode={selectedPreset.postalCode}
             presetLabel={selectedPreset.label}
@@ -358,13 +363,13 @@ function QuoteTunnel({
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const { register: formRegister, handleSubmit, getValues, watch, formState: { errors } } = useForm<Record<string, unknown>>({
+  const { register: formRegister, handleSubmit, getValues, setValue, watch, formState: { errors } } = useForm<Record<string, unknown>>({
     defaultValues: {
       type: initialType ?? '',
       codePostalProjet: initialPostalCode ?? '',
     },
   });
-  const passwordValue = watch('password', '');
+  const passwordValue = String(watch('password', '') ?? '');
 
   const { submit } = useDemandeSubmission({
     onSuccess: () => navigate('/success'),
@@ -384,21 +389,13 @@ function QuoteTunnel({
     setIsLoading(true);
     setError(null);
     try {
-      const authRes = await registerCall({
+      const authRes = await registerClientCall({
         login: data.login as string,
         password: data.password as string,
-        role: 'CLIENT',
-      });
-
-      login(authRes);
-
-      const client = await createClient({
         civilite: data.civilite as 'MR' | 'MME' | 'AUTRE',
         nom: data.nom as string,
         prenom: data.prenom as string,
-        emailContact: data.login as string,
         telContact: data.telContact as string,
-        utilisateurId: authRes.userId,
         adresseFacturation: {
           rue: data.rue as string,
           ville: data.ville as string,
@@ -406,16 +403,8 @@ function QuoteTunnel({
         },
       });
 
-      let clientId = client?.id;
-
-      if (!clientId) {
-        const myClient = await getClientByUserId(authRes.userId);
-        if (myClient?.id) {
-          clientId = myClient.id;
-        } else {
-          throw new Error('Client créé mais introuvable sur le serveur.');
-        }
-      }
+      login(authRes);
+      const clientId = authRes.clientId;
 
       const payload = buildDemandePayload({
         clientId,
@@ -487,6 +476,16 @@ function QuoteTunnel({
                 placeholder="Sélectionnez un type"
               />
 
+              <AddressAutocompleteField
+                id="adresse-projet-autocomplete"
+                label="Rechercher l'adresse du projet"
+                placeholder="Tapez une adresse pour remplir les champs"
+                onSelect={(suggestion: AddressSuggestionDTO) => {
+                  setValue('rueProjet', suggestion.rue ?? suggestion.label, { shouldValidate: true });
+                  setValue('codePostalProjet', suggestion.codePostal ?? '', { shouldValidate: true });
+                  setValue('villeProjet', suggestion.ville ?? '', { shouldValidate: true });
+                }}
+              />
               <Input
                 label="Rue du projet *"
                 placeholder="Ex : 15 Avenue des Champs-Élysées"
@@ -632,6 +631,16 @@ function QuoteTunnel({
                 {...formRegister('telContact', phoneRules)}
                 error={getFieldMessage(errors.telContact) ?? undefined}
               />
+              <AddressAutocompleteField
+                id="adresse-facturation-autocomplete"
+                label="Rechercher l'adresse de facturation"
+                placeholder="Tapez une adresse pour remplir les champs"
+                onSelect={(suggestion: AddressSuggestionDTO) => {
+                  setValue('rue', suggestion.rue ?? suggestion.label, { shouldValidate: true });
+                  setValue('codePostal', suggestion.codePostal ?? '', { shouldValidate: true });
+                  setValue('ville', suggestion.ville ?? '', { shouldValidate: true });
+                }}
+              />
               <Input
                 label="Rue (adresse de facturation) *"
                 placeholder="12 rue de la République"
@@ -670,7 +679,10 @@ function QuoteTunnel({
               <Input
                 type="password"
                 label="Confirmation du mot de passe *"
-                {...formRegister('confirmPassword', createConfirmPasswordRules(() => getValues('password')))}
+                {...formRegister(
+                  'confirmPassword',
+                  createConfirmPasswordRules(() => String(getValues('password') ?? '')),
+                )}
                 error={getFieldMessage(errors.confirmPassword)}
                 showPasswordToggle
               />
