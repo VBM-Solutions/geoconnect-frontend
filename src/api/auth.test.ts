@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { loginCall, registerCall, registerClientCall, logoutCall } from './auth';
+import { loginCall, registerCall, registerBureauEtudeCall, registerClientCall, logoutCall } from './auth';
 
 vi.mock('./index', () => ({
   default: {
@@ -42,15 +42,6 @@ describe('registerCall', () => {
     expect(result).toEqual(fakeAuthResponse);
   });
 
-  it('supporte le rôle BUREAU_ETUDE', async () => {
-    (api.post as any).mockResolvedValueOnce({ data: { ...fakeAuthResponse, role: 'BUREAU_ETUDE' } });
-
-    const userData = { login: 'be@test.com', password: 'pass', role: 'BUREAU_ETUDE' as const };
-    const result = await registerCall(userData);
-
-    expect(result.role).toBe('BUREAU_ETUDE');
-  });
-
   it('propage l\'erreur si les données sont invalides', async () => {
     (api.post as any).mockRejectedValueOnce(new Error('Bad request'));
 
@@ -76,6 +67,23 @@ describe('registerClientCall', () => {
 
     await expect(registerClientCall(registration)).resolves.toEqual(response);
     expect(api.post).toHaveBeenCalledWith('/auth/register/client', registration);
+  });
+});
+
+describe('registerBureauEtudeCall', () => {
+  it('crée atomiquement le compte et le profil bureau d’études', async () => {
+    const registration = {
+      login: 'be@test.com',
+      password: 'Password123!',
+      raisonSociale: 'GeoExpert',
+      telContact: '0612345678',
+      adresse: { rue: '10 rue de la Géologie', codePostal: '75001', ville: 'Paris' },
+    };
+    const response = { ...fakeAuthResponse, role: 'BUREAU_ETUDE' as const, bureauEtudeId: 7 };
+    (api.post as any).mockResolvedValueOnce({ data: response });
+
+    await expect(registerBureauEtudeCall(registration)).resolves.toEqual(response);
+    expect(api.post).toHaveBeenCalledWith('/auth/register/bureau-etude', registration);
   });
 });
 

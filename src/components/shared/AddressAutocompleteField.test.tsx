@@ -42,4 +42,21 @@ describe('AddressAutocompleteField', () => {
 
     expect(searchAddressSuggestions).not.toHaveBeenCalled();
   });
+
+  it('signale toute modification de la saisie', async () => {
+    const user = userEvent.setup();
+    const onInputChange = vi.fn();
+    render(
+      <AddressAutocompleteField
+        id="address"
+        label="Adresse"
+        onSelect={vi.fn()}
+        onInputChange={onInputChange}
+      />
+    );
+
+    await user.type(screen.getByLabelText('Adresse'), 'Paris');
+
+    expect(onInputChange).toHaveBeenCalledTimes(5);
+  });
 });

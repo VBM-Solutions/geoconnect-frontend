@@ -160,6 +160,10 @@ export interface ClientRegistrationResponseDTO extends AuthResponseDTO {
   clientId: number;
 }
 
+export interface BureauEtudeRegistrationResponseDTO extends AuthResponseDTO {
+  bureauEtudeId: number;
+}
+
 export type Role = AuthResponseDTO['role'];
 
 export interface UtilisateurDTO {

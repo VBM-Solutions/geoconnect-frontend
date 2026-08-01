@@ -1,5 +1,5 @@
 import api from './index';
-import { AdresseDTO, AuthResponseDTO, Civilite, ClientRegistrationResponseDTO } from '../types';
+import { AdresseDTO, AuthResponseDTO, BureauEtudeRegistrationResponseDTO, Civilite, ClientRegistrationResponseDTO } from '../types';
 
 export interface LoginRequest {
   login: string;
@@ -9,7 +9,7 @@ export interface LoginRequest {
 export interface RegisterRequest {
   login: string;
   password: string;
-  role: 'CLIENT' | 'BUREAU_ETUDE';
+  role: 'CLIENT';
 }
 
 export interface ClientRegistrationRequest {
@@ -20,6 +20,14 @@ export interface ClientRegistrationRequest {
   prenom: string;
   telContact: string;
   adresseFacturation: AdresseDTO;
+}
+
+export interface BureauEtudeRegistrationRequest {
+  login: string;
+  password: string;
+  raisonSociale: string;
+  telContact: string;
+  adresse: AdresseDTO;
 }
 
 /** Retourne { userId, login, role } — le JWT est posé en cookie HttpOnly par le backend. */
@@ -38,6 +46,13 @@ export const registerClientCall = async (
   registration: ClientRegistrationRequest
 ): Promise<ClientRegistrationResponseDTO> => {
   const { data } = await api.post('/auth/register/client', registration);
+  return data;
+};
+
+export const registerBureauEtudeCall = async (
+  registration: BureauEtudeRegistrationRequest
+): Promise<BureauEtudeRegistrationResponseDTO> => {
+  const { data } = await api.post('/auth/register/bureau-etude', registration);
   return data;
 };
 
