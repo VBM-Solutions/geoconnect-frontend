@@ -1,4 +1,5 @@
 import api from './index';
+import { getPropositionDevisById } from './propositionDevis';
 import {
   EtudeDTO,
   EtudeDetailDTO,
@@ -91,8 +92,43 @@ export const getEtudesByClientId = async (clientId: number): Promise<EtudeDTO[]>
 
 export const getEtudeDetailById = async (id: number): Promise<EtudeDetailDTO> => {
   const { data } = await api.get(`/etude/${id}/detail`);
-  return data;
+  return enrichirSlugProfilBureau(data);
 };
+
+/**
+ * Compatibilité des parcours client : certaines réponses de détail d'étude
+ * n'embarquent pas le slug public alors qu'il est présent sur la proposition.
+ * On ne déclenche l'appel complémentaire que lorsque le lien ne peut pas être
+ * construit avec la réponse principale.
+ */
+async function enrichirSlugProfilBureau(detail: EtudeDetailDTO): Promise<EtudeDetailDTO> {
+  const proposition = detail?.propositionDevis;
+  const bureau = proposition?.bureauEtude;
+  if (!proposition?.id || !bureau || bureau.profilPublicSlug) {
+    return detail;
+  }
+
+  try {
+    const propositionComplete = await getPropositionDevisById(proposition.id);
+    const profilPublicSlug = propositionComplete.bureauEtude?.profilPublicSlug;
+    if (!profilPublicSlug) {
+      return detail;
+    }
+    return {
+      ...detail,
+      propositionDevis: {
+        ...proposition,
+        bureauEtude: {
+          ...bureau,
+          profilPublicSlug,
+        },
+      },
+    };
+  } catch {
+    // Le détail reste utilisable même si l'enrichissement facultatif échoue.
+    return detail;
+  }
+}
 
 export const getEtudeDocuments = async (id: number): Promise<EtudeDocumentsDTO> => {
   const { data } = await api.get(`/etude/${id}/documents`);
