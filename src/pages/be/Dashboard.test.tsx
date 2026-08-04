@@ -155,6 +155,29 @@ describe('BEDashboard', () => {
     expect(scrollSpy).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
     expect(screen.getByRole('heading', { name: /missions disponibles/i })).toBeTruthy();
   });
+
+  it('conserve une hauteur stable lors du basculement carte liste', async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+
+    const viewContainer = screen.getByTestId('dashboard-switchable-view');
+    expect(viewContainer.className).toContain('min-h-[520px]');
+
+    await user.click(screen.getByRole('button', { name: 'Liste' }));
+
+    expect(screen.queryByTestId('be-interactive-map')).toBeNull();
+    expect(viewContainer.className).toContain('min-h-[520px]');
+  });
+
+  it('affiche les délais dans l ordre intervention puis rendu', async () => {
+    const user = userEvent.setup();
+    renderDashboard('/be/dashboard?tab=ETUDE_EN_COURS');
+    await user.click(screen.getByRole('button', { name: 'Liste' }));
+
+    const intervention = screen.getAllByText(/Intervention :/i)[0];
+    const rendu = screen.getAllByText(/Rendu :/i)[0];
+    expect(intervention.compareDocumentPosition(rendu) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });
 
 

@@ -12,6 +12,7 @@ import { Input } from '../../components/ui/Input';
 import { CadastralReferencesField } from '../../components/ui/CadastralReferencesField';
 import { FileUploader } from '../../components/shared/FileUploader';
 import { AddressAutocompleteField } from '../../components/shared/AddressAutocompleteField';
+import { ProjectMetricsInputs } from '../../components/shared/ProjectMetricsInputs';
 import { TypeEtudeSelect } from '../../components/project/TypeEtudeSelect';
 import { buildDemandePayload, mapFormFieldsToPayloadBase } from '../../lib/demandePayload';
 import { codePostalRules } from '../../lib/validators';
@@ -121,22 +122,7 @@ export default function NewRequest() {
                   onChange={setReferencesCadastrales}
                 />
 
-                <Input
-                  label="Superficie (m²)"
-                  type="number"
-                  placeholder="Ex : 500"
-                  min={0}
-                  {...formRegister('superficie', { min: { value: 0, message: 'La superficie doit être positive' } })}
-                  error={getFieldMessage(errors.superficie)}
-                />
-                <Input
-                  label="Nombre de lots"
-                  type="number"
-                  placeholder="Ex : 1"
-                  min={0}
-                  {...formRegister('nombreLot', { min: { value: 0, message: 'Le nombre de lots doit être positif' } })}
-                  error={getFieldMessage(errors.nombreLot)}
-                />
+                <ProjectMetricsInputs register={formRegister} errors={errors} />
               </div>
 
               <AddressAutocompleteField

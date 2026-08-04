@@ -82,8 +82,8 @@ export function SectionMotDePasse({ isSavingMotDePasse, saveMotDePasse }: Readon
   return (
     <ParametresSectionCard
       icon={Lock}
-      title="Mot de passe"
-      description="Conservez une section dédiée pour la modification du mot de passe."
+      title="Modifier votre mot de passe"
+      description="Mettez à jour votre mot de passe pour sécuriser votre compte."
     >
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
         <div className="space-y-1.5">

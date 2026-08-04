@@ -124,8 +124,9 @@ export default function BureauEtudeDetail() {
         ) : (
           <p className="text-slate-400">Informations non disponibles.</p>
         )}
-        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 mt-1">
+        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 mt-1">
           <EtudeInfoMetric label="Montant">{prop?.prix == null ? '—' : `${prop.prix} €`}</EtudeInfoMetric>
+          <EtudeInfoMetric label="Délai intervention">{formatDelaiWithProjection(prop?.delaiMaxIntervention, prop?.delaiProjectionIntervention)}</EtudeInfoMetric>
           <EtudeInfoMetric label="Délai rendu">{formatDelaiWithProjection(prop?.delaiMaxRendu, prop?.delaiProjectionRendu)}</EtudeInfoMetric>
         </div>
       </CardContent>

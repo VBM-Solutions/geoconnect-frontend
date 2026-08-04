@@ -353,7 +353,7 @@ describe('Home — tunnel utilisateur', () => {
     expect(screen.queryByText(/vos coordonnées/i)).toBeNull();
   });
 
-  it('bloque le tunnel si nombre de lots négatif', async () => {
+  it('empêche la saisie des caractères incompatibles avec un nombre de lots positif', async () => {
     const user = userEvent.setup();
     await startTunnel(user);
     await completeStep1(user);
@@ -364,11 +364,9 @@ describe('Home — tunnel utilisateur', () => {
 
     const lotsInput = screen.getByPlaceholderText('Ex : 1') as HTMLInputElement;
     await user.clear(lotsInput);
-    await user.type(lotsInput, '-2');
-    await user.click(screen.getByRole('button', { name: /suivant/i }));
+    await user.type(lotsInput, '-e.2');
 
-    expect(await screen.findByText('Le nombre de lots doit être positif')).toBeTruthy();
-    expect(screen.queryByText(/vos coordonnées/i)).toBeNull();
+    expect(lotsInput.value).toBe('2');
   });
 
   it('bloque le tunnel si description > 2000 caractères', async () => {

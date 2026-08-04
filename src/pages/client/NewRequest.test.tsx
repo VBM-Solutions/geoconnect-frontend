@@ -614,7 +614,7 @@ describe('NewRequest — validation numérique et description', () => {
     });
   });
 
-  it('bloque la soumission si nombre de lots négatif', async () => {
+  it('empêche la saisie des caractères incompatibles avec un nombre de lots positif', async () => {
     const user = userEvent.setup();
     renderNewRequest();
     await screen.findByText('G0 — Étude préalable');
@@ -622,12 +622,9 @@ describe('NewRequest — validation numérique et description', () => {
 
     const lotsInput = screen.getByPlaceholderText('Ex : 1') as HTMLInputElement;
     await user.clear(lotsInput);
-    await user.type(lotsInput, '-2');
-    await submitForm(user);
+    await user.type(lotsInput, '-e.2');
 
-    await waitFor(() => {
-      expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
-    });
+    expect(lotsInput.value).toBe('2');
   });
 
   it('bloque la soumission si description > 2000 caractères', async () => {

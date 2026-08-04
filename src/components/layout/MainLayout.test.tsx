@@ -83,6 +83,8 @@ describe('MainLayout', () => {
     renderLayout('/be/dashboard');
 
     await waitFor(() => expect(screen.getByTestId('parametres-button').getAttribute('data-to')).toBe('/be/parametres'));
+    expect(screen.getByRole('link', { name: 'Accueil' }).getAttribute('href')).toBe('/be/dashboard');
+    expect(screen.queryByRole('link', { name: /marketplace/i })).toBeNull();
     expect(screen.getByRole('link', { name: /ma fiche/i }).getAttribute('href')).toBe('/be/ma-fiche');
   });
 

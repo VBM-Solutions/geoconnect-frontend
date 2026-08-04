@@ -84,6 +84,17 @@ describe('BERequestDetail — rendu initial', () => {
     expect(screen.getByPlaceholderText('Ex: 2')).toBeTruthy();
   });
 
+  it('présente les champs dans l ordre prix intervention puis rendu', async () => {
+    renderRequestDetail();
+
+    const prix = await screen.findByPlaceholderText('Ex: 4200');
+    const intervention = screen.getByPlaceholderText('Ex: 2');
+    const rendu = screen.getByPlaceholderText('Ex: 4');
+
+    expect(prix.compareDocumentPosition(intervention) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(intervention.compareDocumentPosition(rendu) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('affiche les documents joints de la demande quand docsDevisIds est renseigné', async () => {
     (demandeDevisApi.getDemandeDevisById as ReturnType<typeof vi.fn>).mockResolvedValue({
       ...MOCK_DEMANDE,
@@ -104,6 +115,7 @@ describe('BERequestDetail — validation du formulaire de proposition', () => {
     (demandeDevisApi.getDemandeDevisById as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_DEMANDE);
     (propositionDevisApi.getPropositionDevisByDemandeId as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (propositionDevisApi.createPropositionDevis as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 99 });
+    (documentApi.uploadDocument as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 77 });
   });
 
   /**
@@ -226,6 +238,10 @@ describe('BERequestDetail — validation du formulaire de proposition', () => {
     await user.type(screen.getByPlaceholderText('Ex: 4200'), '4200');
     await user.type(screen.getByPlaceholderText('Ex: 4'), '4');
     await user.type(screen.getByPlaceholderText('Ex: 2'), '2');
+    await user.upload(
+      screen.getByLabelText(/devis pdf/i),
+      new File(['devis'], 'devis.pdf', { type: 'application/pdf' }),
+    );
     await user.click(screen.getByRole('button', { name: /soumettre mon offre/i }));
 
     await screen.findByText('Confirmer la soumission');
@@ -245,6 +261,7 @@ describe('BERequestDetail — validation du formulaire de proposition', () => {
           prix: 4200,
           delaiMaxRendu: 4,
           delaiMaxIntervention: 2,
+          documentId: 77,
         })
       );
     });
@@ -259,6 +276,10 @@ describe('BERequestDetail — validation du formulaire de proposition', () => {
     await user.type(screen.getByPlaceholderText('Ex: 4200'), '0.01');
     await user.type(screen.getByPlaceholderText('Ex: 4'), '4');
     await user.type(screen.getByPlaceholderText('Ex: 2'), '2');
+    await user.upload(
+      screen.getByLabelText(/devis pdf/i),
+      new File(['devis'], 'devis.pdf', { type: 'application/pdf' }),
+    );
     await user.click(screen.getByRole('button', { name: /soumettre mon offre/i }));
 
     expect(await screen.findByText('Confirmer la soumission')).toBeTruthy();
@@ -273,6 +294,56 @@ describe('BERequestDetail — validation du formulaire de proposition', () => {
       expect(propositionDevisApi.createPropositionDevis).toHaveBeenCalledOnce();
     });
     expect(screen.queryByText('Doit être > 0')).toBeNull();
+  });
+
+  it('refuse la soumission sans devis PDF', async () => {
+    const user = userEvent.setup();
+    renderRequestDetail();
+
+    await user.type(await screen.findByPlaceholderText('Ex: 4200'), '4200');
+    await user.type(screen.getByPlaceholderText('Ex: 4'), '4');
+    await user.type(screen.getByPlaceholderText('Ex: 2'), '2');
+    await user.click(screen.getByRole('button', { name: /soumettre mon offre/i }));
+
+    expect(await screen.findByText('Le devis PDF est obligatoire.')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: /^soumettre$/i }));
+
+    await waitFor(() => {
+      expect(documentApi.uploadDocument).not.toHaveBeenCalled();
+      expect(propositionDevisApi.createPropositionDevis).not.toHaveBeenCalled();
+    });
+  });
+
+  it('permet de retirer le devis PDF sélectionné', async () => {
+    const user = userEvent.setup();
+    renderRequestDetail();
+
+    const pdfInput = await screen.findByLabelText(/devis pdf/i) as HTMLInputElement;
+    await user.upload(pdfInput, new File(['devis'], 'devis.pdf', { type: 'application/pdf' }));
+
+    expect(screen.getByText('devis.pdf')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Retirer le devis PDF sélectionné' }));
+
+    expect(screen.queryByText('devis.pdf')).toBeNull();
+    expect(screen.getByText(/joindre un fichier pdf/i)).toBeTruthy();
+  });
+
+  it('refuse un délai d’intervention supérieur au délai de rendu', async () => {
+    const user = userEvent.setup();
+    renderRequestDetail();
+
+    await user.type(await screen.findByPlaceholderText('Ex: 4200'), '4200');
+    await user.type(screen.getByPlaceholderText('Ex: 4'), '4');
+    await user.type(screen.getByPlaceholderText('Ex: 2'), '5');
+    await user.upload(
+      screen.getByLabelText(/devis pdf/i),
+      new File(['devis'], 'devis.pdf', { type: 'application/pdf' }),
+    );
+    await user.click(screen.getByRole('button', { name: /soumettre mon offre/i }));
+    await user.click(screen.getByRole('button', { name: /^soumettre$/i }));
+
+    expect(await screen.findByText("Le délai de rendu ne peut pas être inférieur au délai d'intervention.")).toBeTruthy();
+    expect(propositionDevisApi.createPropositionDevis).not.toHaveBeenCalled();
   });
 });
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Input } from '../ui/Input';
 import { FieldErrors, UseFormRegister } from 'react-hook-form';
+import { preventInvalidPositiveIntegerKey, preventInvalidPositiveIntegerPaste } from '../../lib/positiveIntegerInput';
 
 interface ProjectMetricsInputsProps {
   register: UseFormRegister<any>;
@@ -31,9 +32,14 @@ export function ProjectMetricsInputs({ register, errors }: Readonly<ProjectMetri
         label="Nombre de lots"
         type="number"
         placeholder="Ex : 1"
-        min={0}
+        min={1}
+        step={1}
+        onKeyDown={preventInvalidPositiveIntegerKey}
+        onPaste={preventInvalidPositiveIntegerPaste}
         {...register('nombreLot', {
-          min: { value: 0, message: 'Le nombre de lots doit être positif' },
+          min: { value: 1, message: 'Le nombre de lots doit être supérieur ou égal à 1' },
+          validate: value => value === '' || value == null || Number.isInteger(Number(value))
+            || 'Le nombre de lots doit être un entier',
         })}
         error={nombreLotError}
       />
