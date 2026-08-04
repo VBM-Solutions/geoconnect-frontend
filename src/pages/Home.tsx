@@ -25,6 +25,7 @@ import { CadastralReferencesField } from '../components/ui/CadastralReferencesFi
 import { PasswordRequirementsHint } from '../components/ui/PasswordRequirementsHint';
 import { FileUploader } from '../components/shared/FileUploader';
 import { AddressAutocompleteField } from '../components/shared/AddressAutocompleteField';
+import { ProjectMetricsInputs } from '../components/shared/ProjectMetricsInputs';
 import { TypeEtudeSelect } from '../components/project/TypeEtudeSelect';
 import { useTypesEtude } from '../hooks/useTypesEtude';
 import { useDemandeSubmission } from '../hooks/useDemandeSubmission';
@@ -543,22 +544,7 @@ function QuoteTunnel({
                 onChange={setReferencesCadastrales}
               />
               <div className="grid grid-cols-2 gap-4">
-                <Input
-                  label="Superficie (m²)"
-                  type="number"
-                  placeholder="Ex : 500"
-                  min={0}
-                  {...formRegister('superficie', { min: { value: 0, message: 'La superficie doit être positive' } })}
-                  error={getFieldMessage(errors.superficie)}
-                />
-                <Input
-                  label="Nombre de lots"
-                  type="number"
-                  placeholder="Ex : 1"
-                  min={0}
-                  {...formRegister('nombreLot', { min: { value: 0, message: 'Le nombre de lots doit être positif' } })}
-                  error={getFieldMessage(errors.nombreLot)}
-                />
+                <ProjectMetricsInputs register={formRegister} errors={errors} />
               </div>
               <Input
                 type="number"

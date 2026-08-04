@@ -8,7 +8,7 @@ import { DemandeDevisDTO, PropositionDevisDTO, BureauEtudesDTO } from '../../typ
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { MapPin, Clock, FileCheck, Paperclip, History } from 'lucide-react';
+import { MapPin, Clock, FileCheck, Paperclip, History, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { useForm } from 'react-hook-form';
@@ -47,6 +47,12 @@ function ActivePropositionCard({ prop, statusConfig }: Readonly<ActivePropositio
           </span>
         </div>
         <div className="grid grid-cols-2 gap-2">
+          {prop.delaiMaxIntervention != null && (
+            <div className="bg-current/10 p-2 rounded">
+              <span className="block text-[10px] font-bold uppercase mb-1">Délai intervention</span>
+              <span className="font-semibold text-xs">{formatDelaiWithProjection(prop.delaiMaxIntervention, prop.delaiProjectionIntervention)}</span>
+            </div>
+          )}
           <div className="bg-current/10 p-2 rounded">
             <span className="block text-[10px] font-bold uppercase mb-1">Délai rendu</span>
             <span className="font-semibold text-xs">
@@ -58,12 +64,6 @@ function ActivePropositionCard({ prop, statusConfig }: Readonly<ActivePropositio
             <span className="font-semibold text-xs">{statutLabel}</span>
           </div>
         </div>
-        {prop.delaiMaxIntervention != null && (
-          <div className="bg-current/10 p-2 rounded">
-            <span className="block text-[10px] font-bold uppercase mb-1">Délai intervention</span>
-            <span className="font-semibold text-xs">{formatDelaiWithProjection(prop.delaiMaxIntervention, prop.delaiProjectionIntervention)}</span>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
@@ -75,11 +75,15 @@ interface OfferFormProps {
   register: ReturnType<typeof import('react-hook-form').useForm>['register'];
   errors: Record<string, unknown>;
   pdfFile: File | null;
+  pdfRequiredError: boolean;
+  getFieldValue: (name: string) => unknown;
   onFileChange: (f: File | null) => void;
   onSubmitClick: () => void;
 }
 
-function OfferForm({ isResubmit, isSubmitting, register, errors, pdfFile, onFileChange, onSubmitClick }: Readonly<OfferFormProps>) {
+function OfferForm({ isResubmit, isSubmitting, register, errors, pdfFile, pdfRequiredError, getFieldValue, onFileChange, onSubmitClick }: Readonly<OfferFormProps>) {
+  const pdfInputRef = React.useRef<HTMLInputElement>(null);
+
   return (
     <Card className="border-slate-200 h-full flex flex-col">
       <CardHeader className="bg-slate-50/50 pb-3 border-b border-slate-100">
@@ -102,6 +106,21 @@ function OfferForm({ isResubmit, isSubmitting, register, errors, pdfFile, onFile
               : undefined}
           />
           <Input
+            label="DÉLAI INTERVENTION (semaines) *"
+            type="number"
+            min="1"
+            placeholder="Ex: 2"
+            {...register('delaiMaxIntervention', {
+              required: true,
+              min: { value: 1, message: 'Minimum 1 semaine' },
+              validate: value => Number(value) <= Number(getFieldValue('delaiMaxRendu'))
+                || "Le délai de rendu ne peut pas être inférieur au délai d'intervention.",
+            })}
+            error={(errors as Record<string, { message?: string }>).delaiMaxIntervention
+              ? ((errors as Record<string, { message?: string }>).delaiMaxIntervention?.message ?? 'Requis')
+              : undefined}
+          />
+          <Input
             label="DÉLAI RENDU (semaines) *"
             type="number"
             min="1"
@@ -111,36 +130,49 @@ function OfferForm({ isResubmit, isSubmitting, register, errors, pdfFile, onFile
               ? ((errors as Record<string, { message?: string }>).delaiMaxRendu?.message ?? 'Requis')
               : undefined}
           />
-          <Input
-            label="DÉLAI INTERVENTION (semaines) *"
-            type="number"
-            min="1"
-            placeholder="Ex: 2"
-            {...register('delaiMaxIntervention', { required: true, min: { value: 1, message: 'Minimum 1 semaine' } })}
-            error={(errors as Record<string, { message?: string }>).delaiMaxIntervention
-              ? ((errors as Record<string, { message?: string }>).delaiMaxIntervention?.message ?? 'Requis')
-              : undefined}
-          />
           <div>
             <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-              DEVIS PDF (optionnel)
+              DEVIS PDF *
             </span>
-            <label
-              htmlFor="pdf-upload"
-              className="flex items-center gap-2 w-full border border-dashed border-slate-300 rounded-md px-3 py-2 cursor-pointer hover:bg-slate-50 transition-colors"
-            >
-              <Paperclip className="w-4 h-4 text-slate-400 flex-shrink-0" />
-              <span className="text-xs text-slate-500 truncate">
-                {pdfFile ? pdfFile.name : 'Joindre un fichier PDF…'}
-              </span>
-            </label>
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="pdf-upload"
+                className="flex min-w-0 flex-1 items-center gap-2 border border-dashed border-slate-300 rounded-md px-3 py-2 cursor-pointer hover:bg-slate-50 transition-colors"
+              >
+                <Paperclip className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                <span className="text-xs text-slate-500 truncate">
+                  {pdfFile ? pdfFile.name : 'Joindre un fichier PDF…'}
+                </span>
+              </label>
+              {pdfFile && (
+                <button
+                  type="button"
+                  aria-label="Retirer le devis PDF sélectionné"
+                  title="Retirer le fichier"
+                  onClick={() => {
+                    onFileChange(null);
+                    if (pdfInputRef.current) pdfInputRef.current.value = '';
+                  }}
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded border border-slate-300 text-slate-500 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
             <input
               id="pdf-upload"
+              ref={pdfInputRef}
               type="file"
               accept="application/pdf"
+              aria-label="Devis PDF obligatoire"
               className="hidden"
               onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
             />
+            {pdfRequiredError && (
+              <p className="mt-1 text-xs font-medium text-red-600" role="alert">
+                Le devis PDF est obligatoire.
+              </p>
+            )}
           </div>
         </CardContent>
         <CardFooter className="bg-slate-50 border-t border-slate-100 py-3">
@@ -169,7 +201,8 @@ export default function BERequestDetail() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const [pdfRequiredError, setPdfRequiredError] = useState(false);
+  const { register, handleSubmit, getValues, formState: { errors } } = useForm();
 
   useEffect(() => {
     async function fetchData() {
@@ -205,12 +238,12 @@ export default function BERequestDetail() {
     if (!demande || !user || !myBureau?.id) return;
     setIsSubmitting(true);
     try {
-      // Upload PDF optionnel → récupère documentId
-      let documentId: number | undefined;
-      if (pdfFile) {
-        const doc = await uploadDocument(pdfFile);
-        documentId = doc.id;
+      if (!pdfFile) {
+        setPdfRequiredError(true);
+        return;
       }
+      const doc = await uploadDocument(pdfFile);
+      const documentId = doc.id;
 
       const newProp = await createPropositionDevis({
         demandeDevisId: demande.id,
@@ -366,8 +399,8 @@ export default function BERequestDetail() {
                       <span className="font-mono font-bold text-slate-700">{rp.prix} €</span>
                     </div>
                     <div className="text-slate-500 mt-0.5">
+                      {rp.delaiMaxIntervention != null && `Intervention : ${formatDelaiWithProjection(rp.delaiMaxIntervention, rp.delaiProjectionIntervention)} · `}
                       Rendu : {formatDelaiWithProjection(rp.delaiMaxRendu, rp.delaiProjectionRendu)}
-                      {rp.delaiMaxIntervention != null && ` · Intervention : ${formatDelaiWithProjection(rp.delaiMaxIntervention, rp.delaiProjectionIntervention)}`}
                     </div>
                   </div>
                 ))}
@@ -393,8 +426,18 @@ export default function BERequestDetail() {
               register={register}
               errors={errors}
               pdfFile={pdfFile}
-              onFileChange={setPdfFile}
-              onSubmitClick={() => setShowConfirmModal(true)}
+              pdfRequiredError={pdfRequiredError}
+              getFieldValue={getValues}
+              onFileChange={(file) => {
+                setPdfFile(file);
+                if (file) setPdfRequiredError(false);
+              }}
+              onSubmitClick={() => {
+                if (!pdfFile) {
+                  setPdfRequiredError(true);
+                }
+                setShowConfirmModal(true);
+              }}
             />
           )}
         </div>

@@ -1,13 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import {
   CalendarDays,
-  ChevronRight,
   ClipboardList,
   Clock,
   FileText,
   FolderOpen,
   Landmark,
   LayoutList,
+  ListChecks,
   MapPin,
   Mountain,
   Ruler,
@@ -76,7 +76,7 @@ export function EtudeDetailLayout({
   const sections = useMemo(
     () => [
       { id: 'synthese' as const, label: 'Synthese', icon: ClipboardList },
-      { id: 'progression' as const, label: 'Progression', icon: ChevronRight },
+      { id: 'progression' as const, label: 'Progression', icon: ListChecks },
       { id: 'documents' as const, label: 'Documents', icon: FolderOpen, count: documentCount },
       { id: 'dates' as const, label: 'Dates', icon: CalendarDays },
       { id: 'technique' as const, label: 'Technique', icon: Mountain, disabled: !hasTechnicalData },

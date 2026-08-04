@@ -32,6 +32,9 @@ describe('SectionMotDePasse', () => {
     saveMotDePasse.mockResolvedValueOnce(undefined);
     render(<SectionMotDePasse {...props} />);
 
+    expect(screen.getByRole('heading', { name: /modifier votre mot de passe/i })).toBeTruthy();
+    expect(screen.getByText(/sécuriser votre compte/i)).toBeTruthy();
+
     submitPasswordForm('Nouveau123!', 'Nouveau123!');
 
     await waitFor(() => expect(saveMotDePasse).toHaveBeenCalledWith({
