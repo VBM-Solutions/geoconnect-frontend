@@ -72,6 +72,8 @@ export interface DemandeDevisDTO {
   superficie?: number;
   description?: string;
   docsDevisIds?: number[];
+  /** Documents joints avec leur nom de téléchargement calculé par le backend. */
+  documentsDevis?: DocumentDTO[];
 }
 
 export type StatutProposition = 'EN_ATTENTE' | 'ACCEPTEE' | 'REFUSEE';
@@ -211,6 +213,7 @@ export interface DemandeDevisDetail {
   superficie?: number;
   description?: string;
   docsDevisIds?: number[];
+  documentsDevis?: DocumentDTO[];
   adresseProjet?: AdresseDTO;
   client?: ClientDetail;
 }

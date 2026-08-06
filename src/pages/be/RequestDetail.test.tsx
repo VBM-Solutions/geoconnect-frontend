@@ -95,16 +95,19 @@ describe('BERequestDetail — rendu initial', () => {
     expect(intervention.compareDocumentPosition(rendu) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('affiche les documents joints de la demande quand docsDevisIds est renseigné', async () => {
+  it('affiche les noms de téléchargement calculés par le backend', async () => {
     (demandeDevisApi.getDemandeDevisById as ReturnType<typeof vi.fn>).mockResolvedValue({
       ...MOCK_DEMANDE,
-      docsDevisIds: [12, 13],
+      documentsDevis: [
+        { id: 12, nomTelechargement: 'DUPONT_JEAN-G1_ES_PGC-DOCS_CLIENT_1.pdf' },
+        { id: 13, nomTelechargement: 'DUPONT_JEAN-G1_ES_PGC-DOCS_CLIENT_2.png' },
+      ],
     });
 
     renderRequestDetail();
 
-    expect(await screen.findByText('Document de la demande #1')).toBeTruthy();
-    expect(screen.getByText('Document de la demande #2')).toBeTruthy();
+    expect(await screen.findByText('DUPONT_JEAN-G1_ES_PGC-DOCS_CLIENT_1.pdf')).toBeTruthy();
+    expect(screen.getByText('DUPONT_JEAN-G1_ES_PGC-DOCS_CLIENT_2.png')).toBeTruthy();
   });
 });
 

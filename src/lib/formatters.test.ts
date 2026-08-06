@@ -6,21 +6,21 @@ import { formatDateShort, formatDateLong, buildDemandeDocuments } from './format
 describe('buildDemandeDocuments', () => {
   it('retourne un tableau vide si aucun document de demande n\'est présent', () => {
     expect(buildDemandeDocuments()).toEqual([]);
-    expect(buildDemandeDocuments({ docsDevisIds: [] })).toEqual([]);
+    expect(buildDemandeDocuments({ documentsDevis: [] })).toEqual([]);
   });
 
-  it('construit un document par id dans le même ordre', () => {
-    expect(buildDemandeDocuments({ docsDevisIds: [20, 21] })).toEqual([
-      { id: 20, label: 'Document de la demande #1' },
-      { id: 21, label: 'Document de la demande #2' },
+  it('retourne les documents enrichis par le backend dans le même ordre', () => {
+    expect(buildDemandeDocuments({ documentsDevis: [
+      { id: 20, nomTelechargement: 'DUPONT_JEAN-G1_ES_PGC-DOCS_CLIENT_1.pdf' },
+      { id: 21, nomTelechargement: 'DUPONT_JEAN-G1_ES_PGC-DOCS_CLIENT_2.png' },
+    ] })).toEqual([
+      { id: 20, nomTelechargement: 'DUPONT_JEAN-G1_ES_PGC-DOCS_CLIENT_1.pdf' },
+      { id: 21, nomTelechargement: 'DUPONT_JEAN-G1_ES_PGC-DOCS_CLIENT_2.png' },
     ]);
   });
 
-  it('ignore les ids null ou undefined', () => {
-    expect(buildDemandeDocuments({ docsDevisIds: [20, undefined as unknown as number, 21] })).toEqual([
-      { id: 20, label: 'Document de la demande #1' },
-      { id: 21, label: 'Document de la demande #2' },
-    ]);
+  it('retourne un tableau vide si le champ enrichi est absent', () => {
+    expect(buildDemandeDocuments({ documentsDevis: undefined })).toEqual([]);
   });
 });
 

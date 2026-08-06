@@ -1,19 +1,14 @@
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { DemandeDevisDTO, DemandeDevisDetail, DocumentRef } from '../types';
+import { DemandeDevisDTO, DemandeDevisDetail, DocumentDTO } from '../types';
 
-type DemandeWithDocuments = Pick<DemandeDevisDTO | DemandeDevisDetail, 'docsDevisIds'>;
+type DemandeWithDocuments = Pick<DemandeDevisDTO | DemandeDevisDetail, 'documentsDevis'>;
 
 /**
  * Construit la liste des documents joints à une demande de devis.
  */
-export function buildDemandeDocuments(demande?: DemandeWithDocuments | null): DocumentRef[] {
-  return (demande?.docsDevisIds ?? [])
-    .filter((docId): docId is number => docId != null)
-    .map((docId, index) => ({
-      id: docId,
-      label: `Document de la demande #${index + 1}`,
-    }));
+export function buildDemandeDocuments(demande?: DemandeWithDocuments | null): DocumentDTO[] {
+  return demande?.documentsDevis ?? [];
 }
 
 /**
