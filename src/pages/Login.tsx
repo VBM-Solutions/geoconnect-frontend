@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import { loginCall } from '../api/auth';
+import { getPublicApiError } from '../lib/utils';
 export default function Login() {
   const { register, handleSubmit, formState: { errors } } = useForm();
   const [error, setError] = useState<string | null>(null);
@@ -27,11 +28,13 @@ export default function Login() {
         navigate('/admin/utilisateurs');
       } else if (authRes.role === 'BUREAU_ETUDE') {
         navigate('/be/dashboard');
+      } else if (authRes.onboardingFinalized) {
+        navigate('/success');
       } else {
         navigate('/client/dashboard');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Identifiants incorrects");
+      setError(getPublicApiError(err, 'Adresse email ou mot de passe incorrect.').message);
     } finally {
       setIsLoading(false);
     }

@@ -16,6 +16,8 @@ const Home = lazy(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/Login'));
 const Success = lazy(() => import('./pages/Success'));
 const Forbidden = lazy(() => import('./pages/Forbidden'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const EmailVerificationPending = lazy(() => import('./pages/EmailVerificationPending'));
 const ClientDashboard = lazy(() => import('./pages/client/Dashboard'));
 const ClientRequestDetail = lazy(() => import('./pages/client/RequestDetail'));
 const ClientEtudeDetail = lazy(() => import('./pages/client/EtudeDetail'));
@@ -75,6 +77,8 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/success" element={<Success />} />
             <Route path="/403" element={<Forbidden />} />
+            <Route path="/verifier-email" element={<VerifyEmail />} />
+            <Route path="/verification-email-envoyee" element={<EmailVerificationPending />} />
             <Route path="/bureau-etudes/inscription" element={<BERegister />} />
             <Route path="/parametres" element={<ParametresRedirect />} />
 

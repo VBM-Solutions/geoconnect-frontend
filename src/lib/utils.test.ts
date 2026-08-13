@@ -1,5 +1,25 @@
 import { describe, it, expect } from 'vitest';
-import { cn, extractCodeDepartement } from './utils';
+import { cn, extractCodeDepartement, extractErrorMessage, getPublicApiError } from './utils';
+
+describe('messages d’erreur publics', () => {
+  it('préfère le message API, puis le message natif, puis le fallback', () => {
+    expect(extractErrorMessage({ response: { data: { message: 'API' } } })).toBe('API');
+    expect(extractErrorMessage(new Error('Native'))).toBe('Native');
+    expect(extractErrorMessage(null, 'Secours')).toBe('Secours');
+  });
+
+  it('retourne le code et le message public non vide de l’API', () => {
+    expect(getPublicApiError({ response: { data: {
+      code: 'INVALID_CREDENTIALS', message: 'Identifiants incorrects',
+    } } }, 'Secours')).toEqual({ code: 'INVALID_CREDENTIALS', message: 'Identifiants incorrects' });
+  });
+
+  it('utilise le fallback pour un message absent, vide ou non textuel', () => {
+    expect(getPublicApiError({}, 'Secours')).toEqual({ code: undefined, message: 'Secours' });
+    expect(getPublicApiError({ response: { data: { message: '   ' } } }, 'Secours').message).toBe('Secours');
+    expect(getPublicApiError({ response: { data: { message: 42 } } }, 'Secours').message).toBe('Secours');
+  });
+});
 
 describe('cn', () => {
   it('retourne une chaîne vide si aucun argument', () => {

@@ -2,7 +2,7 @@ import { TypeDemandeDevis } from '../types';
 import { normalizeReferencesCadastrales } from './cadastralReferences';
 
 export interface DemandePayloadInput {
-  clientId: number;
+  clientId?: number;
   delaiMaxSouhaite?: unknown;
   type: TypeDemandeDevis;
   description?: string;
@@ -26,7 +26,7 @@ export function mapFormFieldsToPayloadBase(data: Record<string, unknown>) {
 
 export function buildDemandePayload(input: DemandePayloadInput) {
   return {
-    clientId: input.clientId,
+    ...(input.clientId !== undefined ? { clientId: input.clientId } : {}),
     delaiMaxSouhaite: input.delaiMaxSouhaite ? Number(input.delaiMaxSouhaite) : undefined,
     type: input.type,
     description: input.description,

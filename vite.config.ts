@@ -70,6 +70,8 @@ export default defineConfig(({mode}) => {
     test: {
       globals: true,
       environment: 'jsdom',
+      // L'instrumentation V8 ralentit les scénarios UI complets en CI.
+      testTimeout: 30_000,
       setupFiles: ['./src/test/setup.ts'],
       coverage: {
         provider: 'v8',
