@@ -1,7 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { evaluateSessionState, resolveSessionPolicy } from './sessionPolicy';
 
 describe('sessionPolicy', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('utilise la valeur par defaut lorsque la variable est invalide', () => {
+    vi.stubEnv('VITE_IDLE_TIMEOUT_MS', 'invalide');
+    expect(resolveSessionPolicy().idleTimeoutMs).toBe(20 * 60 * 1000);
+  });
   it('normalise warningDurationMs pour rester strictement inférieur au délai idle', () => {
     const policy = resolveSessionPolicy({
       idleTimeoutMs: 10_000,

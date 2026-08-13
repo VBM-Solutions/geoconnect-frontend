@@ -236,9 +236,32 @@ function EtudeCard(props: Readonly<EtudeCardProps>) {
 
 // ─── Dashboard client ─────────────────────────────────────────────────────────
 
+function PaginationControls({ page, totalPages, onChange }: Readonly<{
+  page: number;
+  totalPages: number;
+  onChange: (page: number) => void | Promise<void>;
+}>) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-between border-t border-slate-200 pt-4">
+      <span className="text-xs text-slate-500">Page {page + 1}/{totalPages}</span>
+      <div className="flex gap-2">
+        <Button size="sm" variant="outline" disabled={page === 0} onClick={() => onChange(page - 1)}>Précédent</Button>
+        <Button size="sm" variant="outline" disabled={page + 1 >= totalPages} onClick={() => onChange(page + 1)}>Suivant</Button>
+      </div>
+    </div>
+  );
+}
+
 export default function ClientDashboard() {
   const { toastError } = useToast();
-  const { demandes, etudes, etudeIdsAEvaluer = [], isLoading, error } = useClientDashboardData();
+  const {
+    demandes, etudes, etudeIdsAEvaluer = [], isLoading, error,
+    demandePage, activeEtudePage, archivedEtudePage,
+    demandeTotal, activeEtudeTotal, archivedEtudeTotal, completedEtudeTotal,
+    demandeTotalPages, activeEtudeTotalPages, archivedEtudeTotalPages,
+    setDemandePage, setActiveEtudePage, setArchivedEtudePage,
+  } = useClientDashboardData();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as TabType | null;
@@ -286,19 +309,19 @@ export default function ClientDashboard() {
   }
 
   const demandesEnCours = demandes.filter(d => !d.propositions?.some(p => p.statut === 'ACCEPTEE'));
-  const etudesTotales   = etudes.length;
+  const etudesTotales   = activeEtudeTotal + archivedEtudeTotal;
   const etudesArchivees = etudes.filter(e => e.etat === 'PAIEMENT_EFFECTUE');
   const etudesEnCours   = etudes.filter(e => e.etat !== 'PAIEMENT_EFFECTUE');
-  const etudesTerminees = etudes.filter(e => e.etat === 'RAPPORT_TERMINE' || e.etat === 'PAIEMENT_EFFECTUE').length;
+  const etudesTerminees = completedEtudeTotal;
   const navSections: DashboardNavSection[] = [
     {
       id: 'pilotage',
       title: 'Pilotage',
       defaultExpanded: true,
       items: [
-        { id: 'DEMANDES', label: 'Mes demandes', count: demandesEnCours.length, icon: <FileText className="w-4 h-4" />, hidden: demandesEnCours.length === 0 },
-        { id: 'ETUDES', label: 'Études en cours', count: etudesEnCours.length, icon: <FlaskConical className="w-4 h-4" /> },
-        { id: 'ARCHIVES', label: 'Études archivées', count: etudesArchivees.length, icon: <Archive className="w-4 h-4" />, hidden: etudesArchivees.length === 0 },
+        { id: 'DEMANDES', label: 'Mes demandes', count: demandeTotal, icon: <FileText className="w-4 h-4" />, hidden: demandeTotal === 0 },
+        { id: 'ETUDES', label: 'Études en cours', count: activeEtudeTotal, icon: <FlaskConical className="w-4 h-4" /> },
+        { id: 'ARCHIVES', label: 'Études archivées', count: archivedEtudeTotal, icon: <Archive className="w-4 h-4" />, hidden: archivedEtudeTotal === 0 },
       ],
     },
   ];
@@ -366,7 +389,7 @@ export default function ClientDashboard() {
           />
           <DashboardMetricCard
             label="Études en cours"
-            value={etudesEnCours.length}
+            value={activeEtudeTotal}
             icon={<FlaskConical className="h-4 w-4" />}
             valueClassName="text-orange-600"
           />
@@ -378,7 +401,7 @@ export default function ClientDashboard() {
           />
           <DashboardMetricCard
             label="Demandes ouvertes"
-            value={demandesEnCours.length}
+            value={demandeTotal}
             icon={<FileText className="h-4 w-4" />}
             valueClassName="text-blue-700"
           />
@@ -409,6 +432,7 @@ export default function ClientDashboard() {
                 description="Vous n'avez pas encore publié de demande de devis. Utilisez le bouton « Nouvelle demande » en haut de page pour en créer une."
               />
             ) : (
+              <div className="space-y-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-6 gap-4">
                 {demandesEnCours.map(demande => {
                   const propsCount = demande.propositions?.length || 0;
@@ -456,6 +480,8 @@ export default function ClientDashboard() {
                   );
                 })}
               </div>
+              <PaginationControls page={demandePage} totalPages={demandeTotalPages} onChange={setDemandePage} />
+              </div>
             )
           )}
 
@@ -468,12 +494,15 @@ export default function ClientDashboard() {
                 description="Acceptez une proposition de devis pour démarrer une étude."
               />
             ) : (
+              <div className="space-y-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-6 gap-4">
                 {etudesEnCours.map((etude, index) => (
                   <React.Fragment key={etude.id ?? `etude-${index}`}>
                     <EtudeCard etude={etude} />
                   </React.Fragment>
                 ))}
+              </div>
+              <PaginationControls page={activeEtudePage} totalPages={activeEtudeTotalPages} onChange={setActiveEtudePage} />
               </div>
             )
           )}
@@ -487,6 +516,7 @@ export default function ClientDashboard() {
                 description="Les études dont le paiement a été effectué apparaîtront ici."
               />
             ) : (
+              <div className="space-y-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-6 gap-4">
                 {etudesArchivees.map((etude, index) => (
                   <React.Fragment key={etude.id ?? `archive-${index}`}>
@@ -497,6 +527,8 @@ export default function ClientDashboard() {
                     />
                   </React.Fragment>
                 ))}
+              </div>
+              <PaginationControls page={archivedEtudePage} totalPages={archivedEtudeTotalPages} onChange={setArchivedEtudePage} />
               </div>
             )
           )}

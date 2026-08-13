@@ -12,10 +12,13 @@ import {
   updateEtude,
   getEtudesByBureauId,
   getEtudesByClientId,
+  getEtudeDetailsByBureauId,
+  getEtudeDetailsByBureauIdPaginated,
+  getEtudeDetailsByClientId,
+  getEtudeDetailsByClientIdPaginated,
   getEtudeDetailById,
   getEtudeDocuments,
   definirDateRenduPrevue,
-  fetchEtudeDetails,
   getEtudeIdsAEvaluer,
   getStatutEvaluation,
   evaluerEtude,
@@ -37,6 +40,18 @@ const fakeDetail = { id: 1, etat: 'DEVIS_VALIDE', bureauEtude: null, demandeDevi
 const fakeEtude  = { id: 1, etat: 'EN_COURS' };
 
 beforeEach(() => vi.clearAllMocks());
+
+describe('pagination des études client', () => {
+  it('transmet catégorie, page et taille', async () => {
+    const response = { items: [fakeDetail], page: 1, size: 8, totalItems: 9, totalPages: 2, hasNext: false };
+    (api.get as any).mockResolvedValueOnce({ data: response });
+
+    await expect(getEtudeDetailsByClientIdPaginated(3, 'ARCHIVED', 1, 8)).resolves.toEqual(response);
+    expect(api.get).toHaveBeenCalledWith('/etude/client/3/details/paged', {
+      params: { category: 'ARCHIVED', page: 1, size: 8 },
+    });
+  });
+});
 
 describe('évaluation d’étude', () => {
   it('charge en une requête les études encore à évaluer', async () => {
@@ -241,6 +256,25 @@ describe('getEtudesByClientId', () => {
   });
 });
 
+describe('scoped etude details', () => {
+  it('retourne tous les détails du bureau en un appel', async () => {
+    (api.get as any).mockResolvedValueOnce({ data: [fakeDetail] });
+    await expect(getEtudeDetailsByBureauId(10)).resolves.toEqual([fakeDetail]);
+    expect(api.get).toHaveBeenCalledWith('/etude/bureauEtude/10/details');
+  });
+
+  it('retourne tous les détails du client en un appel', async () => {
+    (api.get as any).mockResolvedValueOnce({ data: [fakeDetail] });
+    await expect(getEtudeDetailsByClientId(5)).resolves.toEqual([fakeDetail]);
+    expect(api.get).toHaveBeenCalledWith('/etude/client/5/details');
+  });
+
+  it('normalise une réponse vide', async () => {
+    (api.get as any).mockResolvedValueOnce({ data: null });
+    await expect(getEtudeDetailsByClientId(5)).resolves.toEqual([]);
+  });
+});
+
 describe('getEtudeDetailById', () => {
   it('appelle GET /etude/{id}/detail et retourne le détail', async () => {
     (api.get as any).mockResolvedValueOnce({ data: fakeDetail });
@@ -254,88 +288,6 @@ describe('getEtudeDetailById', () => {
     await expect(getEtudeDetailById(999)).rejects.toThrow('Not found');
   });
 
-  it("récupère le slug publié depuis la proposition lorsqu'il manque au détail", async () => {
-    const detailSansSlug = {
-      id: 1,
-      propositionDevis: {
-        id: 55,
-        bureauEtude: { id: 7, raisonSociale: 'Test Bureau' },
-      },
-    };
-    (api.get as any)
-      .mockResolvedValueOnce({ data: detailSansSlug })
-      .mockResolvedValueOnce({
-        data: {
-          id: 55,
-          bureauEtude: {
-            id: 7,
-            raisonSociale: 'Test Bureau',
-            profilPublicSlug: 'test-bureau-7',
-          },
-        },
-      });
-
-    const result = await getEtudeDetailById(1);
-
-    expect(api.get).toHaveBeenNthCalledWith(1, '/etude/1/detail');
-    expect(api.get).toHaveBeenNthCalledWith(2, '/propositionDevis/55');
-    expect(result.propositionDevis?.bureauEtude?.profilPublicSlug).toBe('test-bureau-7');
-  });
-
-  it('ne recharge pas la proposition lorsque le détail contient déjà le slug', async () => {
-    const detailAvecSlug = {
-      id: 1,
-      propositionDevis: {
-        id: 55,
-        bureauEtude: {
-          id: 7,
-          raisonSociale: 'Test Bureau',
-          profilPublicSlug: 'test-bureau-7',
-        },
-      },
-    };
-    (api.get as any).mockResolvedValueOnce({ data: detailAvecSlug });
-
-    const result = await getEtudeDetailById(1);
-
-    expect(api.get).toHaveBeenCalledOnce();
-    expect(result).toEqual(detailAvecSlug);
-  });
-
-  it("conserve le détail lorsque l'enrichissement du slug échoue", async () => {
-    const detailSansSlug = {
-      id: 1,
-      propositionDevis: {
-        id: 55,
-        bureauEtude: { id: 7, raisonSociale: 'Test Bureau' },
-      },
-    };
-    (api.get as any)
-      .mockResolvedValueOnce({ data: detailSansSlug })
-      .mockRejectedValueOnce(new Error('Proposition indisponible'));
-
-    await expect(getEtudeDetailById(1)).resolves.toEqual(detailSansSlug);
-  });
-
-  it("conserve le détail lorsque la proposition complète n'a pas de slug", async () => {
-    const detailSansSlug = {
-      id: 1,
-      propositionDevis: {
-        id: 55,
-        bureauEtude: { id: 7, raisonSociale: 'Test Bureau' },
-      },
-    };
-    (api.get as any)
-      .mockResolvedValueOnce({ data: detailSansSlug })
-      .mockResolvedValueOnce({
-        data: {
-          id: 55,
-          bureauEtude: { id: 7, raisonSociale: 'Test Bureau' },
-        },
-      });
-
-    await expect(getEtudeDetailById(1)).resolves.toEqual(detailSansSlug);
-  });
 });
 
 describe('getEtudeDocuments', () => {
@@ -356,33 +308,19 @@ describe('getEtudeDocuments', () => {
   });
 });
 
-// ─── fetchEtudeDetails ────────────────────────────────────────────────────────
-
-describe('fetchEtudeDetails', () => {
-  it('retourne [] pour une liste vide', async () => {
-    const result = await fetchEtudeDetails([]);
-    expect(result).toEqual([]);
+describe('getEtudeDetailsByBureauIdPaginated', () => {
+  it('transmet la catégorie et les valeurs de pagination', async () => {
+    const response = { items: [], page: 2, size: 12, totalItems: 0, totalPages: 0, hasNext: false };
+    (api.get as any).mockResolvedValueOnce({ data: response });
+    await expect(getEtudeDetailsByBureauIdPaginated(10, 'ARCHIVED', 2, 12)).resolves.toEqual(response);
+    expect(api.get).toHaveBeenCalledWith('/etude/bureauEtude/10/details/paged', {
+      params: { category: 'ARCHIVED', page: 2, size: 12 },
+    });
   });
+});
 
-  it('enrichit chaque étude avec son détail', async () => {
-    (api.get as any).mockResolvedValueOnce({ data: fakeDetail });
-    const result = await fetchEtudeDetails([fakeEtude as any]);
-    expect(api.get).toHaveBeenCalledWith('/etude/1/detail');
-    expect(result).toEqual([fakeDetail]);
-  });
-
-  it('utilise le DTO brut en fallback si getEtudeDetailById échoue', async () => {
-    (api.get as any).mockRejectedValueOnce(new Error('KO'));
-    const result = await fetchEtudeDetails([fakeEtude as any]);
-    // Doit retourner le DTO brut (spread) sans lever d'exception
-    expect(result).toEqual([fakeEtude]);
-  });
-
-  it('résout les études sans id sans appel API', async () => {
-    const noIdEtude = { etat: 'EN_COURS' };
-    const result = await fetchEtudeDetails([noIdEtude as any]);
-    expect(api.get).not.toHaveBeenCalled();
-    expect(result).toEqual([noIdEtude]);
-  });
+it('normalise une réponse vide pour les détails bureau', async () => {
+  (api.get as any).mockResolvedValueOnce({ data: undefined });
+  await expect(getEtudeDetailsByBureauId(10)).resolves.toEqual([]);
 });
 

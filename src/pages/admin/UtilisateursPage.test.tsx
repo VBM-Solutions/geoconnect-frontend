@@ -11,13 +11,13 @@ vi.mock('../../contexts/ToastContext', () => ({
   useToast: () => ({ toastSuccess: mockToastSuccess, toastError: mockToastError }),
 }));
 
-const listerUtilisateurs = vi.fn();
+const listerUtilisateursPagines = vi.fn();
 const activerUtilisateur = vi.fn();
 const desactiverUtilisateur = vi.fn();
 const reinitialiserMotDePasse = vi.fn();
 
 vi.mock('../../api/admin', () => ({
-  listerUtilisateurs: (...args: unknown[]) => listerUtilisateurs(...args),
+  listerUtilisateursPagines: (...args: unknown[]) => listerUtilisateursPagines(...args),
   activerUtilisateur: (...args: unknown[]) => activerUtilisateur(...args),
   desactiverUtilisateur: (...args: unknown[]) => desactiverUtilisateur(...args),
   reinitialiserMotDePasse: (...args: unknown[]) => reinitialiserMotDePasse(...args),
@@ -46,7 +46,26 @@ function renderPage() {
 describe('UtilisateursPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    listerUtilisateurs.mockResolvedValue(utilisateurs);
+    listerUtilisateursPagines.mockImplementation((page: number, size: number, filters: any) => {
+      let result = utilisateurs.filter((user) =>
+        (!filters.role || user.role === filters.role)
+        && (!filters.search || user.login.includes(filters.search)));
+      result = [...result].sort((a, b) => {
+        const left = filters.sort === 'status' ? Number(a.enabled) : String((a as any)[filters.sort]);
+        const right = filters.sort === 'status' ? Number(b.enabled) : String((b as any)[filters.sort]);
+        const comparison = left < right ? -1 : left > right ? 1 : 0;
+        return filters.direction === 'asc' ? comparison : -comparison;
+      });
+      const totalPages = Math.ceil(result.length / size);
+      return Promise.resolve({
+        items: result.slice(page * size, (page + 1) * size),
+        page,
+        size,
+        totalItems: result.length,
+        totalPages,
+        hasNext: page + 1 < totalPages,
+      });
+    });
     activerUtilisateur.mockResolvedValue(undefined);
     desactiverUtilisateur.mockResolvedValue(undefined);
     reinitialiserMotDePasse.mockResolvedValue(undefined);
@@ -72,14 +91,14 @@ describe('UtilisateursPage', () => {
       target: { value: 'ADMIN' },
     });
 
-    expect(screen.getByText('alpha@test.fr')).toBeTruthy();
+    expect(await screen.findByText('alpha@test.fr')).toBeTruthy();
     expect(screen.queryByText('beta@test.fr')).toBeNull();
 
     fireEvent.change(screen.getByPlaceholderText('Rechercher par email'), {
       target: { value: 'zzz' },
     });
 
-    expect(screen.getByText(/aucun utilisateur ne correspond/i)).toBeTruthy();
+    expect(await screen.findByText(/aucun utilisateur ne correspond/i)).toBeTruthy();
   });
 
   it('trie par login', async () => {
@@ -89,8 +108,10 @@ describe('UtilisateursPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /trier par login/i }));
 
-    const rows = document.querySelectorAll('tbody tr');
-    expect(rows.item(0).textContent).toContain('alpha@test.fr');
+    await waitFor(() => {
+      const rows = document.querySelectorAll('tbody tr');
+      expect(rows.item(0)?.textContent).toContain('alpha@test.fr');
+    });
   });
 
   it('active un utilisateur inactif', async () => {
@@ -141,7 +162,7 @@ describe('UtilisateursPage', () => {
   });
 
   it('affiche un toast en erreur de chargement', async () => {
-    listerUtilisateurs.mockRejectedValueOnce(new Error('Erreur reseau'));
+    listerUtilisateursPagines.mockRejectedValueOnce(new Error('Erreur reseau'));
 
     renderPage();
 

@@ -21,6 +21,19 @@ export const getPropositionDevisByDemandeId = async (demandeId: number): Promise
   return data;
 };
 
+export type PropositionsByDemandeId = Record<number, PropositionDevisDTO[]>;
+
+export const getPropositionsByDemandeIds = async (
+  demandeIds: number[],
+): Promise<PropositionsByDemandeId> => {
+  if (demandeIds.length === 0) return {};
+  const ids = [...new Set(demandeIds)];
+  const { data } = await api.get<PropositionsByDemandeId>('/propositionDevis/devis', {
+    params: { ids: ids.join(',') },
+  });
+  return data ?? {};
+};
+
 export const getPropositionDevisByBureauId = async (bureauId: number): Promise<PropositionDevisDTO[]> => {
   const { data } = await api.get(`/propositionDevis/bureauEtude/${bureauId}`);
   return data;

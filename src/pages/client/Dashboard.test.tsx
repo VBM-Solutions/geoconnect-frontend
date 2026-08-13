@@ -84,6 +84,19 @@ describe('ClientDashboard', () => {
       error: null,
       refetch: vi.fn(),
       client: null,
+      demandePage: 0,
+      activeEtudePage: 0,
+      archivedEtudePage: 0,
+      demandeTotal: 1,
+      activeEtudeTotal: 1,
+      archivedEtudeTotal: 1,
+      completedEtudeTotal: 1,
+      demandeTotalPages: 1,
+      activeEtudeTotalPages: 1,
+      archivedEtudeTotalPages: 1,
+      setDemandePage: vi.fn(),
+      setActiveEtudePage: vi.fn(),
+      setArchivedEtudePage: vi.fn(),
     });
   });
 

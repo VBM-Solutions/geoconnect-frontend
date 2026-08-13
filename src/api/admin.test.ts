@@ -5,6 +5,7 @@ import {
   desactiverUtilisateur,
   getUtilisateur,
   listerUtilisateurs,
+  listerUtilisateursPagines,
   reinitialiserMotDePasse,
 } from './admin';
 
@@ -36,6 +37,18 @@ describe('listerUtilisateurs', () => {
 
     expect(api.get).toHaveBeenCalledWith('/admin/utilisateurs');
     expect(result).toEqual([fakeUtilisateur]);
+  });
+});
+
+describe('listerUtilisateursPagines', () => {
+  it('transmet les paramètres et retourne les métadonnées', async () => {
+    const page = { items: [fakeUtilisateur], page: 1, size: 25, totalItems: 30, totalPages: 2, hasNext: false };
+    (api.get as any).mockResolvedValueOnce({ data: page });
+
+    await expect(listerUtilisateursPagines(1, 25)).resolves.toEqual(page);
+    expect(api.get).toHaveBeenCalledWith('/admin/utilisateurs/paged', {
+      params: { page: 1, size: 25 },
+    });
   });
 });
 

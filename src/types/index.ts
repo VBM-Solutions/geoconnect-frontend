@@ -10,6 +10,26 @@ export interface AdresseDTO {
   geocodedAt?: string;
 }
 
+export interface PageResponse<T> {
+  items: T[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+  hasNext: boolean;
+}
+
+export interface BEDemandePageItemDTO {
+  demande: DemandeDevisDTO;
+  proposition: PropositionDevisDTO | null;
+}
+
+export interface DemandeDetailDTO {
+  demande: DemandeDevisDTO;
+  propositions: PropositionDevisDTO[];
+  bureauEtudeId: number | null;
+}
+
 export interface AddressSuggestionDTO {
   label: string;
   rue?: string;

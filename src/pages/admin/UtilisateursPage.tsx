@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertCircle, ArrowDownAZ, ArrowUpAZ, Search, UserPlus } from 'lucide-react';
 import {
   activerUtilisateur,
   desactiverUtilisateur,
-  listerUtilisateurs,
+  listerUtilisateursPagines,
   reinitialiserMotDePasse,
 } from '../../api/admin';
 import { useToast } from '../../contexts/ToastContext';
@@ -15,10 +15,7 @@ import { ConfirmDesactiverModal } from '../../components/admin/ConfirmDesactiver
 import { ResetPasswordModal } from '../../components/admin/ResetPasswordModal';
 import {
   getApiMessage,
-  normalizeText,
-  paginateUtilisateurs,
   roleBadgeClass,
-  sortUtilisateurs,
   SortDirection,
   USER_PAGE_SIZE,
   UserSortKey,
@@ -64,22 +61,37 @@ function SortableHeader({
 export default function UtilisateursPage() {
   const { toastSuccess, toastError } = useToast();
   const [utilisateurs, setUtilisateurs] = useState<UtilisateurDTO[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'ALL' | Role>('ALL');
   const [sortKey, setSortKey] = useState<UserSortKey>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [currentPage, setCurrentPage] = useState(1);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [disableTarget, setDisableTarget] = useState<UtilisateurDTO | null>(null);
   const [resetTarget, setResetTarget] = useState<UtilisateurDTO | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    const timeout = globalThis.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => globalThis.clearTimeout(timeout);
+  }, [search]);
+
+  useEffect(() => {
     async function loadUtilisateurs() {
       setIsLoading(true);
       try {
-        const data = await listerUtilisateurs();
-        setUtilisateurs(data);
+        const data = await listerUtilisateursPagines(currentPage - 1, USER_PAGE_SIZE, {
+          search: debouncedSearch || undefined,
+          role: roleFilter === 'ALL' ? undefined : roleFilter,
+          sort: sortKey,
+          direction: sortDirection,
+        });
+        setUtilisateurs(data.items);
+        setTotalItems(data.totalItems);
+        setTotalPages(Math.max(1, data.totalPages));
       } catch (error: any) {
         toastError(getApiMessage(error, 'Impossible de charger les utilisateurs'));
       } finally {
@@ -88,34 +100,11 @@ export default function UtilisateursPage() {
     }
 
     loadUtilisateurs();
-  }, [toastError]);
-
-  const filteredUtilisateurs = useMemo(() => {
-    const searchValue = normalizeText(search);
-    return utilisateurs.filter((utilisateur) => {
-      const roleMatch = roleFilter === 'ALL' || utilisateur.role === roleFilter;
-      const searchMatch = !searchValue || normalizeText(utilisateur.login).includes(searchValue);
-      return roleMatch && searchMatch;
-    });
-  }, [utilisateurs, roleFilter, search]);
-
-  const sortedUtilisateurs = useMemo(() => {
-    return sortUtilisateurs(filteredUtilisateurs, sortKey, sortDirection);
-  }, [filteredUtilisateurs, sortKey, sortDirection]);
-
-  const pagination = useMemo(() => {
-    return paginateUtilisateurs(sortedUtilisateurs, currentPage, USER_PAGE_SIZE);
-  }, [sortedUtilisateurs, currentPage]);
+  }, [currentPage, debouncedSearch, roleFilter, sortDirection, sortKey, toastError]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, roleFilter, sortKey, sortDirection]);
-
-  useEffect(() => {
-    if (currentPage > pagination.totalPages) {
-      setCurrentPage(pagination.totalPages);
-    }
-  }, [currentPage, pagination.totalPages]);
+  }, [debouncedSearch, roleFilter, sortKey, sortDirection]);
 
   const toggleSort = (nextSortKey: UserSortKey) => {
     if (sortKey === nextSortKey) {
@@ -178,7 +167,7 @@ export default function UtilisateursPage() {
         <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
       </div>
     );
-  } else if (filteredUtilisateurs.length === 0) {
+  } else if (utilisateurs.length === 0) {
     tableContent = (
       <div className="flex items-center justify-center gap-2 p-10 text-sm text-slate-500">
         <AlertCircle className="h-4 w-4" /> Aucun utilisateur ne correspond aux filtres.
@@ -230,7 +219,7 @@ export default function UtilisateursPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
-            {pagination.items.map((utilisateur) => (
+            {utilisateurs.map((utilisateur) => (
               <tr key={utilisateur.id} className="hover:bg-slate-50/70">
                 <td className="px-4 py-3 text-slate-700">{utilisateur.login}</td>
                 <td className="px-4 py-3">
@@ -285,7 +274,7 @@ export default function UtilisateursPage() {
 
         <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3">
           <p className="text-[11px] text-slate-500">
-            {sortedUtilisateurs.length} resultat{sortedUtilisateurs.length > 1 ? 's' : ''} - page {currentPage}/{pagination.totalPages}
+            {totalItems} resultat{totalItems > 1 ? 's' : ''} - page {currentPage}/{totalPages}
           </p>
           <div className="flex gap-2">
             <Button
@@ -299,8 +288,8 @@ export default function UtilisateursPage() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => setCurrentPage((prev) => Math.min(pagination.totalPages, prev + 1))}
-              disabled={currentPage >= pagination.totalPages}
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={currentPage >= totalPages}
             >
               Suivant
             </Button>

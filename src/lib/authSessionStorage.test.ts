@@ -56,6 +56,14 @@ describe('authSessionStorage', () => {
     expect(readLastActivityAt()).toBe(222);
   });
 
+  it('remplace les horodatages invalides', () => {
+    localStorage.setItem(SESSION_STARTED_AT_KEY, 'invalide');
+    localStorage.setItem(LAST_ACTIVITY_AT_KEY, '0');
+    ensureSessionMetadata(999);
+    expect(readSessionStartedAt()).toBe(999);
+    expect(readLastActivityAt()).toBe(999);
+  });
+
   it('touchLastActivity met à jour uniquement la dernière activité', () => {
     localStorage.setItem(SESSION_STARTED_AT_KEY, '100');
     localStorage.setItem(LAST_ACTIVITY_AT_KEY, '200');

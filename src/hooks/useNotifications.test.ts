@@ -158,6 +158,24 @@ describe('useNotifications', () => {
     expect(result.current.unreadCount).toBe(0);
     expect(markAllNotificationsAsRead).toHaveBeenCalled();
   });
+
+  it('resynchronise le badge si le marquage individuel echoue', async () => {
+    (getUnreadCount as ReturnType<typeof vi.fn>).mockResolvedValueOnce(2).mockResolvedValueOnce(4);
+    (markNotificationAsRead as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('KO'));
+    const { result } = renderHook(() => useNotifications(true));
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    await act(async () => { await result.current.markAsRead(1); });
+    expect(result.current.unreadCount).toBe(4);
+  });
+
+  it('resynchronise le badge si le marquage global echoue', async () => {
+    (getUnreadCount as ReturnType<typeof vi.fn>).mockResolvedValueOnce(2).mockResolvedValueOnce(3);
+    (markAllNotificationsAsRead as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('KO'));
+    const { result } = renderHook(() => useNotifications(true));
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    await act(async () => { await result.current.markAllAsRead(); });
+    expect(result.current.unreadCount).toBe(3);
+  });
 });
 
 
