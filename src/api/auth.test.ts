@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { loginCall, registerBureauEtudeCall, registerClientCall, logoutCall, confirmEmailCall, resendVerificationEmailCall } from './auth';
+import { loginCall, registerBureauEtudeCall, registerClientCall, logoutCall, confirmEmailCall, resendVerificationEmailCall, refreshCall, getSessionConfigCall } from './auth';
 
 vi.mock('./index', () => ({
   default: {
     post: vi.fn(),
+    get: vi.fn(),
   },
 }));
 
@@ -108,6 +109,27 @@ describe('logoutCall', () => {
     (api.post as any).mockRejectedValueOnce(new Error('Network error'));
 
     await expect(logoutCall()).rejects.toThrow('Network error');
+  });
+});
+
+describe('session', () => {
+  it('renouvelle les cookies de session', async () => {
+    (api.post as any).mockResolvedValueOnce({});
+
+    await expect(refreshCall()).resolves.toBeUndefined();
+    expect(api.post).toHaveBeenCalledWith('/auth/refresh');
+  });
+
+  it('charge la politique de session du backend', async () => {
+    const config = {
+      idleTimeoutMs: 1_200_000,
+      warningDurationMs: 120_000,
+      absoluteTimeoutMs: 36_000_000,
+    };
+    (api.get as any).mockResolvedValueOnce({ data: config });
+
+    await expect(getSessionConfigCall()).resolves.toEqual(config);
+    expect(api.get).toHaveBeenCalledWith('/auth/session-config');
   });
 });
 

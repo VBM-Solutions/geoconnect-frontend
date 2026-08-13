@@ -1,7 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import { useSessionTimeout } from '../../hooks/useSessionTimeout';
+import { getSessionConfigCall } from '../../api/auth';
+import { SessionPolicy } from '../../lib/sessionPolicy';
 
 function formatCountdown(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
@@ -11,7 +13,26 @@ function formatCountdown(totalSeconds: number): string {
 
 export function SessionTimeoutGuard() {
   const { isAuthenticated } = useAuth();
-  const { showWarning, secondsRemaining, stayConnected, logoutNow } = useSessionTimeout();
+  const [serverPolicy, setServerPolicy] = useState<Partial<SessionPolicy>>();
+  const { showWarning, secondsRemaining, stayConnected, logoutNow } = useSessionTimeout({ policy: serverPolicy });
+
+  useEffect(() => {
+    let active = true;
+
+    getSessionConfigCall()
+      .then(config => {
+        if (active) {
+          setServerPolicy(config);
+        }
+      })
+      .catch(() => {
+        // Les valeurs locales restent un repli sûr si la configuration est indisponible.
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const countdown = useMemo(() => formatCountdown(secondsRemaining), [secondsRemaining]);
 
@@ -21,6 +42,7 @@ export function SessionTimeoutGuard() {
 
   return (
     <ConfirmModal
+      dismissible={false}
       variant="warning"
       title="Session bientôt expirée"
       message="Aucune activité détectée. Pour des raisons de sécurité, vous allez être déconnecté automatiquement."

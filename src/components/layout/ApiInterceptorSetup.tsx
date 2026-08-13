@@ -1,8 +1,45 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../api';
+import { refreshCall } from '../../api/auth';
+
+interface RetryableRequestConfig extends InternalAxiosRequestConfig {
+  _retryAfterRefresh?: boolean;
+}
+
+const AUTH_ENDPOINTS_WITHOUT_REFRESH = [
+  '/auth/login',
+  '/auth/refresh',
+  '/auth/logout',
+  '/auth/session-config',
+  '/auth/register',
+  '/auth/email-verifications',
+];
+
+let refreshInFlight: Promise<void> | null = null;
+
+function refreshOnce(): Promise<void> {
+  if (!refreshInFlight) {
+    refreshInFlight = refreshCall().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+function canRefresh(config: RetryableRequestConfig | undefined): config is RetryableRequestConfig {
+  if (!config || config._retryAfterRefresh) {
+    return false;
+  }
+  return !AUTH_ENDPOINTS_WITHOUT_REFRESH.some(endpoint => config.url?.includes(endpoint));
+}
+
+function isAuthenticationEndpoint(config: RetryableRequestConfig | undefined): boolean {
+  return AUTH_ENDPOINTS_WITHOUT_REFRESH.some(endpoint => config?.url?.includes(endpoint));
+}
 
 /**
  * Composant sans rendu monté une fois dans le Router.
@@ -21,16 +58,38 @@ export function ApiInterceptorSetup() {
   const navigate = useNavigate();
   const { toastError } = useToast();
   const { logout, isAuthenticated } = useAuth();
+  const authFailureHandledRef = useRef(false);
 
   useEffect(() => {
     const interceptorId = api.interceptors.response.use(
       (response) => response,
-      (error) => {
+      async (error: AxiosError<{ message?: string }>) => {
         const status = error?.response?.status;
 
         if (status === 401 && isAuthenticated) {
-          logout();
-          navigate('/login', { replace: true });
+          const originalRequest = error.config as RetryableRequestConfig | undefined;
+
+          // Ces appels pilotent eux-mêmes leur erreur (login, refresh explicite, logout...).
+          if (isAuthenticationEndpoint(originalRequest)) {
+            throw error;
+          }
+
+          if (canRefresh(originalRequest)) {
+            originalRequest._retryAfterRefresh = true;
+            try {
+              await refreshOnce();
+              authFailureHandledRef.current = false;
+              return api.request(originalRequest);
+            } catch {
+              // Le refresh a échoué : la session n'est plus renouvelable.
+            }
+          }
+
+          if (!authFailureHandledRef.current) {
+            authFailureHandledRef.current = true;
+            logout();
+            navigate('/login', { replace: true });
+          }
         } else if (status === 403) {
           const message =
             error?.response?.data?.message ??
@@ -38,7 +97,7 @@ export function ApiInterceptorSetup() {
           toastError(message);
         }
 
-        return Promise.reject(error);
+        throw error;
       },
     );
 

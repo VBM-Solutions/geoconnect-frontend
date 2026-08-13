@@ -66,11 +66,27 @@ describe('ConfirmModal — callbacks', () => {
 
   it('appelle onCancel au clic sur le fond flouté', () => {
     const onCancel = vi.fn();
-    const { container } = renderModal({ onCancel });
-    // Le fond est le premier div absolu
-    const backdrop = container.querySelector('.absolute.inset-0') as HTMLElement;
-    fireEvent.click(backdrop);
+    renderModal({ onCancel });
+    fireEvent.click(screen.getByTestId('confirm-modal-backdrop'));
     expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignore le clic sur le fond lorsque la modale n\'est pas dismissible', () => {
+    const onCancel = vi.fn();
+    renderModal({ onCancel, dismissible: false });
+
+    fireEvent.click(screen.getByTestId('confirm-modal-backdrop'));
+
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it('conserve le bouton annuler actif lorsque la modale n\'est pas dismissible', () => {
+    const onCancel = vi.fn();
+    renderModal({ onCancel, dismissible: false });
+
+    fireEvent.click(screen.getByRole('button', { name: /annuler/i }));
+
+    expect(onCancel).toHaveBeenCalledOnce();
   });
 
   it('ne déclenche pas onConfirm si le bouton est en isLoading', () => {

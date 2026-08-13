@@ -61,6 +61,23 @@ export const resendVerificationEmailCall = async (login: string): Promise<void> 
   await api.post('/auth/email-verifications/resend', { login });
 };
 
+/** Renouvelle et fait tourner les cookies d'authentification HttpOnly. */
+export const refreshCall = async (): Promise<void> => {
+  await api.post('/auth/refresh');
+};
+
+export interface SessionConfigDTO {
+  idleTimeoutMs: number;
+  warningDurationMs: number;
+  absoluteTimeoutMs: number;
+}
+
+/** Charge la politique de session appliquée par le backend. */
+export const getSessionConfigCall = async (): Promise<SessionConfigDTO> => {
+  const { data } = await api.get<SessionConfigDTO>('/auth/session-config');
+  return data;
+};
+
 /** Supprime le cookie HttpOnly jwt côté backend (Max-Age=0). */
 export const logoutCall = async (): Promise<void> => {
   await api.post('/auth/logout');

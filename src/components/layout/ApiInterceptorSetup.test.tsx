@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, waitFor } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import React from 'react';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
@@ -23,9 +23,16 @@ vi.mock('../../contexts/AuthContext', () => ({
 // Stocke le handler d'erreur enregistré par l'intercepteur
 let capturedErrorHandler: ((error: unknown) => Promise<unknown>) | null = null;
 const mockEject = vi.fn();
+const mockRequest = vi.fn();
+const mockRefreshCall = vi.fn();
+
+vi.mock('../../api/auth', () => ({
+  refreshCall: () => mockRefreshCall(),
+}));
 
 vi.mock('../../api', () => ({
   default: {
+    request: (...args: unknown[]) => mockRequest(...args),
     interceptors: {
       response: {
         use: vi.fn((_ok: unknown, onError: (e: unknown) => Promise<unknown>) => {
@@ -43,8 +50,9 @@ import api from '../../api';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function makeAxiosError(status: number, message?: string) {
+function makeAxiosError(status: number, message?: string, url = '/client/me') {
   return {
+    config: { url },
     response: {
       status,
       data: message ? { message } : {},
@@ -63,6 +71,8 @@ describe('ApiInterceptorSetup', () => {
     vi.clearAllMocks();
     capturedErrorHandler = null;
     mockIsAuthenticated = true;
+    mockRefreshCall.mockResolvedValue(undefined);
+    mockRequest.mockResolvedValue({ data: 'retried' });
   });
 
   afterEach(() => {
@@ -80,14 +90,63 @@ describe('ApiInterceptorSetup', () => {
     expect(mockEject).toHaveBeenCalledWith(42);
   });
 
-  it('redirige vers /login et appelle logout sur une erreur 401', async () => {
+  it('rafraîchit le token puis rejoue la requête sur une erreur 401', async () => {
     renderSetup();
     const error = makeAxiosError(401);
 
-    await expect(capturedErrorHandler!(error)).rejects.toBeDefined();
+    await expect(capturedErrorHandler!(error)).resolves.toEqual({ data: 'retried' });
+
+    expect(mockRefreshCall).toHaveBeenCalledOnce();
+    expect(mockRequest).toHaveBeenCalledWith(expect.objectContaining({
+      url: '/client/me',
+      _retryAfterRefresh: true,
+    }));
+    expect(mockLogout).not.toHaveBeenCalled();
+  });
+
+  it('déconnecte si le refresh échoue', async () => {
+    mockRefreshCall.mockRejectedValueOnce(new Error('refresh refusé'));
+    renderSetup();
+
+    await expect(capturedErrorHandler!(makeAxiosError(401))).rejects.toBeDefined();
 
     expect(mockLogout).toHaveBeenCalledOnce();
     expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true });
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  it('ne tente pas de refresh en boucle pour une requête déjà rejouée', async () => {
+    renderSetup();
+    const error = makeAxiosError(401);
+    error.config = { url: '/client/me', _retryAfterRefresh: true } as typeof error.config;
+
+    await expect(capturedErrorHandler!(error)).rejects.toBeDefined();
+
+    expect(mockRefreshCall).not.toHaveBeenCalled();
+    expect(mockLogout).toHaveBeenCalledOnce();
+  });
+
+  it('laisse les endpoints d\'authentification gérer leur propre erreur', async () => {
+    renderSetup();
+
+    await expect(capturedErrorHandler!(makeAxiosError(401, undefined, '/auth/refresh'))).rejects.toBeDefined();
+
+    expect(mockRefreshCall).not.toHaveBeenCalled();
+    expect(mockLogout).not.toHaveBeenCalled();
+  });
+
+  it('mutualise les refresh concurrents et rejoue toutes les requêtes', async () => {
+    let resolveRefresh!: () => void;
+    mockRefreshCall.mockReturnValueOnce(new Promise<void>(resolve => { resolveRefresh = resolve; }));
+    renderSetup();
+
+    const first = capturedErrorHandler!(makeAxiosError(401, undefined, '/client/me'));
+    const second = capturedErrorHandler!(makeAxiosError(401, undefined, '/notifications/count'));
+    resolveRefresh();
+
+    await expect(Promise.all([first, second])).resolves.toHaveLength(2);
+    expect(mockRefreshCall).toHaveBeenCalledOnce();
+    expect(mockRequest).toHaveBeenCalledTimes(2);
   });
 
   it('ne redirige pas un visiteur anonyme si un endpoint public retourne 401', async () => {
