@@ -1,5 +1,4 @@
 import api from './index';
-import { getPropositionDevisById } from './propositionDevis';
 import {
   EtudeDTO,
   EtudeDetailDTO,
@@ -7,7 +6,10 @@ import {
   EvaluationEtudeDTO,
   EvaluationEtudePayload,
   StatutEvaluationEtudeDTO,
+  PageResponse,
 } from '../types';
+
+export type EtudeListCategory = 'ACTIVE' | 'ARCHIVED' | 'COMPLETED';
 
 // ─── Transitions d'état ───────────────────────────────────────────────────────
 
@@ -89,46 +91,44 @@ export const getEtudesByClientId = async (clientId: number): Promise<EtudeDTO[]>
   const { data } = await api.get(`/etude/client/${clientId}`);
   return data ?? [];
 };
+export const getEtudeDetailsByBureauId = async (bureauId: number): Promise<EtudeDetailDTO[]> => {
+  const { data } = await api.get(`/etude/bureauEtude/${bureauId}/details`);
+  return data ?? [];
+};
+
+export const getEtudeDetailsByBureauIdPaginated = async (
+  bureauId: number,
+  category: EtudeListCategory,
+  page = 0,
+  size = 8,
+): Promise<PageResponse<EtudeDetailDTO>> => {
+  const { data } = await api.get<PageResponse<EtudeDetailDTO>>(`/etude/bureauEtude/${bureauId}/details/paged`, {
+    params: { category, page, size },
+  });
+  return data;
+};
+
+export const getEtudeDetailsByClientId = async (clientId: number): Promise<EtudeDetailDTO[]> => {
+  const { data } = await api.get(`/etude/client/${clientId}/details`);
+  return data ?? [];
+};
+
+export const getEtudeDetailsByClientIdPaginated = async (
+  clientId: number,
+  category: EtudeListCategory,
+  page = 0,
+  size = 8,
+): Promise<PageResponse<EtudeDetailDTO>> => {
+  const { data } = await api.get<PageResponse<EtudeDetailDTO>>(`/etude/client/${clientId}/details/paged`, {
+    params: { category, page, size },
+  });
+  return data;
+};
 
 export const getEtudeDetailById = async (id: number): Promise<EtudeDetailDTO> => {
   const { data } = await api.get(`/etude/${id}/detail`);
-  return enrichirSlugProfilBureau(data);
+  return data;
 };
-
-/**
- * Compatibilité des parcours client : certaines réponses de détail d'étude
- * n'embarquent pas le slug public alors qu'il est présent sur la proposition.
- * On ne déclenche l'appel complémentaire que lorsque le lien ne peut pas être
- * construit avec la réponse principale.
- */
-async function enrichirSlugProfilBureau(detail: EtudeDetailDTO): Promise<EtudeDetailDTO> {
-  const proposition = detail?.propositionDevis;
-  const bureau = proposition?.bureauEtude;
-  if (!proposition?.id || !bureau || bureau.profilPublicSlug) {
-    return detail;
-  }
-
-  try {
-    const propositionComplete = await getPropositionDevisById(proposition.id);
-    const profilPublicSlug = propositionComplete.bureauEtude?.profilPublicSlug;
-    if (!profilPublicSlug) {
-      return detail;
-    }
-    return {
-      ...detail,
-      propositionDevis: {
-        ...proposition,
-        bureauEtude: {
-          ...bureau,
-          profilPublicSlug,
-        },
-      },
-    };
-  } catch {
-    // Le détail reste utilisable même si l'enrichissement facultatif échoue.
-    return detail;
-  }
-}
 
 export const getEtudeDocuments = async (id: number): Promise<EtudeDocumentsDTO> => {
   const { data } = await api.get(`/etude/${id}/documents`);
@@ -152,18 +152,4 @@ export const evaluerEtude = async (
   const { data } = await api.post(`/etude/${id}/evaluation`, evaluation);
   return data;
 };
-
-/**
- * Enrichit une liste d'études légères (EtudeDTO) avec leur détail complet.
- * En cas d'échec pour une étude, retourne le DTO brut comme fallback.
- */
-export async function fetchEtudeDetails(rawEtudes: EtudeDTO[]): Promise<EtudeDetailDTO[]> {
-  return Promise.all(
-    rawEtudes.map(e =>
-      e.id
-        ? getEtudeDetailById(e.id).catch(() => ({ ...e } as EtudeDetailDTO))
-        : Promise.resolve({ ...e } as EtudeDetailDTO)
-    )
-  );
-}
 

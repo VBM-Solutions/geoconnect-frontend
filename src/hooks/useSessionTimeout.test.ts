@@ -213,7 +213,53 @@ describe('useSessionTimeout', () => {
     expect(result.current.showWarning).toBe(false);
     expect(result.current.secondsRemaining).toBe(0);
 
+    act(() => window.dispatchEvent(new MouseEvent('mousemove')));
+
     expect(mockLogout).not.toHaveBeenCalled();
+  });
+
+  it('ne deconnecte qu\'une fois lors de demandes repetees', async () => {
+    vi.setSystemTime(2_000);
+    const { result } = renderHook(() => useSessionTimeout());
+    await flushEffects();
+    act(() => {
+      result.current.logoutNow();
+      result.current.logoutNow();
+    });
+    expect(mockLogout).toHaveBeenCalledOnce();
+  });
+
+  it('ignore une activite diffusee pendant la fenetre de throttling', async () => {
+    vi.setSystemTime(2_000);
+    renderHook(() => useSessionTimeout({ policy: { activityThrottleMs: 10_000 } }));
+    await flushEffects();
+    act(() => window.dispatchEvent(new MouseEvent('mousemove')));
+    act(() => window.dispatchEvent(new MouseEvent('mousemove')));
+    expect(Number(localStorage.getItem(LAST_ACTIVITY_AT_KEY))).toBe(2_000);
+  });
+
+  it('filtre les evenements inter-onglets invalides et reevalue une activite valide', async () => {
+    vi.setSystemTime(2_000);
+    const { result } = renderHook(() => useSessionTimeout());
+    await flushEffects();
+    act(() => window.dispatchEvent(new StorageEvent('storage', { key: 'autre', newValue: '{}' })));
+    act(() => window.dispatchEvent(new StorageEvent('storage', { key: SESSION_SYNC_EVENT_KEY, newValue: '{}' })));
+    act(() => window.dispatchEvent(new StorageEvent('storage', {
+      key: SESSION_SYNC_EVENT_KEY,
+      newValue: JSON.stringify({ type: 'activity', at: 2_000 }),
+    })));
+    expect(result.current.showWarning).toBe(false);
+  });
+
+  it('reevalue la session lorsque l\'onglet redevient visible', async () => {
+    vi.setSystemTime(2_000);
+    const visibility = Object.getOwnPropertyDescriptor(document, 'visibilityState');
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+    const { result } = renderHook(() => useSessionTimeout());
+    await flushEffects();
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    expect(result.current.showWarning).toBe(false);
+    if (visibility) Object.defineProperty(document, 'visibilityState', visibility);
   });
 });
 

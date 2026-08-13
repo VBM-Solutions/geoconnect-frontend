@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDemandeDevisById } from '../../api/demandeDevis';
-import { getPropositionDevisByDemandeId, createPropositionDevis } from '../../api/propositionDevis';
-import { getBureauByUserId } from '../../api/bureauEtude';
+import { getDemandeDetail } from '../../api/demandeDevis';
+import { createPropositionDevis } from '../../api/propositionDevis';
 import { uploadDocument } from '../../api/document';
 import { DemandeDevisDTO, PropositionDevisDTO, BureauEtudesDTO } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
@@ -208,18 +207,14 @@ export default function BERequestDetail() {
     async function fetchData() {
       if (!id || !user) return;
       try {
-        const bureau = await getBureauByUserId(user.userId);
+        const detail = await getDemandeDetail(Number(id));
+        const bureau = detail.bureauEtudeId ? { id: detail.bureauEtudeId } as BureauEtudesDTO : null;
         if (bureau) setMyBureau(bureau);
-
-        const [demandeData, propsData] = await Promise.all([
-          getDemandeDevisById(Number(id)),
-          getPropositionDevisByDemandeId(Number(id)).catch((): PropositionDevisDTO[] => []),
-        ]);
-        setDemande(demandeData);
-        setAllPropositions(propsData || []);
+        setDemande(detail.demande);
+        setAllPropositions(detail.propositions ?? []);
 
         if (bureau?.id) {
-          const allMine = (propsData || []).filter((p: PropositionDevisDTO) => p.bureauEtudeId === bureau.id);
+          const allMine = (detail.propositions ?? []).filter((p: PropositionDevisDTO) => p.bureauEtudeId === bureau.id);
           const refused = allMine.filter(p => p.statut === 'REFUSEE');
           const active = allMine.find(p => p.statut === 'EN_ATTENTE' || p.statut === 'ACCEPTEE') ?? null;
           setMyRefusedPropositions(refused);

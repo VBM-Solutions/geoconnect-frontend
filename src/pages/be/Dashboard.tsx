@@ -157,6 +157,18 @@ interface BEDashboardBodyProps {
   readonly onShowAllMissions: () => void;
   readonly renderDemandeCard: (demande: DemandeDevisDTO, prop?: PropositionDevisDTO) => React.ReactNode;
   readonly renderEtudeCard: (etude: EtudeDetailDTO) => React.ReactNode;
+  readonly page: number;
+  readonly totalPages: number;
+  readonly onPageChange: (page: number) => void;
+}
+
+function PaginationControls({ page, totalPages, onChange }: Readonly<{ page: number; totalPages: number; onChange: (page: number) => void }>) {
+  if (totalPages <= 1) return null;
+  return <div className="col-span-full flex items-center justify-center gap-3 pt-2">
+    <Button size="sm" variant="outline" disabled={page === 0} onClick={() => onChange(page - 1)}>Précédent</Button>
+    <span className="text-xs text-slate-500">Page {page + 1}/{totalPages}</span>
+    <Button size="sm" variant="outline" disabled={page + 1 >= totalPages} onClick={() => onChange(page + 1)}>Suivant</Button>
+  </div>;
 }
 
 function OpenDemandesContent({
@@ -265,6 +277,9 @@ function BEDashboardBody({
   onShowAllMissions,
   renderDemandeCard,
   renderEtudeCard,
+  page,
+  totalPages,
+  onPageChange,
 }: Readonly<BEDashboardBodyProps>) {
   const [contentView, setContentView] = useState<DashboardContentView>('CARTE');
   const hasSwitchableMap = activeTab === 'OUVERT' || activeTab === 'ETUDE_EN_COURS';
@@ -375,6 +390,7 @@ function BEDashboardBody({
             renderEtudeCard={renderEtudeCard}
           />
         )}
+        <PaginationControls page={page} totalPages={totalPages} onChange={onPageChange} />
       </div>}
       </div>
     </div>
@@ -383,7 +399,14 @@ function BEDashboardBody({
 
 export default function BEDashboard() {
   const { toastError } = useToast();
-  const { bureau, demandes, allPropositionsPerDemande, myPropositions, etudes, notificationPreferences, isLoading, error } = useBEDashboardData();
+  const {
+    bureau, demandes, allPropositionsPerDemande, myPropositions, etudes, notificationPreferences,
+    filterByDept, availableTotal, pendingTotal, activeEtudeTotal, archivedEtudeTotal,
+    availablePage, pendingPage, activeEtudePage, archivedEtudePage,
+    availableTotalPages, pendingTotalPages, activeEtudeTotalPages, archivedEtudeTotalPages,
+    setFilterByDept, setAvailablePage, setPendingPage, setActiveEtudePage, setArchivedEtudePage,
+    isLoading, error,
+  } = useBEDashboardData();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as TabType | null;
   const [activeTab, setActiveTab] = useState<TabType>(tabParam ?? 'OUVERT');
@@ -400,11 +423,11 @@ export default function BEDashboard() {
     !notificationPreferences.notifierTousDepartements &&
     notificationPreferences.departementsSuivis.length > 0;
 
-  const [filterByDept, setFilterByDept] = useState(false);
+
 
   // Active le filtre automatiquement dès que les préférences sont chargées
   useEffect(() => {
-    if (hasDepFilter) setFilterByDept(true);
+    // Le hook initialise le filtre avant de charger la première page.
   }, [hasDepFilter]);
 
   const scrollToContentPanel = () => {
@@ -447,8 +470,8 @@ export default function BEDashboard() {
       title: 'Demandes',
       defaultExpanded: true,
       items: [
-        { id: 'OUVERT', label: 'Missions disponibles', count: filterByDept ? filteredOpenDemandes.length : openDemandes.length, icon: <Globe className="w-4 h-4" /> },
-        { id: 'EN_ATTENTE', label: 'En attente', count: pendingItems.length, icon: <Clock className="w-4 h-4" /> },
+        { id: 'OUVERT', label: 'Missions disponibles', count: availableTotal, icon: <Globe className="w-4 h-4" /> },
+        { id: 'EN_ATTENTE', label: 'En attente', count: pendingTotal, icon: <Clock className="w-4 h-4" /> },
       ],
     },
     {
@@ -456,8 +479,8 @@ export default function BEDashboard() {
       title: 'Études',
       defaultExpanded: true,
       items: [
-        { id: 'ETUDE_EN_COURS', label: 'Études en cours', count: etudesEnCours.length, icon: <FlaskConical className="w-4 h-4" /> },
-        { id: 'ARCHIVES', label: 'Études archivées', count: etudesArchivees.length, icon: <Archive className="w-4 h-4" /> },
+        { id: 'ETUDE_EN_COURS', label: 'Études en cours', count: activeEtudeTotal, icon: <FlaskConical className="w-4 h-4" /> },
+        { id: 'ARCHIVES', label: 'Études archivées', count: archivedEtudeTotal, icon: <Archive className="w-4 h-4" /> },
       ],
     },
     {
@@ -465,11 +488,11 @@ export default function BEDashboard() {
       title: 'Carte',
       defaultExpanded: true,
       items: [
-        { id: 'CARTE', label: 'Vue carte', count: (filterByDept ? filteredOpenDemandes.length : openDemandes.length) + etudesEnCours.length, icon: <MapIcon className="w-4 h-4" /> },
+        { id: 'CARTE', label: 'Vue carte', count: availableTotal + activeEtudeTotal, icon: <MapIcon className="w-4 h-4" /> },
       ],
     },
   ];
-  const missionsCount = filterByDept ? filteredOpenDemandes.length : openDemandes.length;
+  const missionsCount = availableTotal;
   const sectionMeta: Record<TabType, { title: string; description: string }> = {
     OUVERT: {
       title: 'Missions disponibles',
@@ -494,12 +517,24 @@ export default function BEDashboard() {
   };
   const activityFeed = buildBEActivityFeed({
     openDemandesCount: missionsCount,
-    pendingCount: pendingItems.length,
-    etudesEnCoursCount: etudesEnCours.length,
-    etudesArchiveesCount: etudesArchivees.length,
+    pendingCount: pendingTotal,
+    etudesEnCoursCount: activeEtudeTotal,
+    etudesArchiveesCount: archivedEtudeTotal,
     hasDepFilter,
     onNavigate: handleTabChange,
   });
+  const paginationByTab = {
+    OUVERT: { page: availablePage, totalPages: availableTotalPages, onPageChange: setAvailablePage },
+    EN_ATTENTE: { page: pendingPage, totalPages: pendingTotalPages, onPageChange: setPendingPage },
+    ETUDE_EN_COURS: { page: activeEtudePage, totalPages: activeEtudeTotalPages, onPageChange: setActiveEtudePage },
+    ARCHIVES: { page: archivedEtudePage, totalPages: archivedEtudeTotalPages, onPageChange: setArchivedEtudePage },
+    CARTE: { page: availablePage, totalPages: 0, onPageChange: setAvailablePage },
+  } satisfies Record<TabType, {
+    readonly page: number;
+    readonly totalPages: number;
+    readonly onPageChange: (page: number) => Promise<void>;
+  }>;
+  const pagination = paginationByTab[activeTab];
 
   const renderDemandeCard = (demande: DemandeDevisDTO, prop?: PropositionDevisDTO) => {
     const isRefused = prop?.statut === 'REFUSEE';
@@ -688,19 +723,19 @@ export default function BEDashboard() {
           />
           <DashboardMetricCard
             label="En attente"
-            value={pendingItems.length}
+            value={pendingTotal}
             icon={<CircleDashed className="h-4 w-4" />}
             valueClassName="text-amber-600"
           />
           <DashboardMetricCard
             label="Études en cours"
-            value={etudesEnCours.length}
+            value={activeEtudeTotal}
             icon={<FolderKanban className="h-4 w-4" />}
             valueClassName="text-cyan-700"
           />
           <DashboardMetricCard
             label="Études finalisées"
-            value={etudesArchivees.length}
+            value={archivedEtudeTotal}
             icon={<CheckCircle2 className="h-4 w-4" />}
             valueClassName="text-emerald-600"
           />
@@ -741,6 +776,9 @@ export default function BEDashboard() {
             onShowAllMissions={() => setFilterByDept(false)}
             renderDemandeCard={renderDemandeCard}
             renderEtudeCard={renderEtudeCard}
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={pagination.onPageChange}
           />
         </div>
       </div>

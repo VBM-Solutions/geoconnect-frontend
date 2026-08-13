@@ -28,11 +28,15 @@ describe('getNotifications', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('retourne la liste des notifications', async () => {
-    (api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: [fakeNotification] });
+    (api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      data: { items: [fakeNotification], page: 0, size: 50, totalItems: 1, totalPages: 1, hasNext: false },
+    });
 
     const result = await getNotifications();
 
-    expect(api.get).toHaveBeenCalledWith('/notifications');
+    expect(api.get).toHaveBeenCalledWith('/notifications/paged', {
+      params: { page: 0, size: 50 },
+    });
     expect(result).toEqual([fakeNotification]);
   });
 

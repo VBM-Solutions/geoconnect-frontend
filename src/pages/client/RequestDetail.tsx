@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDemandeDevisById } from '../../api/demandeDevis';
-import { getPropositionDevisByDemandeId, accepterPropositionDevis, refuserPropositionDevis } from '../../api/propositionDevis';
+import { getDemandeDetail } from '../../api/demandeDevis';
+import { accepterPropositionDevis, refuserPropositionDevis } from '../../api/propositionDevis';
 import { DemandeDevisDTO, PropositionDevisDTO } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -29,12 +29,9 @@ export default function ClientRequestDetail() {
     async function fetchData() {
       if (!id) return;
       try {
-        const [demandeData, propsData] = await Promise.all([
-          getDemandeDevisById(Number(id)),
-          getPropositionDevisByDemandeId(Number(id)).catch((): PropositionDevisDTO[] => []),
-        ]);
-        setDemande(demandeData);
-        setPropositions(propsData || []);
+        const detail = await getDemandeDetail(Number(id));
+        setDemande(detail.demande);
+        setPropositions(detail.propositions ?? []);
       } catch (err: any) {
         if (err?.response?.status === 403) {
           navigate('/client/dashboard', { replace: true });

@@ -65,9 +65,7 @@ function renderRequestDetail(demandeId = '1') {
 describe('BERequestDetail — rendu initial', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (bureauEtudeApi.getBureauByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_BUREAU);
-    (demandeDevisApi.getDemandeDevisById as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_DEMANDE);
-    (propositionDevisApi.getPropositionDevisByDemandeId as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (demandeDevisApi.getDemandeDetail as ReturnType<typeof vi.fn>).mockResolvedValue({ demande: MOCK_DEMANDE, propositions: [], bureauEtudeId: MOCK_BUREAU.id });
   });
 
   it('affiche le formulaire de proposition quand aucune offre n\'existe', async () => {
@@ -96,12 +94,11 @@ describe('BERequestDetail — rendu initial', () => {
   });
 
   it('affiche les noms de téléchargement calculés par le backend', async () => {
-    (demandeDevisApi.getDemandeDevisById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ...MOCK_DEMANDE,
-      documentsDevis: [
+    (demandeDevisApi.getDemandeDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+      demande: { ...MOCK_DEMANDE, documentsDevis: [
         { id: 12, nomTelechargement: 'DUPONT_JEAN-G1_ES_PGC-DOCS_CLIENT_1.pdf' },
         { id: 13, nomTelechargement: 'DUPONT_JEAN-G1_ES_PGC-DOCS_CLIENT_2.png' },
-      ],
+      ] }, propositions: [], bureauEtudeId: MOCK_BUREAU.id,
     });
 
     renderRequestDetail();
@@ -114,9 +111,7 @@ describe('BERequestDetail — rendu initial', () => {
 describe('BERequestDetail — validation du formulaire de proposition', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (bureauEtudeApi.getBureauByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_BUREAU);
-    (demandeDevisApi.getDemandeDevisById as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_DEMANDE);
-    (propositionDevisApi.getPropositionDevisByDemandeId as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (demandeDevisApi.getDemandeDetail as ReturnType<typeof vi.fn>).mockResolvedValue({ demande: MOCK_DEMANDE, propositions: [], bureauEtudeId: MOCK_BUREAU.id });
     (propositionDevisApi.createPropositionDevis as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 99 });
     (documentApi.uploadDocument as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 77 });
   });

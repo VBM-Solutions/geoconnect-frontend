@@ -5,6 +5,9 @@ import {
   getDemandeDevisById,
   getAllDemandeDevis,
   deleteDemandeDevis,
+  getOpenDemandesClientPaginated,
+  getDemandeDetail,
+  getBureauEtudeWorkItemsPaginated,
 } from './demandeDevis';
 
 vi.mock('./index', () => ({
@@ -26,6 +29,27 @@ const fakeDemande = {
 };
 
 beforeEach(() => vi.clearAllMocks());
+
+it('charge le détail agrégé d’une demande', async () => {
+  const detail = { demande: fakeDemande, propositions: [], bureauEtudeId: null };
+  (api.get as any).mockResolvedValueOnce({ data: detail });
+
+  await expect(getDemandeDetail(7)).resolves.toEqual(detail);
+  expect(api.get).toHaveBeenCalledWith('/demandeDevis/7/detail');
+});
+
+it('charge les work items BE avec et sans filtre département', async () => {
+  const result = { items: [], page: 0, size: 8, totalItems: 0, totalPages: 0, hasNext: false };
+  (api.get as any).mockResolvedValue({ data: result });
+  await expect(getBureauEtudeWorkItemsPaginated('AVAILABLE')).resolves.toEqual(result);
+  expect(api.get).toHaveBeenLastCalledWith('/demandeDevis/bureauEtude/work-items/paged', {
+    params: { category: 'AVAILABLE', page: 0, size: 8, departments: undefined },
+  });
+  await getBureauEtudeWorkItemsPaginated('PENDING', 2, 10, ['75']);
+  expect(api.get).toHaveBeenLastCalledWith('/demandeDevis/bureauEtude/work-items/paged', {
+    params: { category: 'PENDING', page: 2, size: 10, departments: ['75'] },
+  });
+});
 
 describe('createDemandeDevis', () => {
   it('appelle POST /demandeDevis et retourne la demande créée', async () => {
@@ -95,6 +119,18 @@ describe('getAllDemandeDevis', () => {
     const result = await getAllDemandeDevis();
 
     expect(result).toEqual([]);
+  });
+});
+
+describe('getOpenDemandesClientPaginated', () => {
+  it('transmet la page et sa taille', async () => {
+    const response = { items: [fakeDemande], page: 1, size: 8, totalItems: 12, totalPages: 2, hasNext: false };
+    (api.get as any).mockResolvedValueOnce({ data: response });
+
+    await expect(getOpenDemandesClientPaginated(1, 8)).resolves.toEqual(response);
+    expect(api.get).toHaveBeenCalledWith('/demandeDevis/client/open/paged', {
+      params: { page: 1, size: 8 },
+    });
   });
 });
 

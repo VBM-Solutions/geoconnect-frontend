@@ -1,10 +1,26 @@
 import api from './index';
-import { CreerUtilisateurPayload, UtilisateurDTO } from '../types';
+import { CreerUtilisateurPayload, PageResponse, UtilisateurDTO } from '../types';
 
 const BASE_ADMIN_UTILISATEURS = '/admin/utilisateurs';
 
 export const listerUtilisateurs = async (): Promise<UtilisateurDTO[]> => {
   const { data } = await api.get(BASE_ADMIN_UTILISATEURS);
+  return data;
+};
+
+export const listerUtilisateursPagines = async (
+  page = 0,
+  size = 25,
+  filters: {
+    search?: string;
+    role?: string;
+    sort?: string;
+    direction?: 'asc' | 'desc';
+  } = {},
+): Promise<PageResponse<UtilisateurDTO>> => {
+  const { data } = await api.get<PageResponse<UtilisateurDTO>>(`${BASE_ADMIN_UTILISATEURS}/paged`, {
+    params: { page, size, ...filters },
+  });
   return data;
 };
 

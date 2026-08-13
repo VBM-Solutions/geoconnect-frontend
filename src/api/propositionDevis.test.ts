@@ -4,6 +4,7 @@ import {
   getAllPropositionDevis,
   getPropositionDevisById,
   getPropositionDevisByDemandeId,
+  getPropositionsByDemandeIds,
   getPropositionDevisByBureauId,
   accepterPropositionDevis,
   refuserPropositionDevis,
@@ -68,6 +69,25 @@ describe('getPropositionDevisByDemandeId', () => {
     const result = await getPropositionDevisByDemandeId(1);
     expect(api.get).toHaveBeenCalledWith('/propositionDevis/devis/1');
     expect(result).toEqual([fakeProposition]);
+  });
+});
+
+describe('getPropositionsByDemandeIds', () => {
+  it('regroupe les identifiants dans un seul appel GET', async () => {
+    const grouped = { 1: [fakeProposition], 2: [] };
+    (api.get as any).mockResolvedValueOnce({ data: grouped });
+
+    const result = await getPropositionsByDemandeIds([1, 2, 1]);
+
+    expect(api.get).toHaveBeenCalledWith('/propositionDevis/devis', {
+      params: { ids: '1,2' },
+    });
+    expect(result).toEqual(grouped);
+  });
+
+  it('ne fait aucun appel pour une liste vide', async () => {
+    await expect(getPropositionsByDemandeIds([])).resolves.toEqual({});
+    expect(api.get).not.toHaveBeenCalled();
   });
 });
 

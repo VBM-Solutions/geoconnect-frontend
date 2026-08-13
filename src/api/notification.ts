@@ -1,13 +1,15 @@
 import api from './index';
-import { NotificationDTO } from '../types';
+import { NotificationDTO, PageResponse } from '../types';
 
 /**
  * Récupère toutes les notifications de l'utilisateur connecté.
  * À appeler au clic sur l'icône, pas en continu.
  */
 export const getNotifications = async (): Promise<NotificationDTO[]> => {
-  const { data } = await api.get<NotificationDTO[]>('/notifications');
-  return data;
+  const { data } = await api.get<PageResponse<NotificationDTO>>('/notifications/paged', {
+    params: { page: 0, size: 50 },
+  });
+  return data.items;
 };
 
 /**
