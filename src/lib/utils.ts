@@ -13,6 +13,18 @@ export function extractErrorMessage(err: unknown, fallback = 'Erreur lors du cha
   return e?.response?.data?.message ?? e?.message ?? fallback;
 }
 
+export type PublicApiErrorCode =
+  | 'ACCOUNT_ALREADY_EXISTS' | 'INVALID_CREDENTIALS' | 'EMAIL_VERIFICATION_REQUIRED'
+  | 'ACCOUNT_UNAVAILABLE' | 'VERIFICATION_LINK_INVALID' | 'VALIDATION_ERROR'
+  | 'TOO_MANY_REQUESTS' | 'ACCESS_DENIED' | 'SESSION_EXPIRED' | 'TECHNICAL_ERROR';
+
+export function getPublicApiError(err: unknown, fallback: string): { code?: PublicApiErrorCode; message: string } {
+  const error = err as any;
+  const code = error?.response?.data?.code as PublicApiErrorCode | undefined;
+  const message = error?.response?.data?.message;
+  return typeof message === 'string' && message.trim() ? { code, message } : { code, message: fallback };
+}
+
 /**
  * Dérive le code INSEE du département à partir d'un code postal français à 5 chiffres.
  *

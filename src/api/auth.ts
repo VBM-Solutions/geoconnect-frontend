@@ -1,15 +1,9 @@
 import api from './index';
-import { AdresseDTO, AuthResponseDTO, BureauEtudeRegistrationResponseDTO, Civilite, ClientRegistrationResponseDTO } from '../types';
+import { AdresseDTO, AuthResponseDTO, BureauEtudeRegistrationResponseDTO, Civilite, ClientRegistrationResponseDTO, DemandeDevisDTO } from '../types';
 
 export interface LoginRequest {
   login: string;
   password: string;
-}
-
-export interface RegisterRequest {
-  login: string;
-  password: string;
-  role: 'CLIENT';
 }
 
 export interface ClientRegistrationRequest {
@@ -20,6 +14,7 @@ export interface ClientRegistrationRequest {
   prenom: string;
   telContact: string;
   adresseFacturation: AdresseDTO;
+  demande: Omit<DemandeDevisDTO, 'id' | 'clientId' | 'docsDevisIds' | 'documentsDevis'>;
 }
 
 export interface BureauEtudeRegistrationRequest {
@@ -37,15 +32,17 @@ export const loginCall = async (credentials: LoginRequest): Promise<AuthResponse
 };
 
 /** Retourne { userId, login, role } — le JWT est posé en cookie HttpOnly par le backend. */
-export const registerCall = async (userData: RegisterRequest): Promise<AuthResponseDTO> => {
-  const { data } = await api.post('/auth/register', userData);
-  return data;
-};
-
 export const registerClientCall = async (
-  registration: ClientRegistrationRequest
+  registration: ClientRegistrationRequest,
+  documents: File[] = [],
 ): Promise<ClientRegistrationResponseDTO> => {
-  const { data } = await api.post('/auth/register/client', registration);
+  const body = new FormData();
+  body.append('registration', new Blob([JSON.stringify(registration)], { type: 'application/json' }));
+  documents.forEach(document => body.append('documents', document));
+  // Laisser le navigateur définir multipart/form-data avec sa boundary.
+  const { data } = await api.post('/auth/register/client', body, {
+    headers: { 'Content-Type': undefined as any },
+  });
   return data;
 };
 
@@ -53,6 +50,31 @@ export const registerBureauEtudeCall = async (
   registration: BureauEtudeRegistrationRequest
 ): Promise<BureauEtudeRegistrationResponseDTO> => {
   const { data } = await api.post('/auth/register/bureau-etude', registration);
+  return data;
+};
+
+export const confirmEmailCall = async (token: string): Promise<void> => {
+  await api.post('/auth/email-verifications/confirm', { token });
+};
+
+export const resendVerificationEmailCall = async (login: string): Promise<void> => {
+  await api.post('/auth/email-verifications/resend', { login });
+};
+
+/** Renouvelle et fait tourner les cookies d'authentification HttpOnly. */
+export const refreshCall = async (): Promise<void> => {
+  await api.post('/auth/refresh');
+};
+
+export interface SessionConfigDTO {
+  idleTimeoutMs: number;
+  warningDurationMs: number;
+  absoluteTimeoutMs: number;
+}
+
+/** Charge la politique de session appliquée par le backend. */
+export const getSessionConfigCall = async (): Promise<SessionConfigDTO> => {
+  const { data } = await api.get<SessionConfigDTO>('/auth/session-config');
   return data;
 };
 

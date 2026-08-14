@@ -17,6 +17,8 @@ interface ConfirmModalProps {
   confirmLabel?: string;
   cancelLabel?: string;
   isLoading?: boolean;
+  /** Autorise la fermeture par clic sur le fond. Par défaut : `true`. */
+  dismissible?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -29,6 +31,7 @@ export function ConfirmModal({
   confirmLabel = 'Confirmer',
   cancelLabel = 'Annuler',
   isLoading = false,
+  dismissible = true,
   onConfirm,
   onCancel,
 }: Readonly<ConfirmModalProps>) {
@@ -42,7 +45,8 @@ export function ConfirmModal({
       {/* Fond flouté */}
       <div
         className="absolute inset-0 backdrop-blur-sm bg-white/20"
-        onClick={onCancel}
+        data-testid="confirm-modal-backdrop"
+        onClick={dismissible ? onCancel : undefined}
       />
       {/* Contenu */}
       <div className={`relative bg-white rounded-lg shadow-2xl border ${borderClass} max-w-md w-full mx-4 p-6 z-10`}>

@@ -10,6 +10,11 @@ import { useSessionTimeout } from './useSessionTimeout';
 const mockNavigate = vi.fn();
 const mockLogout = vi.fn();
 const mockToastInfo = vi.fn();
+const mockRefreshCall = vi.fn();
+
+vi.mock('../api/auth', () => ({
+  refreshCall: () => mockRefreshCall(),
+}));
 
 const authState = {
   isAuthenticated: true,
@@ -35,6 +40,7 @@ describe('useSessionTimeout', () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     authState.isAuthenticated = true;
+    mockRefreshCall.mockResolvedValue(undefined);
     seedSessionMetadata(1_000);
   });
 
@@ -127,14 +133,36 @@ describe('useSessionTimeout', () => {
     expect(result.current.showWarning).toBe(true);
 
     vi.setSystemTime(9_700);
-    act(() => {
-      result.current.stayConnected();
+    await act(async () => {
+      await result.current.stayConnected();
     });
 
     expect(Number(localStorage.getItem(LAST_ACTIVITY_AT_KEY))).toBe(9_700);
     await flushEffects();
     expect(result.current.showWarning).toBe(false);
     expect(result.current.secondsRemaining).toBe(10);
+    expect(mockRefreshCall).toHaveBeenCalledOnce();
+  });
+
+  it('déconnecte si la prolongation de session est refusée', async () => {
+    vi.setSystemTime(9_500);
+    mockRefreshCall.mockRejectedValueOnce(new Error('refresh expiré'));
+    const { result } = renderHook(() => useSessionTimeout({
+      policy: {
+        idleTimeoutMs: 10_000,
+        warningDurationMs: 2_000,
+        absoluteTimeoutMs: 60_000,
+        activityThrottleMs: 1,
+      },
+    }));
+    await flushEffects();
+
+    await act(async () => {
+      await result.current.stayConnected();
+    });
+
+    expect(mockLogout).toHaveBeenCalledOnce();
+    expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true });
   });
 
   it('ignore l\'activité passive pendant le warning et conserve la modale', async () => {

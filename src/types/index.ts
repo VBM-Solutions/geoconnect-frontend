@@ -174,12 +174,16 @@ export interface AuthResponseDTO {
   /** @deprecated Le JWT est désormais posé en cookie HttpOnly par le backend — absent du body. */
   token?: string;
   userId: number;
-  login: string;
-  role: 'CLIENT' | 'BUREAU_ETUDE' | 'ADMIN';
+    login: string;
+    role: 'CLIENT' | 'BUREAU_ETUDE' | 'ADMIN';
+    onboardingFinalized?: boolean;
 }
 
-export interface ClientRegistrationResponseDTO extends AuthResponseDTO {
+export interface ClientRegistrationResponseDTO {
+  userId: number;
   clientId: number;
+  login: string;
+  status: 'EMAIL_VERIFICATION_REQUIRED';
 }
 
 export interface BureauEtudeRegistrationResponseDTO extends AuthResponseDTO {

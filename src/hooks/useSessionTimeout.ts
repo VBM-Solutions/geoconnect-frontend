@@ -12,6 +12,7 @@ import {
   touchLastActivity,
 } from '../lib/authSessionStorage';
 import { ExpirationReason, evaluateSessionState, resolveSessionPolicy, SessionPolicy } from '../lib/sessionPolicy';
+import { refreshCall } from '../api/auth';
 
 interface UseSessionTimeoutOptions {
   policy?: Partial<SessionPolicy>;
@@ -20,7 +21,7 @@ interface UseSessionTimeoutOptions {
 interface SessionTimeoutState {
   showWarning: boolean;
   secondsRemaining: number;
-  stayConnected: () => void;
+  stayConnected: () => Promise<void>;
   logoutNow: () => void;
 }
 
@@ -116,9 +117,14 @@ export function useSessionTimeout(options?: UseSessionTimeoutOptions): SessionTi
     registerActivity(false);
   }, [registerActivity]);
 
-  const stayConnected = useCallback(() => {
-    registerActivity(true);
-  }, [registerActivity]);
+  const stayConnected = useCallback(async () => {
+    try {
+      await refreshCall();
+      registerActivity(true);
+    } catch {
+      performLogout('idle');
+    }
+  }, [performLogout, registerActivity]);
 
   const logoutNow = useCallback(() => {
     performLogout('idle');

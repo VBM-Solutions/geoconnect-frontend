@@ -28,11 +28,11 @@ import { AddressAutocompleteField } from '../components/shared/AddressAutocomple
 import { ProjectMetricsInputs } from '../components/shared/ProjectMetricsInputs';
 import { TypeEtudeSelect } from '../components/project/TypeEtudeSelect';
 import { useTypesEtude } from '../hooks/useTypesEtude';
-import { useDemandeSubmission } from '../hooks/useDemandeSubmission';
 import { buildDemandePayload, mapFormFieldsToPayloadBase } from '../lib/demandePayload';
 import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules } from '../lib/validators';
 import { getFieldMessage } from '../lib/formErrors';
 import { AddressSuggestionDTO } from '../types';
+import { getPublicApiError } from '../lib/utils';
 
 type StudyPreset = {
   code?: string;
@@ -362,7 +362,6 @@ function QuoteTunnel({
   const [referencesCadastrales, setReferencesCadastrales] = useState<string[]>(['']);
   const { typesEtude, loading: loadingTypes } = useTypesEtude();
   const navigate = useNavigate();
-  const { login } = useAuth();
 
   const { register: formRegister, handleSubmit, getValues, setValue, watch, formState: { errors } } = useForm<Record<string, unknown>>({
     defaultValues: {
@@ -371,11 +370,6 @@ function QuoteTunnel({
     },
   });
   const passwordValue = String(watch('password', '') ?? '');
-
-  const { submit } = useDemandeSubmission({
-    onSuccess: () => navigate('/success'),
-    onError: (msg) => { setError(msg); setIsLoading(false); },
-  });
 
   const handleNext = (data: Record<string, unknown>) => {
     setFormData({ ...formData, ...data });
@@ -390,6 +384,13 @@ function QuoteTunnel({
     setIsLoading(true);
     setError(null);
     try {
+      const pendingPayload = buildDemandePayload({
+        ...mapFormFieldsToPayloadBase(data),
+        referencesCadastrales,
+        rueProjet: data.rueProjet as string,
+        codePostalProjet: (data.codePostalProjet || data.codePostal) as string,
+        villeProjet: (data.villeProjet || data.ville) as string,
+      });
       const authRes = await registerClientCall({
         login: data.login as string,
         password: data.password as string,
@@ -402,23 +403,22 @@ function QuoteTunnel({
           ville: data.ville as string,
           codePostal: data.codePostal as string,
         },
-      });
+        demande: {
+          delaiMaxSouhaite: pendingPayload.delaiMaxSouhaite,
+          adresseProjet: pendingPayload.adresseProjet,
+          type: pendingPayload.type,
+          nombreLot: pendingPayload.nombreLot,
+          referencesCadastrales: pendingPayload.referencesCadastrales,
+          superficie: pendingPayload.superficie,
+          description: pendingPayload.description,
+        },
+      }, docFiles);
 
-      login(authRes);
-      const clientId = authRes.clientId;
-
-      const payload = buildDemandePayload({
-        clientId,
-        ...mapFormFieldsToPayloadBase(data),
-        referencesCadastrales,
-        rueProjet: data.rueProjet as string,
-        codePostalProjet: (data.codePostalProjet || data.codePostal) as string,
-        villeProjet: (data.villeProjet || data.ville) as string,
-      });
-
-      await submit(payload, docFiles);
+      sessionStorage.setItem('geoconnect.verification-email', authRes.login);
+      navigate('/verification-email-envoyee', { state: { email: authRes.login } });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+      setError(getPublicApiError(err,
+        "Nous n'avons pas pu créer votre compte. Veuillez réessayer dans quelques instants.").message);
       setIsLoading(false);
     }
   };

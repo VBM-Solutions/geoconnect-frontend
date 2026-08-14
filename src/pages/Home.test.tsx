@@ -31,9 +31,8 @@ vi.mock('react-router-dom', async (importOriginal) => {
 const MOCK_AUTH_RESPONSE = {
   userId: 42,
   clientId: 10,
-  token: 'tok-client',
-  role: 'CLIENT' as const,
   login: 'client@test.fr',
+  status: 'EMAIL_VERIFICATION_REQUIRED' as const,
 };
 
 const VALID_PASSWORD = 'MotDePasse!123';
@@ -104,6 +103,7 @@ async function fillStep3Required(
 
 describe('Home — tunnel utilisateur', () => {
   beforeEach(() => {
+    localStorage.clear();
     setupDefaultDemandeMocks();
     vi.mocked(referentielApi.getTypesEtude).mockResolvedValue([
       { code: 'G0', libelle: 'G0 — Étude préalable' },
@@ -156,7 +156,7 @@ describe('Home — tunnel utilisateur', () => {
     await user.click(screen.getByRole('button', { name: /publier ma demande/i }));
 
     await waitFor(() => {
-      expect(vi.mocked(authApi.registerClientCall)).toHaveBeenCalledWith({
+      expect(vi.mocked(authApi.registerClientCall)).toHaveBeenCalledWith(expect.objectContaining({
         login: 'jean.dupont@test.fr',
         password: VALID_PASSWORD,
         civilite: 'MR',
@@ -168,18 +168,15 @@ describe('Home — tunnel utilisateur', () => {
           codePostal: '75001',
           ville: 'Paris',
         },
-      });
-      expect(vi.mocked(demandeDevisApi.createDemandeDevis)).toHaveBeenCalledWith(
-        expect.objectContaining({
-          clientId: 10,
-          docsDevisIds: [],
+        demande: expect.objectContaining({
+          type: 'G0',
           referencesCadastrales: ['AB 0042', 'CD 0099'],
-        })
-      );
+        }),
+      }), []);
+      expect(mockNavigate).toHaveBeenCalledWith('/verification-email-envoyee', expect.anything());
     });
 
-    const payload = getLastMockCallPayload(vi.mocked(demandeDevisApi.createDemandeDevis));
-    expect(payload).not.toHaveProperty('referenceCadastrale');
+    expect(localStorage.getItem('geoconnect.pending-client-request')).toBeNull();
   }, 10000);
 
   it('bloque la soumission si la confirmation du mot de passe est différente', async () => {
@@ -233,15 +230,12 @@ describe('Home — tunnel utilisateur', () => {
     await fillStep3Required(user);
     await user.click(screen.getByRole('button', { name: /publier ma demande/i }));
 
-    await waitFor(() => {
-      expect(vi.mocked(documentApi.uploadDocuments)).toHaveBeenCalledWith(files);
-      expect(vi.mocked(demandeDevisApi.createDemandeDevis)).toHaveBeenCalledWith(
-        expect.objectContaining({
-          clientId: 10,
-          docsDevisIds: [99, 100],
-        })
-      );
-    });
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(
+      '/verification-email-envoyee', expect.anything()));
+    expect(vi.mocked(authApi.registerClientCall)).toHaveBeenCalledWith(
+      expect.objectContaining({ demande: expect.any(Object) }), files);
+    expect(localStorage.getItem('geoconnect.pending-client-request')).toBeNull();
+    expect(vi.mocked(documentApi.uploadDocuments)).not.toHaveBeenCalled();
   }, 10000);
 
   it('affiche le bouton + pour ajouter des fichiers après sélection dans le tunnel', async () => {

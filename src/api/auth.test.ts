@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { loginCall, registerCall, registerBureauEtudeCall, registerClientCall, logoutCall } from './auth';
+import { loginCall, registerBureauEtudeCall, registerClientCall, logoutCall, confirmEmailCall, resendVerificationEmailCall, refreshCall, getSessionConfigCall } from './auth';
 
 vi.mock('./index', () => ({
   default: {
     post: vi.fn(),
+    get: vi.fn(),
   },
 }));
 
@@ -31,26 +32,6 @@ describe('loginCall', () => {
   });
 });
 
-describe('registerCall', () => {
-  it('appelle POST /auth/register avec les données et retourne le DTO auth', async () => {
-    (api.post as any).mockResolvedValueOnce({ data: fakeAuthResponse });
-
-    const userData = { login: 'new@test.com', password: 'pass', role: 'CLIENT' as const };
-    const result = await registerCall(userData);
-
-    expect(api.post).toHaveBeenCalledWith('/auth/register', userData);
-    expect(result).toEqual(fakeAuthResponse);
-  });
-
-  it('propage l\'erreur si les données sont invalides', async () => {
-    (api.post as any).mockRejectedValueOnce(new Error('Bad request'));
-
-    await expect(
-      registerCall({ login: '', password: '', role: 'CLIENT' })
-    ).rejects.toThrow('Bad request');
-  });
-});
-
 describe('registerClientCall', () => {
   it('crée atomiquement le compte et le profil client', async () => {
     const registration = {
@@ -61,12 +42,41 @@ describe('registerClientCall', () => {
       prenom: 'Jean',
       telContact: '0612345678',
       adresseFacturation: { rue: '12 rue de la Paix', codePostal: '75001', ville: 'Paris' },
+      demande: { type: 'G0' as const, adresseProjet: { rue: '1 rue du Projet', codePostal: '75002', ville: 'Paris' } },
     };
     const response = { ...fakeAuthResponse, clientId: 10 };
     (api.post as any).mockResolvedValueOnce({ data: response });
 
     await expect(registerClientCall(registration)).resolves.toEqual(response);
-    expect(api.post).toHaveBeenCalledWith('/auth/register/client', registration);
+    expect(api.post).toHaveBeenCalledWith('/auth/register/client', expect.any(FormData), {
+      headers: { 'Content-Type': undefined },
+    });
+    const body = (api.post as any).mock.calls[0][1] as FormData;
+    expect(body.get('registration')).toBeInstanceOf(Blob);
+    expect(body.getAll('documents')).toHaveLength(0);
+  });
+
+  it('ajoute chaque document au multipart', async () => {
+    (api.post as any).mockResolvedValueOnce({ data: fakeAuthResponse });
+    const registration = { login: 'a@b.fr' } as any;
+    const files = [new File(['a'], 'a.pdf'), new File(['b'], 'b.pdf')];
+    await registerClientCall(registration, files);
+    const body = (api.post as any).mock.calls[0][1] as FormData;
+    expect(body.getAll('documents')).toEqual(files);
+  });
+});
+
+describe('validation email', () => {
+  it('confirme le jeton', async () => {
+    (api.post as any).mockResolvedValueOnce({});
+    await expect(confirmEmailCall('token')).resolves.toBeUndefined();
+    expect(api.post).toHaveBeenCalledWith('/auth/email-verifications/confirm', { token: 'token' });
+  });
+
+  it('demande le renvoi pour le login', async () => {
+    (api.post as any).mockResolvedValueOnce({});
+    await expect(resendVerificationEmailCall('client@test.fr')).resolves.toBeUndefined();
+    expect(api.post).toHaveBeenCalledWith('/auth/email-verifications/resend', { login: 'client@test.fr' });
   });
 });
 
@@ -99,6 +109,27 @@ describe('logoutCall', () => {
     (api.post as any).mockRejectedValueOnce(new Error('Network error'));
 
     await expect(logoutCall()).rejects.toThrow('Network error');
+  });
+});
+
+describe('session', () => {
+  it('renouvelle les cookies de session', async () => {
+    (api.post as any).mockResolvedValueOnce({});
+
+    await expect(refreshCall()).resolves.toBeUndefined();
+    expect(api.post).toHaveBeenCalledWith('/auth/refresh');
+  });
+
+  it('charge la politique de session du backend', async () => {
+    const config = {
+      idleTimeoutMs: 1_200_000,
+      warningDurationMs: 120_000,
+      absoluteTimeoutMs: 36_000_000,
+    };
+    (api.get as any).mockResolvedValueOnce({ data: config });
+
+    await expect(getSessionConfigCall()).resolves.toEqual(config);
+    expect(api.get).toHaveBeenCalledWith('/auth/session-config');
   });
 });
 
