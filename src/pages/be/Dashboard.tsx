@@ -7,19 +7,21 @@ import { extractCodeDepartement } from '../../lib/utils';
 import { DemandeDevisDTO, PropositionDevisDTO, EtudeDetailDTO } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Calendar, ChevronRight, FlaskConical, User, Clock, AlertCircle, Archive, Globe, Sparkles, CircleDashed, CheckCircle2, FolderKanban, SlidersHorizontal, Map as MapIcon } from 'lucide-react';
+import { Calendar, ChevronRight, FlaskConical, User, Clock, AlertCircle, Archive, Globe, Sparkles, CircleDashed, CheckCircle2, FolderKanban, SlidersHorizontal } from 'lucide-react';
 import { beMustAct } from '../../components/etude/EtudeStatusBadge';
 import { EtudeCardHeader } from '../../components/etude/EtudeCardHeader';
 import { DashboardSidebarNav, type DashboardNavSection } from '../../components/ui/DashboardSidebarNav';
 import { DashboardMetricCard } from '../../components/ui/DashboardMetricCard';
-import { DashboardActivityFeed } from '../../components/ui/DashboardActivityFeed';
 import { BEInteractiveMap } from '../../components/map/BEInteractiveMap';
 import { Link, useSearchParams } from 'react-router-dom';
-import { buildBEActivityFeed } from './dashboardActivityFeed';
 import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 
-type TabType = 'OUVERT' | 'EN_ATTENTE' | 'ETUDE_EN_COURS' | 'ARCHIVES' | 'CARTE';
+type TabType = 'OUVERT' | 'EN_ATTENTE' | 'ETUDE_EN_COURS' | 'ARCHIVES';
 type DashboardContentView = 'CARTE' | 'LISTE';
+
+function isTabType(value: string | null): value is TabType {
+  return value === 'OUVERT' || value === 'EN_ATTENTE' || value === 'ETUDE_EN_COURS' || value === 'ARCHIVES';
+}
 
 interface BEDashboardComputedData {
   readonly openDemandes: DemandeDevisDTO[];
@@ -154,6 +156,7 @@ interface BEDashboardBodyProps {
   readonly etudesArchivees: EtudeDetailDTO[];
   readonly demandes: DemandeDevisDTO[];
   readonly onFilterByDeptChange: (checked: boolean) => void;
+  readonly isUpdatingAvailable: boolean;
   readonly onShowAllMissions: () => void;
   readonly renderDemandeCard: (demande: DemandeDevisDTO, prop?: PropositionDevisDTO) => React.ReactNode;
   readonly renderEtudeCard: (etude: EtudeDetailDTO) => React.ReactNode;
@@ -262,6 +265,53 @@ function EtudesArchiveesContent({
   return <>{etudes.map((etude) => renderEtudeCard(etude))}</>;
 }
 
+function MapListSwitch({ value, onChange }: Readonly<{
+  value: DashboardContentView;
+  onChange: (view: DashboardContentView) => void;
+}>) {
+  return (
+    <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1 text-sm" aria-label="Mode d'affichage">
+      {(['CARTE', 'LISTE'] as const).map(view => (
+        <button
+          key={view}
+          type="button"
+          onClick={() => onChange(view)}
+          aria-pressed={value === view}
+          className={`rounded-md px-3 py-1.5 font-semibold transition-colors ${value === view ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+        >
+          {view === 'CARTE' ? 'Carte' : 'Liste'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DepartmentFilterToggle({ checked, count, onChange, disabled = false }: Readonly<{
+  checked: boolean;
+  count: number;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
+}>) {
+  const followedDepartmentsLabel = `(${count} suivi${count > 1 ? 's' : ''})`;
+  const statusLabel = disabled ? 'Mise à jour…' : followedDepartmentsLabel;
+
+  return (
+    <label className={`flex h-10 select-none items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 text-sm font-medium text-blue-800 ${disabled ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}>
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={event => onChange(event.target.checked)}
+        className="h-4 w-4 cursor-pointer accent-blue-600"
+      />
+      <span>Filtrer par mes départements</span>
+      <span className="text-xs font-normal text-blue-600">
+        {statusLabel}
+      </span>
+    </label>
+  );
+}
+
 function BEDashboardBody({
   activeTab,
   hasDepFilter,
@@ -274,6 +324,7 @@ function BEDashboardBody({
   etudesArchivees,
   demandes,
   onFilterByDeptChange,
+  isUpdatingAvailable,
   onShowAllMissions,
   renderDemandeCard,
   renderEtudeCard,
@@ -289,58 +340,26 @@ function BEDashboardBody({
   }, [activeTab, hasSwitchableMap]);
 
   const showIntegratedMap = hasSwitchableMap && contentView === 'CARTE';
-  const showListGrid = activeTab !== 'CARTE' && (!hasSwitchableMap || contentView === 'LISTE');
+  const showListGrid = !hasSwitchableMap || contentView === 'LISTE';
+  const viewControls = hasSwitchableMap ? (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      {activeTab === 'OUVERT' && hasDepFilter && notificationPreferences && (
+        <DepartmentFilterToggle
+          checked={filterByDept}
+          count={notificationPreferences.departementsSuivis.length}
+          onChange={onFilterByDeptChange}
+          disabled={isUpdatingAvailable}
+        />
+      )}
+      <MapListSwitch value={contentView} onChange={setContentView} />
+    </div>
+  ) : null;
 
   return (
     <div className="min-w-0 flex-1 space-y-4">
-      {/* Toggle "Mes départements" — visible uniquement sur l'onglet Missions Disponibles */}
-      {activeTab === 'OUVERT' && hasDepFilter && (
-        <div className="flex items-center justify-between px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm">
-          <label className="flex items-center gap-2.5 cursor-pointer select-none" aria-label="Filtrer les missions par mes départements">
-            <input
-              type="checkbox"
-              checked={filterByDept}
-              onChange={(event) => onFilterByDeptChange(event.target.checked)}
-              className="w-4 h-4 accent-blue-600 cursor-pointer"
-            />
-            <span className="font-medium text-blue-800">Filtrer par mes départements</span>
-            {filterByDept && notificationPreferences && (
-              <span className="text-blue-600 text-xs">
-                ({notificationPreferences.departementsSuivis.length} département{notificationPreferences.departementsSuivis.length > 1 ? 's' : ''} suivis)
-              </span>
-            )}
-          </label>
-          {filterByDept && openDemandes.length > filteredOpenDemandes.length && (
-            <span className="text-xs text-blue-600 flex items-center gap-1">
-              <Globe className="w-3.5 h-3.5" aria-hidden="true" />
-              {openDemandes.length - filteredOpenDemandes.length} mission{openDemandes.length - filteredOpenDemandes.length > 1 ? 's' : ''} hors zone masquée{openDemandes.length - filteredOpenDemandes.length > 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
-      )}
-
-      {hasSwitchableMap && (
-        <div className="flex w-fit rounded-lg border border-slate-200 bg-slate-50 p-1 text-sm">
-          <button
-            type="button"
-            onClick={() => setContentView('CARTE')}
-            className={`rounded-md px-3 py-1.5 font-semibold transition-colors ${contentView === 'CARTE' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-          >
-            Carte
-          </button>
-          <button
-            type="button"
-            onClick={() => setContentView('LISTE')}
-            className={`rounded-md px-3 py-1.5 font-semibold transition-colors ${contentView === 'LISTE' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-          >
-            Liste
-          </button>
-        </div>
-      )}
-
       <div
         data-testid="dashboard-switchable-view"
-        className={hasSwitchableMap ? 'min-h-[520px]' : undefined}
+        className={hasSwitchableMap ? 'min-h-[480px]' : undefined}
       >
       {showIntegratedMap && activeTab === 'OUVERT' && (
         <BEInteractiveMap
@@ -349,18 +368,35 @@ function BEDashboardBody({
           filters={{ kind: 'DEMANDE_DISPONIBLE' }}
           defaultNotificationDepartments={notificationPreferences?.departementsSuivis ?? []}
           defaultRestrictToNotificationDepartments={filterByDept}
+          headerActions={viewControls}
         />
       )}
 
       {showIntegratedMap && activeTab === 'ETUDE_EN_COURS' && (
-        <BEInteractiveMap title="Études en cours géolocalisées" context="ETUDES_EN_COURS" filters={{ kind: 'ETUDE_EN_COURS' }} />
+        <BEInteractiveMap
+          title="Études en cours géolocalisées"
+          context="ETUDES_EN_COURS"
+          filters={{ kind: 'ETUDE_EN_COURS' }}
+          headerActions={viewControls}
+        />
       )}
 
-      {activeTab === 'CARTE' && (
-        <BEInteractiveMap title="Vue géographique globale" context="GLOBAL" filters={{ withArchived: true }} height="full" />
-      )}
-
-      {showListGrid && <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {showListGrid && <div className={hasSwitchableMap ? 'rounded-xl border border-slate-200 bg-white p-4 shadow-sm' : undefined}>
+        {hasSwitchableMap && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+            <h3 className="text-base font-semibold text-slate-900">
+              {activeTab === 'OUVERT' ? 'Missions disponibles' : 'Études en cours'}
+            </h3>
+            {viewControls}
+          </div>
+        )}
+        {activeTab === 'OUVERT' && hasDepFilter && filterByDept && openDemandes.length > filteredOpenDemandes.length && (
+          <p className="mb-4 flex items-center gap-1 text-xs text-blue-600">
+            <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+            {openDemandes.length - filteredOpenDemandes.length} mission{openDemandes.length - filteredOpenDemandes.length > 1 ? 's' : ''} hors zone masquée{openDemandes.length - filteredOpenDemandes.length > 1 ? 's' : ''}
+          </p>
+        )}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {activeTab === 'OUVERT' && (
           <OpenDemandesContent
             filterByDept={filterByDept}
@@ -391,6 +427,7 @@ function BEDashboardBody({
           />
         )}
         <PaginationControls page={page} totalPages={totalPages} onChange={onPageChange} />
+        </div>
       </div>}
       </div>
     </div>
@@ -405,10 +442,11 @@ export default function BEDashboard() {
     availablePage, pendingPage, activeEtudePage, archivedEtudePage,
     availableTotalPages, pendingTotalPages, activeEtudeTotalPages, archivedEtudeTotalPages,
     setFilterByDept, setAvailablePage, setPendingPage, setActiveEtudePage, setArchivedEtudePage,
-    isLoading, error,
+    isLoading, isUpdatingAvailable, error,
   } = useBEDashboardData();
   const [searchParams, setSearchParams] = useSearchParams();
-  const tabParam = searchParams.get('tab') as TabType | null;
+  const rawTabParam = searchParams.get('tab');
+  const tabParam = isTabType(rawTabParam) ? rawTabParam : null;
   const [activeTab, setActiveTab] = useState<TabType>(tabParam ?? 'OUVERT');
   const contentPanelRef = useRef<HTMLDivElement | null>(null);
 
@@ -483,14 +521,6 @@ export default function BEDashboard() {
         { id: 'ARCHIVES', label: 'Études archivées', count: archivedEtudeTotal, icon: <Archive className="w-4 h-4" /> },
       ],
     },
-    {
-      id: 'carte',
-      title: 'Carte',
-      defaultExpanded: true,
-      items: [
-        { id: 'CARTE', label: 'Vue carte', count: availableTotal + activeEtudeTotal, icon: <MapIcon className="w-4 h-4" /> },
-      ],
-    },
   ];
   const missionsCount = availableTotal;
   const sectionMeta: Record<TabType, { title: string; description: string }> = {
@@ -510,31 +540,19 @@ export default function BEDashboard() {
       title: 'Études archivées',
       description: 'Retrouvez les études finalisées, les livrables remis et l’historique de vos missions.',
     },
-    CARTE: {
-      title: 'Carte interactive',
-      description: 'Visualisez vos opportunités, propositions et études sur une carte centrée sur votre bureau.',
-    },
   };
-  const activityFeed = buildBEActivityFeed({
-    openDemandesCount: missionsCount,
-    pendingCount: pendingTotal,
-    etudesEnCoursCount: activeEtudeTotal,
-    etudesArchiveesCount: archivedEtudeTotal,
-    hasDepFilter,
-    onNavigate: handleTabChange,
-  });
   const paginationByTab = {
     OUVERT: { page: availablePage, totalPages: availableTotalPages, onPageChange: setAvailablePage },
     EN_ATTENTE: { page: pendingPage, totalPages: pendingTotalPages, onPageChange: setPendingPage },
     ETUDE_EN_COURS: { page: activeEtudePage, totalPages: activeEtudeTotalPages, onPageChange: setActiveEtudePage },
     ARCHIVES: { page: archivedEtudePage, totalPages: archivedEtudeTotalPages, onPageChange: setArchivedEtudePage },
-    CARTE: { page: availablePage, totalPages: 0, onPageChange: setAvailablePage },
   } satisfies Record<TabType, {
     readonly page: number;
     readonly totalPages: number;
     readonly onPageChange: (page: number) => Promise<void>;
   }>;
   const pagination = paginationByTab[activeTab];
+  const hasIntegratedMap = activeTab === 'OUVERT' || activeTab === 'ETUDE_EN_COURS';
 
   const renderDemandeCard = (demande: DemandeDevisDTO, prop?: PropositionDevisDTO) => {
     const isRefused = prop?.statut === 'REFUSEE';
@@ -742,8 +760,6 @@ export default function BEDashboard() {
         </div>
       </div>
 
-      <DashboardActivityFeed items={activityFeed} />
-
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         <DashboardSidebarNav
           activeItemId={activeTab}
@@ -751,15 +767,18 @@ export default function BEDashboard() {
           sections={navSections}
         />
 
-        <div ref={contentPanelRef} className="gc-surface-panel min-w-0 flex-1 rounded-2xl p-4 md:p-5">
-          <div className="mb-4 border-b border-slate-200 pb-3">
+        <div
+          ref={contentPanelRef}
+          className={hasIntegratedMap ? 'min-w-0 flex-1' : 'gc-surface-panel min-w-0 flex-1 rounded-2xl p-4 md:p-5'}
+        >
+          {!hasIntegratedMap && <div className="mb-4 border-b border-slate-200 pb-3">
             <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
               <SlidersHorizontal className="h-3.5 w-3.5" />
               Vue active
             </div>
             <h2 className="mt-2 text-base font-semibold text-slate-900">{sectionMeta[activeTab].title}</h2>
             <p className="mt-1 text-sm text-slate-500">{sectionMeta[activeTab].description}</p>
-          </div>
+          </div>}
 
           <BEDashboardBody
             activeTab={activeTab}
@@ -773,6 +792,7 @@ export default function BEDashboard() {
             etudesArchivees={etudesArchivees}
             demandes={demandes}
             onFilterByDeptChange={setFilterByDept}
+            isUpdatingAvailable={isUpdatingAvailable}
             onShowAllMissions={() => setFilterByDept(false)}
             renderDemandeCard={renderDemandeCard}
             renderEtudeCard={renderEtudeCard}

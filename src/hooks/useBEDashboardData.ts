@@ -35,6 +35,7 @@ export interface BEDashboardData {
   setActiveEtudePage: (page: number) => Promise<void>;
   setArchivedEtudePage: (page: number) => Promise<void>;
   isLoading: boolean;
+  isUpdatingAvailable: boolean;
   error: string | null;
   refetch: () => void;
 }
@@ -53,6 +54,7 @@ export function useBEDashboardData(): BEDashboardData {
   const [activeMeta, setActiveMeta] = useState({ page: 0, totalItems: 0, totalPages: 0 });
   const [archivedMeta, setArchivedMeta] = useState({ page: 0, totalItems: 0, totalPages: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [isUpdatingAvailable, setIsUpdatingAvailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
@@ -83,9 +85,13 @@ export function useBEDashboardData(): BEDashboardData {
   }, [bureau?.id]);
 
   const run = async (operation: () => Promise<void>) => {
-    setIsLoading(true);
     setError(null);
-    try { await operation(); } catch (err) { setError(extractErrorMessage(err)); } finally { setIsLoading(false); }
+    try { await operation(); } catch (err) { setError(extractErrorMessage(err)); }
+  };
+
+  const runAvailableUpdate = async (operation: () => Promise<void>) => {
+    setIsUpdatingAvailable(true);
+    try { await run(operation); } finally { setIsUpdatingAvailable(false); }
   };
 
   useEffect(() => {
@@ -128,8 +134,8 @@ export function useBEDashboardData(): BEDashboardData {
     return () => { cancelled = true; };
   }, [user, tick]);
 
-  const setFilterByDept = async (enabled: boolean) => run(async () => { setFilterByDeptState(enabled); await loadAvailable(0, enabled); });
-  const setAvailablePage = async (page: number) => run(() => loadAvailable(page));
+  const setFilterByDept = async (enabled: boolean) => runAvailableUpdate(async () => { setFilterByDeptState(enabled); await loadAvailable(0, enabled); });
+  const setAvailablePage = async (page: number) => runAvailableUpdate(() => loadAvailable(page));
   const setPendingPage = async (page: number) => run(() => loadPending(page));
   const setActiveEtudePage = async (page: number) => run(() => loadEtudes('ACTIVE', page));
   const setArchivedEtudePage = async (page: number) => run(() => loadEtudes('ARCHIVED', page));
@@ -151,6 +157,6 @@ export function useBEDashboardData(): BEDashboardData {
     availableTotalPages: availableMeta.totalPages, pendingTotalPages: pendingMeta.totalPages,
     activeEtudeTotalPages: activeMeta.totalPages, archivedEtudeTotalPages: archivedMeta.totalPages,
     setFilterByDept, setAvailablePage, setPendingPage, setActiveEtudePage, setArchivedEtudePage,
-    isLoading, error, refetch: () => setTick(value => value + 1),
+    isLoading, isUpdatingAvailable, error, refetch: () => setTick(value => value + 1),
   };
 }
