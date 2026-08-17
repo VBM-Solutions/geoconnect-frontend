@@ -1,227 +1,27 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { registerBureauEtudeCall } from '../../api/auth';
-import { useAuth } from '../../contexts/AuthContext';
-import { Building2, FileText, Upload } from 'lucide-react';
-import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules } from '../../lib/validators';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { PasswordRequirementsHint } from '../../components/ui/PasswordRequirementsHint';
+import { Building2, CheckCircle2 } from 'lucide-react';
+import { submitContactBureauEtude } from '../../api/contactsBureauEtude';
 import { AddressAutocompleteField } from '../../components/shared/AddressAutocompleteField';
+import { Button } from '../../components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
+import { Input } from '../../components/ui/Input';
 import { AddressSuggestionDTO } from '../../types';
+import { emailRules, phoneRules } from '../../lib/validators';
 
-export default function BERegister() {
-  const navigate = useNavigate();
-  const { login } = useAuth();
-  const { register, handleSubmit, getValues, setValue, watch, formState: { errors } } = useForm();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorDetails, setErrorDetails] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [selectedAddress, setSelectedAddress] = useState<AddressSuggestionDTO | null>(null);
-  const [addressError, setAddressError] = useState('');
-  const passwordValue = watch('password', '');
-
-  const onSubmit = async (data: any) => {
-    if (!selectedAddress?.rue || !selectedAddress.codePostal || !selectedAddress.ville) {
-      setAddressError('Veuillez sélectionner une adresse parmi les propositions.');
-      return;
-    }
-    setIsSubmitting(true);
-    setErrorDetails('');
-    try {
-      const authRes = await registerBureauEtudeCall({
-        login: data.email,
-        password: data.password,
-        raisonSociale: data.raisonSociale,
-        telContact: data.telContact,
-        adresse: {
-          rue: data.rue,
-          codePostal: data.codePostal,
-          ville: data.ville,
-          latitude: selectedAddress.latitude,
-          longitude: selectedAddress.longitude,
-          geocodingScore: selectedAddress.score,
-        },
-      });
-
-      // Persist the token via AuthContext (gère sessionStorage + état global)
-      login(authRes);
-
-      // Usually, it requires admin validation, so let's show a success message
-      setSuccess(true);
-    } catch (err: any) {
-      console.error(err);
-      setErrorDetails(err?.response?.data?.message || err?.message || 'Une erreur est survenue lors de l\'inscription.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (success) {
-    return (
-      <div className="max-w-md mx-auto py-24 px-4 sm:px-6">
-        <Card className="text-center shadow-lg border-blue-200 bg-blue-50/50">
-          <CardHeader>
-             <div className="mx-auto w-16 h-16 bg-blue-100 flex items-center justify-center rounded-full mb-4">
-               <FileText className="w-8 h-8 text-blue-600" />
-             </div>
-             <CardTitle className="text-xl text-slate-800">Votre demande est enregistrée</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-slate-600 mb-6">
-              Votre compte professionnel a bien été créé. Notre équipe va valider vos informations et vos documents. 
-              Vous recevrez un email de confirmation dès que votre compte sera activé.
-            </p>
-            <Button onClick={() => navigate('/login')} className="w-full">
-              Retour à l'accueil
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-2xl mx-auto py-12 px-4 sm:px-6">
-      <div className="mb-8 text-center">
-         <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">Rejoindre le réseau pro</h1>
-         <p className="text-slate-500">Inscrivez votre Bureau d'Étude Géotechnique</p>
-      </div>
-
-      {errorDetails && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl mb-6 text-sm">
-          {errorDetails}
-        </div>
-      )}
-
-      <Card className="border-slate-200 shadow-sm overflow-hidden">
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
-              <CardTitle className="text-lg flex items-center text-slate-800">
-                <Building2 className="w-5 h-5 mr-2 text-slate-400" />
-                Informations de votre entreprise
-              </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6 space-y-6">
-              <div className="space-y-4">
-                  <Input
-                    label="Raison Sociale *"
-                    placeholder="Ex: GeoExpert SAS"
-                    {...register('raisonSociale', { required: true })}
-                    error={errors.raisonSociale ? "Requis" : undefined}
-                  />
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Input
-                        label="Email professionnel *"
-                        type="email"
-                        placeholder="contact@entreprise.fr"
-                        {...register('email', { required: true })}
-                        error={errors.email ? "Requis" : undefined}
-                      />
-                      <Input
-                        label="Téléphone *"
-                        type="tel"
-                        placeholder="01 23 45 67 89"
-                        {...register('telContact', phoneRules)}
-                        error={errors.telContact ? (errors.telContact.message as string ?? 'Requis') : undefined}
-                      />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <Input
-                          label="Mot de passe *"
-                          type="password"
-                          {...register('password', passwordRules)}
-                          error={errors.password ? (errors.password.message as string) : undefined}
-                          showPasswordToggle
-                        />
-                        <PasswordRequirementsHint password={passwordValue} />
-                      </div>
-                      <Input
-                        label="Confirmation du mot de passe *"
-                        type="password"
-                        {...register('confirmPassword', createConfirmPasswordRules(() => getValues('password')))}
-                        error={errors.confirmPassword ? (errors.confirmPassword.message as string) : undefined}
-                        showPasswordToggle
-                      />
-                  </div>
-              </div>
-
-              <div className="space-y-4 pt-4 border-t border-slate-100">
-                <h4 className="text-sm font-semibold text-slate-800">Adresse de l'entreprise</h4>
-                <AddressAutocompleteField
-                  id="adresse-bureau-etude"
-                  label="Adresse *"
-                  placeholder="Rechercher l'adresse de l'entreprise"
-                  disabled={isSubmitting}
-                  onInputChange={() => {
-                    setSelectedAddress(null);
-                    setAddressError('');
-                  }}
-                  onSelect={(suggestion) => {
-                    setValue('rue', suggestion.rue ?? suggestion.label, { shouldValidate: true });
-                    setValue('codePostal', suggestion.codePostal ?? '', { shouldValidate: true });
-                    setValue('ville', suggestion.ville ?? '', { shouldValidate: true });
-                    setSelectedAddress(suggestion);
-                    setAddressError('');
-                  }}
-                />
-                <Input
-                  label="Rue *"
-                  placeholder="Ex : 10 rue de la Géologie"
-                  {...register('rue', {
-                    required: true,
-                    onChange: () => setSelectedAddress(null),
-                  })}
-                  error={errors.rue ? 'Requis' : undefined}
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    label="Code Postal *"
-                    placeholder="Ex : 75001"
-                    {...register('codePostal', {
-                      ...codePostalRules,
-                      onChange: () => setSelectedAddress(null),
-                    })}
-                    error={errors.codePostal ? (errors.codePostal.message as string) : undefined}
-                  />
-                  <Input
-                    label="Ville *"
-                    placeholder="Ex : Paris"
-                    {...register('ville', {
-                      required: true,
-                      onChange: () => setSelectedAddress(null),
-                    })}
-                    error={errors.ville ? 'Requis' : undefined}
-                  />
-                </div>
-                {addressError && <p className="text-sm text-red-600" role="alert">{addressError}</p>}
-              </div>
-
-              <div className="space-y-4 pt-4 border-t border-slate-100">
-                <h4 className="text-sm font-semibold text-slate-800">Documents justificatifs (Kbis, Assurances)</h4>
-                <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:bg-slate-50 transition-colors cursor-pointer">
-                  <Upload className="w-6 h-6 text-slate-400 mx-auto mb-2" />
-                  <p className="text-sm text-slate-600 font-medium font-sans">Glissez-déposez vos fichiers ici</p>
-                  <p className="text-xs text-slate-400 mt-1">PDF, JPG jusqu'à 10MB</p>
-                </div>
-              </div>
-          </CardContent>
-          <CardFooter className="bg-slate-50 border-t border-slate-100 py-4">
-            <Button
-              type="submit"
-              className="w-full"
-              isLoading={isSubmitting}
-            >
-              Soumettre ma candidature
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
-    </div>
-  );
+type Form={raisonSociale:string;email:string;telephone:string;rue:string;codePostal:string;ville:string;message:string};
+export default function BERegister(){
+ const {register,handleSubmit,setValue,formState:{errors,isSubmitting}}=useForm<Form>();
+ const [address,setAddress]=useState<AddressSuggestionDTO|null>(null); const [serverError,setServerError]=useState(''); const [sent,setSent]=useState(false);
+ const submit=async(v:Form)=>{if(!address){setServerError('Veuillez sélectionner une adresse parmi les propositions.');return;} setServerError('');try{await submitContactBureauEtude({raisonSociale:v.raisonSociale,email:v.email,telephone:v.telephone,message:v.message,adresse:{rue:v.rue,codePostal:v.codePostal,ville:v.ville,latitude:address.latitude,longitude:address.longitude,geocodingScore:address.score}});setSent(true);}catch{setServerError("La soumission n'a pas pu être envoyée. Réessayez plus tard.");}};
+ if(sent)return <div className="mx-auto max-w-lg py-20"><Card><CardContent className="p-8 text-center"><CheckCircle2 className="mx-auto mb-4 h-12 w-12 text-green-600"/><h1 className="text-xl font-bold">Merci pour votre message</h1><p className="mt-2 text-slate-600">Notre équipe vous recontactera afin d'échanger sur la création de votre compte.</p></CardContent></Card></div>;
+ return <div className="mx-auto max-w-2xl py-12"><Card><CardHeader><CardTitle className="flex gap-2"><Building2/>Rejoindre le réseau professionnel</CardTitle></CardHeader><CardContent><form onSubmit={handleSubmit(submit)} className="space-y-4">
+  {serverError&&<p role="alert" className="rounded bg-red-50 p-3 text-sm text-red-700">{serverError}</p>}
+  <Input label="Raison sociale *" {...register('raisonSociale',{required:'Champ obligatoire'})} error={errors.raisonSociale?.message}/>
+  <div className="grid gap-4 sm:grid-cols-2"><Input label="Email professionnel *" type="email" {...register('email',emailRules)} error={errors.email?.message}/><Input label="Téléphone *" {...register('telephone',phoneRules)} error={errors.telephone?.message}/></div>
+  <AddressAutocompleteField id="contact-be-address" label="Adresse de l'entreprise *" onInputChange={()=>setAddress(null)} onSelect={s=>{setAddress(s);setValue('rue',s.rue??s.label);setValue('codePostal',s.codePostal??'');setValue('ville',s.ville??'');}}/>
+  <input type="hidden" {...register('rue')}/><input type="hidden" {...register('codePostal')}/><input type="hidden" {...register('ville')}/>
+  <label className="block text-sm font-medium">Votre message *<textarea className="mt-1 min-h-36 w-full rounded-lg border border-slate-300 p-3" {...register('message',{required:'Champ obligatoire',maxLength:{value:5000,message:'5000 caractères maximum'}})}/></label>{errors.message&&<p className="text-sm text-red-600">{errors.message.message}</p>}
+  <Button type="submit" isLoading={isSubmitting} className="w-full">Envoyer mon message</Button>
+ </form></CardContent></Card></div>;
 }

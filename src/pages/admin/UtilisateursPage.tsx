@@ -228,7 +228,7 @@ export default function UtilisateursPage() {
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <UtilisateurStatusBadge enabled={utilisateur.enabled} />
+                  <UtilisateurStatusBadge enabled={utilisateur.enabled} activationStatus={utilisateur.activationStatus} />
                 </td>
                 <td className="px-4 py-3 text-slate-600">
                   {new Date(utilisateur.createdAt).toLocaleString('fr-FR')}

@@ -15,5 +15,10 @@ describe('UtilisateurStatusBadge', () => {
     const badge = screen.getByText('Desactive');
     expect(badge.className).toContain('border-slate-300');
   });
+
+  it('affiche Invitation en attente avant activation', () => {
+    render(<UtilisateurStatusBadge enabled activationStatus="INVITED" />);
+    expect(screen.getByText('Invitation en attente')).toBeTruthy();
+  });
 });
 

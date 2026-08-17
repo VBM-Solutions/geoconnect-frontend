@@ -33,6 +33,10 @@ const UtilisateursPage = lazy(() => import('./pages/admin/UtilisateursPage'));
 const UtilisateurDetailPage = lazy(() => import('./pages/admin/UtilisateurDetailPage'));
 const CreerUtilisateurPage = lazy(() => import('./pages/admin/CreerUtilisateurPage'));
 const ModerationEvaluationsPage = lazy(() => import('./pages/admin/ModerationEvaluationsPage'));
+const ContactsBureauEtudePage = lazy(() => import('./pages/admin/ContactsBureauEtudePage'));
+const ContactBureauEtudeDetailPage = lazy(() => import('./pages/admin/ContactBureauEtudeDetailPage'));
+const CreateBureauEtudePage = lazy(() => import('./pages/admin/CreateBureauEtudePage'));
+const ActivateAccount = lazy(() => import('./pages/ActivateAccount'));
 
 function PageFallback() {
   return (
@@ -80,6 +84,7 @@ export default function App() {
             <Route path="/verifier-email" element={<VerifyEmail />} />
             <Route path="/verification-email-envoyee" element={<EmailVerificationPending />} />
             <Route path="/bureau-etudes/inscription" element={<BERegister />} />
+            <Route path="/activation-compte" element={<ActivateAccount />} />
             <Route path="/parametres" element={<ParametresRedirect />} />
 
             {/* Client Routes */}
@@ -106,6 +111,9 @@ export default function App() {
               <Route path="/admin/utilisateurs/nouveau" element={<CreerUtilisateurPage />} />
               <Route path="/admin/utilisateurs/:id" element={<UtilisateurDetailPage />} />
               <Route path="/admin/evaluations/moderation" element={<ModerationEvaluationsPage />} />
+              <Route path="/admin/contacts-bureaux-etudes" element={<ContactsBureauEtudePage />} />
+              <Route path="/admin/contacts-bureaux-etudes/:id" element={<ContactBureauEtudeDetailPage />} />
+              <Route path="/admin/bureaux-etudes/nouveau" element={<CreateBureauEtudePage />} />
             </Route>
 
             {/* Catch all */}
