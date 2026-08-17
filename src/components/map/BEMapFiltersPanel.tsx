@@ -19,7 +19,6 @@ interface BEMapFiltersPanelProps {
   readonly defaultFilters: LocalBEMapFilters;
   readonly options: BEMapFilterOptions;
   readonly canFilterByDistance: boolean;
-  readonly canRestrictToNotificationDepartments: boolean;
   readonly totalCount: number;
   readonly filteredCount: number;
   readonly isOpen: boolean;
@@ -57,7 +56,6 @@ export function BEMapFiltersPanel({
   defaultFilters,
   options,
   canFilterByDistance,
-  canRestrictToNotificationDepartments,
   totalCount,
   filteredCount,
   isOpen,
@@ -189,18 +187,6 @@ export function BEMapFiltersPanel({
               ))}
             </select>
           </label>
-
-          {canRestrictToNotificationDepartments && (
-            <label className="flex items-center gap-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-800">
-              <input
-                type="checkbox"
-                checked={filters.restrictToNotificationDepartments}
-                onChange={(event) => onChange({ ...filters, restrictToNotificationDepartments: event.target.checked })}
-                className="h-4 w-4 accent-blue-600"
-              />
-              <span>Mes départements de notification</span>
-            </label>
-          )}
 
           {config.showArchivesToggle && (
             <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700">

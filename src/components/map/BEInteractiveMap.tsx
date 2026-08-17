@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { LatLngExpression } from 'leaflet';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
@@ -27,6 +27,7 @@ import {
 import { getAutoViewport } from './beMapViewportPolicy';
 import { KIND_LABELS, MARKER_STYLES, createBureauIcon, createMarkerIcon, getMarkerStyle } from './beMapMarkerStyles';
 import 'leaflet/dist/leaflet.css';
+import './BEInteractiveMap.css';
 
 interface BEInteractiveMapProps {
   readonly title: string;
@@ -36,6 +37,7 @@ interface BEInteractiveMapProps {
   readonly showList?: boolean;
   readonly defaultNotificationDepartments?: string[];
   readonly defaultRestrictToNotificationDepartments?: boolean;
+  readonly headerActions?: ReactNode;
 }
 
 interface FocusTarget {
@@ -258,6 +260,7 @@ export function BEInteractiveMap({
   showList = true,
   defaultNotificationDepartments = EMPTY_NOTIFICATION_DEPARTMENTS,
   defaultRestrictToNotificationDepartments = false,
+  headerActions,
 }: Readonly<BEInteractiveMapProps>) {
   const { data, isLoading, error, refetch } = useBEMapData(filters);
   const rawMarkers = useMemo(() => (data?.markers ?? []).filter(hasCoordinates), [data]);
@@ -296,7 +299,9 @@ export function BEInteractiveMap({
   const defaultViewportKey = getViewportKey(defaultViewport);
   const [focusTarget, setFocusTarget] = useState<FocusTarget>({ viewport: defaultViewport, nonce: 0 });
   const [selectedMarkerKey, setSelectedMarkerKey] = useState<string | null>(null);
-  const mapHeightClass = height === 'full' ? 'h-[720px]' : 'h-[520px]';
+  const mapHeightClass = height === 'full'
+    ? 'h-[clamp(560px,calc(100vh-10rem),820px)]'
+    : 'h-[clamp(480px,calc(100vh-14rem),760px)]';
 
   useEffect(() => {
     setLocalFilters(defaultLocalFilters);
@@ -356,21 +361,23 @@ export function BEInteractiveMap({
           </div>
           <h3 className="mt-1 text-base font-semibold text-slate-900">{title}</h3>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <MapPin className="h-4 w-4 text-blue-600" />
-          {markers.length} point{markers.length > 1 ? 's' : ''}
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {headerActions}
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <MapPin className="h-4 w-4 text-blue-600" />
+            {markers.length} point{markers.length > 1 ? 's' : ''}
+          </div>
         </div>
       </div>
 
-      <div className={`relative ${mapHeightClass} overflow-hidden rounded-lg border border-slate-200 bg-slate-100`}>
-        <div className="absolute left-3 right-3 top-3 z-[500] max-w-[calc(100%-1.5rem)] md:left-4 md:right-auto md:max-w-[460px]">
+      <div className={`be-interactive-map relative ${mapHeightClass} overflow-hidden rounded-lg border border-slate-200 bg-slate-100`}>
+        <div className="absolute left-14 right-3 top-3 z-[500] max-w-[calc(100%-4.25rem)] md:left-16 md:right-auto md:max-w-[460px]">
           <BEMapFiltersPanel
             context={context}
             filters={localFilters}
             defaultFilters={defaultLocalFilters}
             options={filterOptions}
             canFilterByDistance={bureauPoint !== null}
-            canRestrictToNotificationDepartments={context === 'MISSIONS_DISPONIBLES' && notificationDepartments.length > 0}
             totalCount={rawMarkers.length}
             filteredCount={markers.length}
             isOpen={areFiltersOpen}

@@ -20,7 +20,16 @@ vi.mock('../../contexts/ToastContext', () => ({
 }));
 
 vi.mock('../../components/map/BEInteractiveMap', () => ({
-  BEInteractiveMap: ({ title }: { title: string }) => <div data-testid="be-interactive-map">{title}</div>,
+  BEInteractiveMap: ({
+    title,
+    headerActions,
+  }: {
+    title: string;
+    headerActions?: React.ReactNode;
+  }) => <section data-testid="be-interactive-map">
+    <h3>{title}</h3>
+    {headerActions}
+  </section>,
 }));
 
 function renderDashboard(initialPath = '/be/dashboard') {
@@ -116,6 +125,7 @@ describe('BEDashboard', () => {
       setActiveEtudePage: vi.fn(),
       setArchivedEtudePage: vi.fn(),
       isLoading: false,
+      isUpdatingAvailable: false,
       error: null,
     });
   });
@@ -134,7 +144,6 @@ describe('BEDashboard', () => {
     const user = userEvent.setup();
     renderDashboard();
 
-    expect(screen.getByText(/des propositions attendent un suivi/i)).toBeTruthy();
     const navigationButtons = screen.getAllByRole('button', { name: /En attente/i });
     await user.click(navigationButtons[navigationButtons.length - 1]);
 
@@ -179,12 +188,69 @@ describe('BEDashboard', () => {
     renderDashboard();
 
     const viewContainer = screen.getByTestId('dashboard-switchable-view');
-    expect(viewContainer.className).toContain('min-h-[520px]');
+    expect(viewContainer.className).toContain('min-h-[480px]');
 
     await user.click(screen.getByRole('button', { name: 'Liste' }));
 
     expect(screen.queryByTestId('be-interactive-map')).toBeNull();
-    expect(viewContainer.className).toContain('min-h-[520px]');
+    expect(viewContainer.className).toContain('min-h-[480px]');
+  });
+
+  it('intègre le switch dans le cadre de la carte sans afficher le cadre Vue active', () => {
+    renderDashboard();
+
+    const map = screen.getByTestId('be-interactive-map');
+    expect(screen.queryByText('Vue active')).toBeNull();
+    expect(map.contains(screen.getByRole('button', { name: 'Carte' }))).toBe(true);
+    expect(map.contains(screen.getByRole('button', { name: 'Liste' }))).toBe(true);
+  });
+
+  it('conserve le switch dans le cadre intérieur en mode liste', async () => {
+    const user = userEvent.setup();
+    renderDashboard('/be/dashboard?tab=ETUDE_EN_COURS');
+
+    await user.click(screen.getByRole('button', { name: 'Liste' }));
+
+    expect(screen.queryByTestId('be-interactive-map')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Études en cours' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Carte' })).toBeTruthy();
+  });
+
+  it('affiche le filtre départemental à côté du switch et pilote le dashboard', async () => {
+    const user = userEvent.setup();
+    const setFilterByDept = vi.fn();
+    mockUseBEDashboardData.mockReturnValue({
+      ...mockUseBEDashboardData(),
+      notificationPreferences: { notifierTousDepartements: false, departementsSuivis: ['44', '35'] },
+      filterByDept: true,
+      setFilterByDept,
+    });
+    renderDashboard();
+
+    const map = screen.getByTestId('be-interactive-map');
+    const checkbox = screen.getByRole('checkbox', { name: /filtrer par mes départements/i });
+    expect(map.contains(checkbox)).toBe(true);
+    expect(screen.getByText('(2 suivis)')).toBeTruthy();
+
+    await user.click(checkbox);
+
+    expect(setFilterByDept).toHaveBeenCalledWith(false);
+  });
+
+  it('conserve le filtre départemental à côté du switch en mode liste', async () => {
+    const user = userEvent.setup();
+    mockUseBEDashboardData.mockReturnValue({
+      ...mockUseBEDashboardData(),
+      notificationPreferences: { notifierTousDepartements: false, departementsSuivis: ['44'] },
+      filterByDept: true,
+    });
+    renderDashboard();
+
+    await user.click(screen.getByRole('button', { name: 'Liste' }));
+
+    expect(screen.queryByTestId('be-interactive-map')).toBeNull();
+    expect(screen.getByRole('checkbox', { name: /filtrer par mes départements/i })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'Carte' })).toBeTruthy();
   });
 
   it('affiche les délais dans l ordre intervention puis rendu', async () => {

@@ -66,6 +66,27 @@ describe('useBEDashboardData', () => {
     expect(getBureauEtudeWorkItemsPaginated).toHaveBeenCalledWith('AVAILABLE', 0, 8, []);
   });
 
+  it('conserve le dashboard affiché pendant la mise à jour du filtre', async () => {
+    const { result } = renderHook(() => useBEDashboardData());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    let resolveAvailable!: (value: unknown) => void;
+    vi.mocked(getBureauEtudeWorkItemsPaginated).mockReturnValueOnce(
+      new Promise(resolve => { resolveAvailable = resolve; }) as never,
+    );
+
+    let updatePromise!: Promise<void>;
+    act(() => { updatePromise = result.current.setFilterByDept(false); });
+
+    await waitFor(() => expect(result.current.isUpdatingAvailable).toBe(true));
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.filterByDept).toBe(false);
+
+    resolveAvailable(page([{ demande, proposition: null }]));
+    await act(() => updatePromise);
+    expect(result.current.isUpdatingAvailable).toBe(false);
+  });
+
   it('expose une erreur sans conserver le chargement actif', async () => {
     vi.mocked(getBureauByUserId).mockRejectedValue(new Error('Réseau KO'));
     const { result } = renderHook(() => useBEDashboardData());
