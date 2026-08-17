@@ -19,6 +19,31 @@ export interface PageResponse<T> {
   hasNext: boolean;
 }
 
+export interface ContactBureauEtudeDTO {
+  id: number;
+  raisonSociale: string;
+  email: string;
+  telephone: string;
+  adresse: AdresseDTO;
+  message: string;
+  readAt?: string;
+  contactedAt?: string;
+  archivedAt?: string;
+  convertedAt?: string;
+  bureauEtudeId?: number;
+  version: number;
+  createdAt: string;
+}
+
+export interface CreateBureauEtudeAdminPayload {
+  raisonSociale: string;
+  email: string;
+  telephone: string;
+  adresse: AdresseDTO;
+  contactId?: number;
+  contactVersion?: number;
+}
+
 export interface BEDemandePageItemDTO {
   demande: DemandeDevisDTO;
   proposition: PropositionDevisDTO | null;
@@ -197,6 +222,7 @@ export interface UtilisateurDTO {
   login: string;
   role: Role;
   enabled: boolean;
+  activationStatus?: 'INVITED' | 'ACTIVATED';
   createdAt: string;
 }
 

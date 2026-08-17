@@ -81,6 +81,7 @@ export default function MainLayout() {
     ];
   } else if (user?.role === 'ADMIN') {
     navItems = [
+      { label: 'Contacts BE', path: '/admin/contacts-bureaux-etudes' },
       { label: 'Utilisateurs', path: '/admin/utilisateurs' },
       { label: 'Modération', path: '/admin/evaluations/moderation' },
     ];

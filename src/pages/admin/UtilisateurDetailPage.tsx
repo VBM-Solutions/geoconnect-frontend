@@ -120,7 +120,7 @@ export default function UtilisateurDetailPage() {
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">Statut</dt>
-            <dd className="mt-1"><UtilisateurStatusBadge enabled={utilisateur.enabled} /></dd>
+            <dd className="mt-1"><UtilisateurStatusBadge enabled={utilisateur.enabled} activationStatus={utilisateur.activationStatus} /></dd>
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">Date de creation</dt>
