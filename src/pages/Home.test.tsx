@@ -56,13 +56,13 @@ function renderHome() {
 
 async function startTunnel(user: ReturnType<typeof userEvent.setup>) {
   renderHome();
-  await user.click(screen.getByRole('button', { name: /démarrer ma demande/i }));
+  await user.click(screen.getAllByRole('button', { name: /demander mes devis/i })[0]);
   expect(await screen.findByText(/quel est votre besoin/i)).toBeTruthy();
 }
 
 async function completeStep1(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByText('G0 — Étude préalable');
-  await user.selectOptions(screen.getByRole('combobox'), 'G0');
+  await user.selectOptions(screen.getByLabelText('Type de mission *'), 'G0');
   await user.type(screen.getByPlaceholderText(/15 Avenue des Champs/i), '10 Rue de la Paix');
   await user.type(screen.getByLabelText('Code Postal *'), '75001');
   await user.type(screen.getByLabelText('Ville *'), 'Paris');
@@ -117,6 +117,26 @@ describe('Home — tunnel utilisateur', () => {
     vi.mocked(demandeDevisApi.createDemandeDevis).mockResolvedValue({});
     vi.mocked(documentApi.uploadDocuments).mockResolvedValue([]);
     vi.mocked(addressAutocompleteApi.searchAddressSuggestions).mockResolvedValue([]);
+  });
+
+  it('présente les situations, les missions et la promesse financière exacte', () => {
+    renderHome();
+
+    expect(screen.getByRole('heading', { name: /votre étude de sol/i })).toBeVisible();
+    expect(screen.getByText('Mission G1')).toBeVisible();
+    expect(screen.getByText('Mission G2 AVP')).toBeVisible();
+    expect(screen.getByText(/une ou plusieurs propositions peuvent vous parvenir/i)).toBeInTheDocument();
+    expect(screen.getByText(/aucun frais supplémentaire/i)).toBeVisible();
+  });
+
+  it('préremplit le tunnel depuis une carte situation', async () => {
+    const user = userEvent.setup();
+    renderHome();
+
+    await user.click(screen.getByRole('button', { name: /demander une étude G1/i }));
+
+    expect(await screen.findByText(/quel est votre besoin/i)).toBeVisible();
+    await waitFor(() => expect(screen.getByLabelText('Type de mission *')).toHaveValue('G1'));
   });
 
   it("remplit l'adresse du projet depuis une suggestion officielle", async () => {

@@ -305,7 +305,7 @@ export default function UtilisateursPage() {
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-xl font-bold text-slate-900">Administration des comptes</h1>
-            <p className="text-xs text-slate-500">Liste complete des utilisateurs GeoConnect.</p>
+            <p className="text-xs text-slate-500">Liste complète des utilisateurs Mon étude de sol.fr.</p>
           </div>
           <Link to="/admin/utilisateurs/nouveau">
             <Button>

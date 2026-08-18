@@ -1,12 +1,53 @@
 @import "tailwindcss";
 
+/* La palette historique bleue/slate est redirigée ici vers l'identité
+   Mon étude de sol.fr. Les écrans publics, client, BE et admin partagent
+   ainsi les mêmes tokens sans dupliquer les décisions de couleur. */
+@theme {
+  --color-blue-50: #f3f7ea;
+  --color-blue-100: #e5eed1;
+  --color-blue-200: #cfdfa9;
+  --color-blue-300: #aec879;
+  --color-blue-400: #8eaa55;
+  --color-blue-500: #779649;
+  --color-blue-600: #688239;
+  --color-blue-700: #52672f;
+  --color-blue-800: #425227;
+  --color-blue-900: #384624;
+  --color-blue-950: #1d2711;
+
+  --color-cyan-50: #f7f3e8;
+  --color-cyan-100: #eee5cd;
+  --color-cyan-200: #dfcfa7;
+  --color-cyan-300: #c9ae76;
+  --color-cyan-400: #b28e4f;
+  --color-cyan-500: #9c753d;
+  --color-cyan-600: #805c32;
+  --color-cyan-700: #67472b;
+  --color-cyan-800: #563c28;
+  --color-cyan-900: #493326;
+  --color-cyan-950: #291a12;
+
+  --color-slate-50: #faf9f6;
+  --color-slate-100: #f3f0e9;
+  --color-slate-200: #e5dfd3;
+  --color-slate-300: #d2c8b7;
+  --color-slate-400: #9e917e;
+  --color-slate-500: #746b5e;
+  --color-slate-600: #575044;
+  --color-slate-700: #423d35;
+  --color-slate-800: #292722;
+  --color-slate-900: #1c1b18;
+  --color-slate-950: #11110f;
+}
+
 :root {
   --gc-duration-fast: 150ms;
   --gc-duration-base: 180ms;
   --gc-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --gc-shadow-soft: 0 18px 45px -24px rgba(15, 23, 42, 0.22);
-  --gc-shadow-hover: 0 22px 55px -28px rgba(37, 99, 235, 0.24);
-  --gc-surface-border: rgba(148, 163, 184, 0.18);
+  --gc-shadow-soft: 0 18px 45px -24px rgba(74, 58, 38, 0.22);
+  --gc-shadow-hover: 0 22px 55px -28px rgba(104, 130, 57, 0.28);
+  --gc-surface-border: rgba(168, 150, 125, 0.2);
 }
 
 html {
@@ -15,13 +56,13 @@ html {
 
 body {
   background:
-	radial-gradient(circle at top, rgba(59, 130, 246, 0.09), transparent 32%),
-	linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-  color: #0f172a;
+	radial-gradient(circle at top, rgba(119, 150, 73, 0.12), transparent 34%),
+	linear-gradient(180deg, #faf8f3 0%, #f4f0e7 100%);
+  color: #1c1b18;
 }
 
 ::selection {
-  background: rgba(37, 99, 235, 0.18);
+  background: rgba(119, 150, 73, 0.28);
 }
 
 .gc-motion-fast {
@@ -44,9 +85,63 @@ body {
 }
 
 .gc-surface-panel {
-  border: 1px solid rgba(226, 232, 240, 0.92);
+  border: 1px solid rgba(229, 223, 211, 0.92);
   background: rgba(255, 255, 255, 0.76);
   box-shadow: var(--gc-shadow-soft);
   backdrop-filter: blur(12px);
+}
+
+.gc-landing-section {
+  border: 1px solid rgba(168, 150, 125, 0.2);
+  border-radius: 1.25rem;
+  box-shadow: 0 24px 70px -42px rgba(74, 58, 38, 0.34);
+}
+
+.gc-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  background: #eef4df;
+  padding: 0.4rem 0.75rem;
+  color: #688239;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gc-kicker {
+  color: #779649;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.gc-secondary-action {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d6d3d1;
+  border-radius: 0.65rem;
+  background: white;
+  padding: 0 1.5rem;
+  color: #44403c;
+  font-size: 0.875rem;
+  font-weight: 800;
+  transition: border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.gc-secondary-action:hover {
+  border-color: #779649;
+  color: #688239;
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
 }
 

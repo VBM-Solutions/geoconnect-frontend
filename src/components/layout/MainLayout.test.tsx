@@ -36,6 +36,7 @@ function renderLayout(path: string) {
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route element={<MainLayout />}>
+          <Route path="/" element={<div>public</div>} />
           <Route path="/client/dashboard" element={<div>client</div>} />
           <Route path="/be/dashboard" element={<div>be</div>} />
           <Route path="/admin/utilisateurs" element={<div>admin</div>} />
@@ -70,6 +71,8 @@ describe('MainLayout', () => {
     renderLayout('/client/dashboard');
 
     await waitFor(() => expect(screen.getByTestId('parametres-button').getAttribute('data-to')).toBe('/client/parametres'));
+    expect(screen.getByText('client').closest('main')).toHaveClass('px-4', 'lg:px-8', 'xl:px-10', 'overflow-auto');
+    expect(screen.getByText(/serveur opérationnel/i)).toBeVisible();
   });
 
   it('affiche le bouton paramètres BE avec la bonne route', async () => {
@@ -99,6 +102,23 @@ describe('MainLayout', () => {
     renderLayout('/admin/utilisateurs');
 
     expect(screen.queryByTestId('parametres-button')).toBeNull();
+  });
+
+  it('affiche la marque, la navigation éditoriale et les liens légaux au public', () => {
+    useAuthMock.mockReturnValue({
+      user: null,
+      logout: vi.fn(),
+      isAuthenticated: false,
+      isLoading: false,
+    });
+
+    renderLayout('/');
+
+    expect(screen.getByRole('img', { name: 'Mon étude de sol.fr' })).toBeVisible();
+    expect(screen.getByRole('link', { name: /comment ça marche/i })).toHaveAttribute('href', '/#fonctionnement');
+    expect(screen.getByRole('link', { name: /conditions générales/i })).toHaveAttribute('href', '#conditions');
+    expect(screen.getByText(/© 2026 Mon Étude de Sol SAS/i)).toBeVisible();
+    expect(screen.queryByText(/serveur opérationnel/i)).toBeNull();
   });
 });
 

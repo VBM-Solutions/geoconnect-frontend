@@ -1,9 +1,10 @@
-import { FormEvent, useRef, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import {
   ArrowRight,
   Briefcase,
+  Building2,
   CalendarDays,
   CheckCircle2,
   CircleHelp,
@@ -15,6 +16,7 @@ import {
   MapPin,
   SearchCheck,
   ShieldCheck,
+  Star,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { registerClientCall } from '../api/auth';
@@ -33,6 +35,9 @@ import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules 
 import { getFieldMessage } from '../lib/formErrors';
 import { AddressSuggestionDTO } from '../types';
 import { getPublicApiError } from '../lib/utils';
+import { BrandLogo } from '../components/brand/BrandLogo';
+import { PublicHomeSeo } from '../components/seo/PublicHomeSeo';
+import { StudyFinderPlaceholder } from '../components/home/StudyFinderPlaceholder';
 
 type StudyPreset = {
   code?: string;
@@ -43,6 +48,7 @@ type StudyPreset = {
 type JourneyCard = {
   icon: typeof HomeIcon;
   title: string;
+  mission: string;
   description: string;
   helpText: string;
   buttonLabel: string;
@@ -50,8 +56,8 @@ type JourneyCard = {
 };
 
 const TRUST_ITEMS = [
-  'Une étude clé en main',
   'Demande gratuite',
+  'Sans engagement',
   'Bureaux d’études qualifiés',
   'Suivi en ligne',
   'Documents centralisés',
@@ -60,7 +66,8 @@ const TRUST_ITEMS = [
 const journeyCards: JourneyCard[] = [
   {
     icon: MapPin,
-    title: 'Vous vendez votre terrain ?',
+    title: 'Je vends un terrain',
+    mission: 'Mission G1',
     description: "L'étude G1 peut être demandée avant la vente d'un terrain constructible, notamment en zone argileuse.",
     helpText: 'Entrez le code postal du terrain pour préparer une demande adaptée.',
     buttonLabel: 'Demander une étude G1',
@@ -68,7 +75,8 @@ const journeyCards: JourneyCard[] = [
   },
   {
     icon: HomeIcon,
-    title: 'Vous construisez ou agrandissez votre maison ?',
+    title: 'Je construis une maison',
+    mission: 'Mission G2 AVP',
     description: "Une étude G2 aide à dimensionner les fondations et à limiter les mauvaises surprises avant les travaux.",
     helpText: 'Entrez le code postal du chantier pour démarrer votre demande.',
     buttonLabel: 'Demander une étude G2',
@@ -107,69 +115,60 @@ export default function Home() {
     {
       icon: ClipboardList,
       title: "J'agrandis ou je rénove",
+      mission: 'Mission G2 ou G5',
       text: 'Pour vérifier le sol avant des travaux importants.',
       preset: { code: 'G5', label: 'Travaux ou rénovation' },
     },
     {
       icon: FileText,
       title: 'On me demande une étude',
+      mission: 'Mission à confirmer',
       text: 'Notaire, constructeur, banque : vous pouvez déposer la demande ici.',
       preset: { label: 'Étude demandée par un tiers' },
     },
   ];
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-6 sm:px-6 lg:px-8">
-      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
-        <div className="grid lg:grid-cols-[1.06fr_0.94fr]">
-          <div className="p-5 sm:p-8 lg:p-10">
-            <div className="mb-7 flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600 text-2xl font-black italic text-white shadow-sm">
-                G
-              </div>
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700">GeoConnect</p>
-                <p className="text-xs font-medium text-slate-500">Votre étude de sol, plus simple</p>
-              </div>
-            </div>
+    <div className="gc-landing mx-auto flex w-full max-w-7xl flex-col gap-12 px-4 pb-6 sm:px-6 lg:px-8">
+      <PublicHomeSeo />
+      <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-[#e6bd70]">
+        <div className="mx-auto grid min-h-[590px] max-w-7xl lg:grid-cols-2">
+          <div className="relative flex flex-col justify-center px-5 py-10 sm:px-8 sm:py-14 lg:px-12 lg:py-16 lg:pr-20">
+            <BrandLogo priority className="mb-8 h-20 w-56 object-cover object-center mix-blend-multiply sm:h-24 sm:w-64" />
 
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-blue-700">
+            <div className="inline-flex self-start items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-blue-700">
               <ShieldCheck className="h-3.5 w-3.5" />
               Pour les particuliers
             </div>
-            <h1 className="mt-5 max-w-3xl text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl">
-              Vous avez besoin d'une étude de sol ?
+            <h1 className="mt-5 max-w-3xl text-4xl font-black leading-tight tracking-tight text-stone-950 sm:text-5xl">
+              Votre étude de sol, <span className="text-[#779649]">simplement.</span>
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-              Vente de terrain, construction ou agrandissement : indiquez votre situation et le code postal du terrain. GeoConnect vous aide ensuite à transmettre une demande claire aux bureaux d'études.
+              Décrivez votre projet et recevez les devis proposés par des bureaux d'études géotechniques qualifiés près de chez vous.
             </p>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">Vous réglez uniquement le prix TTC du devis choisi auprès du bureau d'études. Aucun frais supplémentaire n'est ajouté côté client.</p>
 
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Button type="button" size="lg" className="gap-2" onClick={() => openTunnel()}>
-                Démarrer ma demande
+                Demander mes devis
                 <ArrowRight className="h-4 w-4" />
               </Button>
               <a
                 href="#parcours"
-                className="gc-motion-fast inline-flex h-11 items-center justify-center rounded border border-slate-300 bg-white px-6 text-sm font-bold tracking-wide text-slate-700 shadow-sm transition-[color,background-color,border-color,box-shadow,transform] hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2"
+                className="gc-motion-fast inline-flex h-11 items-center justify-center rounded border border-slate-400/70 bg-transparent px-6 text-sm font-bold tracking-wide text-slate-700 transition-[color,background-color,border-color,box-shadow,transform] hover:border-blue-600 hover:bg-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2"
               >
-                Voir les cas fréquents
+                Trouver mon type d'étude
               </a>
             </div>
           </div>
 
-          <div className="relative min-h-[280px] bg-slate-100">
+          <div className="relative flex min-h-[390px] items-center justify-center overflow-visible lg:min-h-full">
             <img
-              src="https://images.unsplash.com/photo-1572120360610-d971b9d7767c?auto=format&fit=crop&w=1100&q=80"
-              alt="Maison individuelle entourée d'un terrain"
-              className="h-full min-h-[280px] w-full object-cover"
+              src="/brand/hero-geotechnical-study-detailed.webp"
+              alt="Coupe architecturale d'une maison, de ses fondations et des différentes strates du sol"
+              className="h-auto w-[116%] max-w-none object-contain object-center mix-blend-multiply [filter:saturate(.52)_contrast(.96)] lg:w-[118%]"
             />
-            <div className="absolute inset-x-4 bottom-4 rounded-lg border border-white/70 bg-white/88 p-4 shadow-lg backdrop-blur">
-              <p className="text-sm font-black text-slate-950">Pas besoin de maîtriser le vocabulaire technique.</p>
-              <p className="mt-1 text-xs leading-5 text-slate-600">
-                Décrivez le projet, les spécialistes préciseront le type d'étude utile.
-              </p>
-            </div>
+            <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 -left-16 w-28 bg-gradient-to-r from-[#e6bd70] via-[#e6bd70]/90 to-transparent lg:-left-20 lg:w-36" />
           </div>
         </div>
       </section>
@@ -199,6 +198,7 @@ export default function Home() {
                 </div>
                 <div>
                   <h2 className="text-xl font-black tracking-tight text-slate-950">{card.title}</h2>
+                  <p className="mt-1 text-xs font-black uppercase tracking-wider text-[#779649]">{card.mission}</p>
                   <p className="mt-2 text-sm leading-6 text-slate-600">{card.description}</p>
                 </div>
               </div>
@@ -247,7 +247,7 @@ export default function Home() {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          {secondarySituations.map(({ icon: Icon, title, text, preset }) => (
+          {secondarySituations.map(({ icon: Icon, title, mission, text, preset }) => (
             <button
               key={title}
               type="button"
@@ -256,11 +256,46 @@ export default function Home() {
             >
               <Icon className="mb-3 h-5 w-5 text-blue-600" />
               <h2 className="text-sm font-bold text-slate-900">{title}</h2>
+              <p className="mt-1 text-[11px] font-black uppercase tracking-wider text-[#779649]">{mission}</p>
               <p className="mt-1 text-xs leading-5 text-slate-500">{text}</p>
             </button>
           ))}
         </div>
       </section>
+
+      <section id="questions" aria-labelledby="faq-title" className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="rounded-2xl bg-[#6f873f] p-6 text-white shadow-lg sm:p-8">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-white/75">La question financière</p>
+          <h2 id="faq-title" className="mt-3 text-3xl font-black">Combien coûte Mon étude de sol.fr au client ?</h2>
+          <p className="mt-4 leading-7 text-white/90">Rien de plus : vous réglez directement au bureau d'études le montant TTC du devis que vous avez validé.</p>
+          <Button type="button" variant="outline" className="mt-6 border-white bg-white text-stone-900" onClick={() => openTunnel()}>
+            Demander mes devis
+          </Button>
+        </div>
+        <div className="space-y-3">
+          {[
+            {
+              question: 'Qui réalisera mon étude de sol ?',
+              answer: "Un bureau d'études partenaire disponible dans votre secteur pourra vous transmettre un devis. Les preuves de qualification seront publiées dans l'espace prévu à cet effet.",
+            },
+            {
+              question: 'Comment se passe la prise de rendez-vous ?',
+              answer: "Vous proposez une période qui vous convient puis validez la date finale d'intervention avec le bureau d'études retenu.",
+            },
+            {
+              question: 'Vais-je forcément recevoir plusieurs devis ?',
+              answer: "Non. Vous recevez les devis effectivement proposés par les bureaux d'études. Selon les disponibilités dans votre zone, une ou plusieurs propositions peuvent vous parvenir.",
+            },
+          ].map(({ question, answer }, index) => (
+            <details key={question} open={index === 0} className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+              <summary className="cursor-pointer font-black text-stone-900">{question}</summary>
+              <p className="mt-3 leading-7 text-stone-600">{answer}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <StudyFinderPlaceholder onContinue={() => openTunnel()} />
 
       {selectedPreset && (
         <section
@@ -277,7 +312,7 @@ export default function Home() {
         </section>
       )}
 
-      <section className="rounded-lg border border-slate-200 bg-white/88 p-5 shadow-sm">
+      <section id="fonctionnement" aria-label="Comment ça marche" className="rounded-lg border border-slate-200 bg-white/88 p-5 shadow-sm">
         <div className="grid gap-4 md:grid-cols-5 md:items-center">
           {[
             { icon: ClipboardList, label: 'Vous décrivez le projet' },
@@ -331,11 +366,34 @@ export default function Home() {
         </div>
       </section>
 
+      <section aria-labelledby="trust-proof-title" className="gc-landing-section bg-white p-6 sm:p-8">
+        <div className="grid gap-7 lg:grid-cols-[0.8fr_1.2fr]">
+          <div>
+            <p className="gc-kicker">Des preuves, pas des promesses</p>
+            <h2 id="trust-proof-title" className="mt-2 text-3xl font-black tracking-tight text-stone-900">Un réseau que vous pourrez vérifier</h2>
+            <p className="mt-3 leading-7 text-stone-600">Ces emplacements accueilleront les justificatifs vérifiables dès qu'ils seront disponibles.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              { icon: ShieldCheck, title: 'Qualifications contrôlées', text: 'Preuves et critères à publier' },
+              { icon: Building2, title: 'Couverture territoriale', text: 'Indicateur à consolider' },
+              { icon: Star, title: 'Avis authentifiés', text: 'Retours clients à venir' },
+            ].map(({ icon: Icon, title, text }) => (
+              <div key={title} className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 p-5">
+                <Icon className="h-5 w-5 text-[#779649]" />
+                <h3 className="mt-4 font-black text-stone-900">{title}</h3>
+                <p className="mt-2 text-sm text-stone-500">{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="grid gap-4 pb-8 md:grid-cols-[1fr_auto] md:items-center">
         <div>
           <h2 className="text-xl font-black tracking-tight text-slate-950">Vous représentez un bureau d'études ?</h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-            Rejoignez le réseau GeoConnect pour consulter les demandes disponibles, proposer vos devis et piloter vos études depuis un espace dédié.
+            Rejoignez Mon étude de sol.fr pour consulter les demandes disponibles, proposer vos devis et piloter vos études depuis un espace dédié.
           </p>
         </div>
         <Link
@@ -370,6 +428,12 @@ function QuoteTunnel({
     },
   });
   const passwordValue = String(watch('password', '') ?? '');
+
+  useEffect(() => {
+    if (initialType && typesEtude.some(({ code }) => code === initialType)) {
+      setValue('type', initialType);
+    }
+  }, [initialType, setValue, typesEtude]);
 
   const handleNext = (data: Record<string, unknown>) => {
     setFormData({ ...formData, ...data });
