@@ -7,7 +7,7 @@ import { extractCodeDepartement } from '../../lib/utils';
 import { DemandeDevisDTO, PropositionDevisDTO, EtudeDetailDTO } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Calendar, ChevronRight, FlaskConical, User, Clock, AlertCircle, Archive, Globe, Sparkles, CircleDashed, CheckCircle2, FolderKanban, SlidersHorizontal } from 'lucide-react';
+import { Calendar, ChevronRight, ChevronDown, Check, FlaskConical, User, Clock, AlertCircle, Archive, Globe, Sparkles, CircleDashed, CheckCircle2, FolderKanban, SlidersHorizontal } from 'lucide-react';
 import { beMustAct } from '../../components/etude/EtudeStatusBadge';
 import { EtudeCardHeader } from '../../components/etude/EtudeCardHeader';
 import { DashboardSidebarNav, type DashboardNavSection } from '../../components/ui/DashboardSidebarNav';
@@ -300,22 +300,43 @@ function MissionZoneFilterSelect({ value, onChange, disabled = false }: Readonly
   onChange: (value: MissionZoneFilter) => void;
   disabled?: boolean;
 }>) {
+  const [open, setOpen] = useState(false);
+  const options: Array<{ value: MissionZoneFilter; label: string }> = [
+    { value: 'ALL', label: 'Toutes les missions' },
+    { value: 'VISIBLE', label: 'Missions visibles' },
+    { value: 'NOTIFIED', label: 'Missions notifiées' },
+  ];
+  const selected = options.find(option => option.value === value) ?? options[1];
+
   return (
-    <label className="flex h-10 items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 text-sm font-medium text-blue-800">
-      <span className="sr-only">Zone des missions</span>
-      <select
+    <div className="relative">
+      <button
+        type="button"
+        role="combobox"
         aria-label="Zone des missions"
-        value={value}
+        aria-expanded={open}
+        aria-controls="mission-zone-options"
         disabled={disabled}
-        onChange={event => onChange(event.target.value as MissionZoneFilter)}
-        className="bg-transparent outline-none"
+        onClick={() => setOpen(current => !current)}
+        className="inline-flex h-10 min-w-44 items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 disabled:cursor-wait disabled:opacity-60"
       >
-        <option value="ALL">Toutes les missions</option>
-        <option value="VISIBLE">Missions visibles</option>
-        <option value="NOTIFIED">Missions notifiées</option>
-      </select>
-      {disabled && <span className="text-xs font-normal">Mise à jour…</span>}
-    </label>
+        <span>{disabled ? 'Mise à jour…' : selected.label}</span>
+        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && !disabled && (
+        <div id="mission-zone-options" role="listbox" aria-label="Zone des missions"
+          className="absolute right-0 z-40 mt-2 min-w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10">
+          {options.map(option => (
+            <button key={option.value} type="button" role="option" aria-selected={option.value === value}
+              onClick={() => { onChange(option.value); setOpen(false); }}
+              className={`flex w-full items-center justify-between gap-4 rounded-lg px-3 py-2 text-left text-sm transition-colors ${option.value === value ? 'bg-blue-50 font-semibold text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
+              {option.label}
+              {option.value === value && <Check className="h-4 w-4" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -117,7 +117,7 @@ export function useBEDashboardData(): BEDashboardData {
         setBureau(myBureau ?? null);
         setNotificationPreferences(prefs);
         const hasVisibleZone = Boolean(prefs && !prefs.afficherTousDepartements && prefs.departementsVisibles?.length);
-        const initialFilter: MissionZoneFilter = hasVisibleZone ? 'VISIBLE' : 'ALL';
+        const initialFilter: MissionZoneFilter = prefs ? 'VISIBLE' : 'ALL';
         setMissionZoneFilterState(initialFilter);
         setFilterByDeptState(initialFilter !== 'ALL');
         const depts = hasVisibleZone ? prefs!.departementsVisibles : [];

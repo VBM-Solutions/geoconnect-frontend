@@ -234,7 +234,8 @@ describe('BEDashboard', () => {
     const selector = screen.getByRole('combobox', { name: /zone des missions/i });
     expect(map.contains(selector)).toBe(true);
 
-    await user.selectOptions(selector, 'NOTIFIED');
+    await user.click(selector);
+    await user.click(screen.getByRole('option', { name: 'Missions notifiées' }));
 
     expect(setMissionZoneFilter).toHaveBeenCalledWith('NOTIFIED');
   });
@@ -252,7 +253,7 @@ describe('BEDashboard', () => {
     await user.click(screen.getByRole('button', { name: 'Liste' }));
 
     expect(screen.queryByTestId('be-interactive-map')).toBeNull();
-    expect(screen.getByRole('combobox', { name: /zone des missions/i })).toHaveValue('NOTIFIED');
+    expect(screen.getByRole('combobox', { name: /zone des missions/i })).toHaveTextContent('Missions notifiées');
     expect(screen.getByRole('button', { name: 'Carte' })).toBeTruthy();
   });
 

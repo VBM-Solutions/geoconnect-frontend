@@ -6,16 +6,27 @@ import { ParametresSectionCard } from './ParametresSectionCard';
 import { ParametresLoadErrorState, ParametresLoadingState } from './ParametresCommonUI';
 import { useToast } from '../../contexts/ToastContext';
 
-const CATEGORIES: Array<{ value: NotificationCategory; label: string; description: string }> = [
+const BE_CATEGORIES: Array<{ value: NotificationCategory; label: string; description: string }> = [
   { value: 'OPPORTUNITES', label: 'Opportunités', description: 'Nouvelles missions dans vos zones notifiées.' },
-  { value: 'PROPOSITIONS', label: 'Propositions', description: 'Propositions reçues, acceptées ou refusées.' },
-  { value: 'PLANIFICATION', label: 'Planification', description: "Dates d'intervention proposées, validées ou refusées." },
-  { value: 'DOCUMENTS_LIVRABLES', label: 'Documents et livrables', description: 'Devis signés et rapports disponibles.' },
+  { value: 'PROPOSITIONS', label: 'Propositions', description: 'Vos propositions acceptées ou refusées par les clients.' },
+  { value: 'PLANIFICATION', label: 'Planification', description: "Dates d'intervention validées ou refusées par les clients." },
+  { value: 'DOCUMENTS_LIVRABLES', label: 'Documents et livrables', description: 'Devis signés déposés par les clients.' },
   { value: 'PAIEMENT_CLOTURE', label: 'Paiement et clôture', description: 'Paiements confirmés et clôture des études.' },
 ];
 
-export function SectionEmailNotifications(props: Readonly<UseEmailNotificationPreferencesReturn>) {
+const CLIENT_CATEGORIES: Array<{ value: NotificationCategory; label: string; description: string }> = [
+  { value: 'PROPOSITIONS', label: 'Propositions', description: 'Nouvelles propositions reçues des bureaux d’études.' },
+  { value: 'PLANIFICATION', label: 'Planification', description: "Dates d'intervention proposées par le bureau d’études." },
+  { value: 'DOCUMENTS_LIVRABLES', label: 'Documents et livrables', description: 'Rapports d’étude disponibles.' },
+];
+
+type SectionEmailNotificationsProps = UseEmailNotificationPreferencesReturn & {
+  recipientRole: 'CLIENT' | 'BUREAU_ETUDE';
+};
+
+export function SectionEmailNotifications(props: Readonly<SectionEmailNotificationsProps>) {
   const { toastSuccess, toastError } = useToast();
+  const categories = props.recipientRole === 'CLIENT' ? CLIENT_CATEGORIES : BE_CATEGORIES;
   const [selected, setSelected] = useState<NotificationCategory[]>(props.categoriesActives);
   useEffect(() => setSelected(props.categoriesActives), [props.categoriesActives]);
 
@@ -34,7 +45,7 @@ export function SectionEmailNotifications(props: Readonly<UseEmailNotificationPr
     <ParametresSectionCard icon={Mail} title="Notifications par email"
       description="Choisissez les catégories métier pour lesquelles vous souhaitez recevoir un email.">
       <div className="space-y-3">
-        {CATEGORIES.map(category => (
+        {categories.map(category => (
           <label key={category.value} className="flex items-start justify-between gap-4 rounded-lg border border-slate-200 p-3">
             <span>
               <span className="block text-sm font-medium text-slate-800">{category.label}</span>

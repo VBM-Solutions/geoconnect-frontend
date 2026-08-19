@@ -13,10 +13,25 @@ const baseProps = {
   isSaving: false,
   loadError: null,
   save: vi.fn().mockResolvedValue(true),
+  recipientRole: 'BUREAU_ETUDE' as const,
 };
 
 describe('SectionEmailNotifications', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('adapte les libellés au rôle du destinataire', () => {
+    const { rerender } = render(<SectionEmailNotifications {...baseProps} />);
+    expect(screen.getByText(/vos propositions acceptées ou refusées/i)).toBeTruthy();
+    expect(screen.getByText(/dates d'intervention validées ou refusées/i)).toBeTruthy();
+
+    rerender(<SectionEmailNotifications {...baseProps} recipientRole="CLIENT" />);
+    expect(screen.getByText(/nouvelles propositions reçues/i)).toBeTruthy();
+    expect(screen.getByText(/dates d'intervention proposées/i)).toBeTruthy();
+    expect(screen.queryByText('Opportunités')).toBeNull();
+    expect(screen.queryByText('Paiement et clôture')).toBeNull();
+  });
 
   it('affiche chargement et erreur', () => {
     const { rerender } = render(<SectionEmailNotifications {...baseProps} isLoading />);

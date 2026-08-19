@@ -25,7 +25,7 @@ export default function BEParametresPage() {
   return (
     <ParametresPageShell title="Paramètres" subtitle="Gérez vos préférences et informations">
       <SectionNotifications {...parametresNotifications} />
-      <SectionEmailNotifications {...emailNotifications} />
+      <SectionEmailNotifications {...emailNotifications} recipientRole="BUREAU_ETUDE" />
       <SectionIban {...parametresIban} />
       <SectionMotDePasse {...parametresIban} />
     </ParametresPageShell>

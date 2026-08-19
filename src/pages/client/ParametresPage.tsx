@@ -14,7 +14,7 @@ export default function ClientParametresPage() {
   return (
     <ParametresPageShell title="Paramètres" subtitle="Gérez vos informations personnelles et de sécurité">
       <SectionTelephone {...parametres} />
-      <SectionEmailNotifications {...emailNotifications} />
+      <SectionEmailNotifications {...emailNotifications} recipientRole="CLIENT" />
       <SectionAdresseFacturation {...parametres} />
       <SectionMotDePasse {...parametres} />
     </ParametresPageShell>

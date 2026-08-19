@@ -47,11 +47,12 @@ describe('useBEDashboardData', () => {
     expect(getEtudeDetailsByBureauIdPaginated).toHaveBeenCalledTimes(2);
   });
 
-  it('ne filtre pas lorsque tous les départements sont suivis', async () => {
+  it('sélectionne les missions visibles sans exclure de mission lorsque tous les départements sont visibles', async () => {
     vi.mocked(getNotificationPreferences).mockResolvedValue({ notifierTousDepartements: true, departementsSuivis: [] } as never);
     const { result } = renderHook(() => useBEDashboardData());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.filterByDept).toBe(false);
+    expect(result.current.missionZoneFilter).toBe('VISIBLE');
+    expect(result.current.filterByDept).toBe(true);
     expect(getBureauEtudeWorkItemsPaginated).toHaveBeenCalledWith('AVAILABLE', 0, 8, []);
   });
 
