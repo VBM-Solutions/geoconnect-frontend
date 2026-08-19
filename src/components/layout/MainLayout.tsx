@@ -7,6 +7,7 @@ import { getBureauByUserId } from '../../api/bureauEtude';
 import { useNotifications } from '../../hooks/useNotifications';
 import { NotificationBell } from '../ui/NotificationBell';
 import { ParametresButton } from '../ui/ParametresButton';
+import { BrandLogo } from '../brand/BrandLogo';
 
 export default function MainLayout() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -88,16 +89,15 @@ export default function MainLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f3f4f6] text-slate-900 font-sans flex flex-col overflow-hidden">
-      <nav className="h-14 bg-slate-900 text-white flex items-center justify-between px-4 sm:px-6 shrink-0">
+    <div className={`min-h-screen bg-[#f7f4ed] text-slate-900 font-sans flex flex-col ${isAuthenticated ? 'overflow-hidden' : ''}`}>
+      <nav aria-label="Navigation principale" className={`${isAuthenticated ? 'h-14' : 'sticky top-0 min-h-16'} z-40 border-b border-stone-200/80 bg-white/95 text-stone-900 backdrop-blur flex items-center justify-between px-4 sm:px-6 shrink-0`}>
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center font-bold text-xl italic">G</div>
-            <span className="font-bold tracking-tight text-sm sm:text-lg">MON ÉTUDE DE SOL</span>
+            <BrandLogo priority className="h-12 w-40 object-cover object-center" />
           </Link>
 
           {isAuthenticated && (
-            <div className="hidden md:flex gap-6 text-sm font-medium text-slate-300">
+            <div className="hidden md:flex gap-6 text-sm font-medium text-stone-600">
               {navItems.map((item) => {
                 const isActive = location.pathname.startsWith(item.path);
                 return (
@@ -106,14 +106,21 @@ export default function MainLayout() {
                     to={item.path}
                     className={`mt-4 pb-4 transition-colors ${
                       isActive
-                        ? 'text-white border-b-2 border-blue-500'
-                        : 'hover:text-white'
+                        ? 'text-[#688239] border-b-2 border-[#779649]'
+                        : 'hover:text-stone-950'
                     }`}
                   >
                     {item.label}
                   </Link>
                 );
               })}
+            </div>
+          )}
+          {!isAuthenticated && (
+            <div className="hidden gap-6 text-sm font-bold text-stone-600 lg:flex">
+              <a href="/#fonctionnement" className="hover:text-[#688239]">Comment ça marche ?</a>
+              <a href="/#quelle-etude" className="hover:text-[#688239]">Quelle étude choisir ?</a>
+              <a href="/#questions" className="hover:text-[#688239]">Questions fréquentes</a>
             </div>
           )}
         </div>
@@ -137,16 +144,16 @@ export default function MainLayout() {
               />
               <button
                 onClick={handleLogout}
-                className="w-8 h-8 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center hover:bg-slate-600 transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-blue-700 bg-blue-600 transition-colors hover:bg-blue-700"
                 title="Se déconnecter"
               >
-                <LogOut className="w-4 h-4 text-slate-300" />
+                <LogOut className="h-4 w-4 text-white" />
               </button>
             </>
           ) : (
             <Link
               to="/login"
-              className="text-xs font-bold text-white hover:text-blue-400 tracking-wider"
+              className="rounded-full border border-stone-300 px-4 py-2 text-xs font-bold text-stone-800 hover:border-[#779649] hover:text-[#688239] tracking-wider"
             >
               CONNEXION
             </Link>
@@ -154,16 +161,33 @@ export default function MainLayout() {
         </div>
       </nav>
 
-      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 xl:px-10 py-6 pb-20 md:pb-6 overflow-auto">
+      <main className={isAuthenticated
+        ? 'flex-1 w-full px-4 sm:px-6 lg:px-8 xl:px-10 py-6 pb-20 md:pb-6 overflow-auto'
+        : 'w-full flex-1 overflow-x-clip pb-10'}>
         <Outlet />
       </main>
 
-      <footer className="h-6 bg-slate-100 border-t border-slate-200 px-4 flex items-center justify-between text-[10px] text-slate-500 shrink-0 z-10 w-full fixed bottom-0 md:relative">
-        <div className="flex gap-4">
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Serveur Opérationnel</span>
-        </div>
-        <div className="font-medium">v1.0.0 • © 2026 Mon Étude de Sol SAS</div>
-      </footer>
+      {isAuthenticated ? (
+        <footer className="fixed bottom-0 z-10 flex h-6 w-full shrink-0 items-center justify-between border-t border-slate-200 bg-slate-100 px-4 text-[10px] text-slate-500 md:relative">
+          <div className="flex gap-4">
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" /> Serveur opérationnel</span>
+          </div>
+          <div className="font-medium">v1.0.0 • © 2026 Mon Étude de Sol SAS</div>
+        </footer>
+      ) : (
+        <footer className="border-t border-stone-200 bg-white px-5 py-7 text-xs text-stone-500">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div><p className="font-black text-stone-800">Mon étude de sol.fr</p><p className="mt-1">Votre projet, les bons spécialistes, un suivi simple.</p></div>
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              <a href="#conditions" aria-label="Conditions générales, contenu provisoire">Conditions générales</a>
+              <a href="#mentions-legales">Mentions légales</a>
+              <a href="#confidentialite">Confidentialité</a>
+              <a href="#linkedin">LinkedIn</a>
+            </div>
+            <div className="font-medium">© 2026 Mon Étude de Sol SAS</div>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }
