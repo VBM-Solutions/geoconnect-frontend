@@ -8,6 +8,7 @@ import { BEDemandePageItemDTO, BureauEtudesDTO, DemandeDevisDTO, EtudeDetailDTO,
 import { extractErrorMessage } from '../lib/utils';
 
 const PAGE_SIZE = 8;
+export type MissionZoneFilter = 'ALL' | 'VISIBLE' | 'NOTIFIED';
 
 export interface BEDashboardData {
   bureau: BureauEtudesDTO | null;
@@ -17,6 +18,7 @@ export interface BEDashboardData {
   etudes: EtudeDetailDTO[];
   notificationPreferences: NotificationPreferencesDTO | null;
   filterByDept: boolean;
+  missionZoneFilter: MissionZoneFilter;
   availableTotal: number;
   pendingTotal: number;
   activeEtudeTotal: number;
@@ -30,6 +32,7 @@ export interface BEDashboardData {
   activeEtudeTotalPages: number;
   archivedEtudeTotalPages: number;
   setFilterByDept: (enabled: boolean) => Promise<void>;
+  setMissionZoneFilter: (filter: MissionZoneFilter) => Promise<void>;
   setAvailablePage: (page: number) => Promise<void>;
   setPendingPage: (page: number) => Promise<void>;
   setActiveEtudePage: (page: number) => Promise<void>;
@@ -49,6 +52,7 @@ export function useBEDashboardData(): BEDashboardData {
   const [archivedEtudes, setArchivedEtudes] = useState<EtudeDetailDTO[]>([]);
   const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferencesDTO | null>(null);
   const [filterByDept, setFilterByDeptState] = useState(false);
+  const [missionZoneFilter, setMissionZoneFilterState] = useState<MissionZoneFilter>('ALL');
   const [availableMeta, setAvailableMeta] = useState({ page: 0, totalItems: 0, totalPages: 0 });
   const [pendingMeta, setPendingMeta] = useState({ page: 0, totalItems: 0, totalPages: 0 });
   const [activeMeta, setActiveMeta] = useState({ page: 0, totalItems: 0, totalPages: 0 });
@@ -58,13 +62,17 @@ export function useBEDashboardData(): BEDashboardData {
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
-  const departments = useCallback((enabled: boolean) => enabled ? notificationPreferences?.departementsSuivis ?? [] : [], [notificationPreferences]);
+  const departmentsFor = useCallback((filter: MissionZoneFilter) => {
+    if (filter === 'NOTIFIED') return notificationPreferences?.departementsSuivis ?? [];
+    if (filter === 'VISIBLE') return notificationPreferences?.departementsVisibles ?? [];
+    return [];
+  }, [notificationPreferences]);
 
-  const loadAvailable = useCallback(async (page: number, filtered = filterByDept) => {
-    const response = await getBureauEtudeWorkItemsPaginated('AVAILABLE', page, PAGE_SIZE, departments(filtered));
+  const loadAvailable = useCallback(async (page: number, filter = missionZoneFilter) => {
+    const response = await getBureauEtudeWorkItemsPaginated('AVAILABLE', page, PAGE_SIZE, departmentsFor(filter));
     setAvailableItems(response.items);
     setAvailableMeta({ page: response.page, totalItems: response.totalItems, totalPages: response.totalPages });
-  }, [departments, filterByDept]);
+  }, [departmentsFor, missionZoneFilter]);
 
   const loadPending = useCallback(async (page: number) => {
     const response = await getBureauEtudeWorkItemsPaginated('PENDING', page, PAGE_SIZE);
@@ -108,9 +116,11 @@ export function useBEDashboardData(): BEDashboardData {
         if (cancelled) return;
         setBureau(myBureau ?? null);
         setNotificationPreferences(prefs);
-        const filtered = Boolean(prefs && !prefs.notifierTousDepartements && prefs.departementsSuivis.length);
-        setFilterByDeptState(filtered);
-        const depts = filtered ? prefs!.departementsSuivis : [];
+        const hasVisibleZone = Boolean(prefs && !prefs.afficherTousDepartements && prefs.departementsVisibles?.length);
+        const initialFilter: MissionZoneFilter = hasVisibleZone ? 'VISIBLE' : 'ALL';
+        setMissionZoneFilterState(initialFilter);
+        setFilterByDeptState(initialFilter !== 'ALL');
+        const depts = hasVisibleZone ? prefs!.departementsVisibles : [];
         const [available, pending, active, archived] = await Promise.all([
           getBureauEtudeWorkItemsPaginated('AVAILABLE', 0, PAGE_SIZE, depts),
           getBureauEtudeWorkItemsPaginated('PENDING', 0, PAGE_SIZE),
@@ -134,7 +144,17 @@ export function useBEDashboardData(): BEDashboardData {
     return () => { cancelled = true; };
   }, [user, tick]);
 
-  const setFilterByDept = async (enabled: boolean) => runAvailableUpdate(async () => { setFilterByDeptState(enabled); await loadAvailable(0, enabled); });
+  const setFilterByDept = async (enabled: boolean) => runAvailableUpdate(async () => {
+    const filter: MissionZoneFilter = enabled ? 'NOTIFIED' : 'ALL';
+    setFilterByDeptState(enabled);
+    setMissionZoneFilterState(filter);
+    await loadAvailable(0, filter);
+  });
+  const setMissionZoneFilter = async (filter: MissionZoneFilter) => runAvailableUpdate(async () => {
+    setMissionZoneFilterState(filter);
+    setFilterByDeptState(filter !== 'ALL');
+    await loadAvailable(0, filter);
+  });
   const setAvailablePage = async (page: number) => runAvailableUpdate(() => loadAvailable(page));
   const setPendingPage = async (page: number) => run(() => loadPending(page));
   const setActiveEtudePage = async (page: number) => run(() => loadEtudes('ACTIVE', page));
@@ -149,14 +169,14 @@ export function useBEDashboardData(): BEDashboardData {
 
   return {
     bureau, demandes, allPropositionsPerDemande, myPropositions,
-    etudes: [...activeEtudes, ...archivedEtudes], notificationPreferences, filterByDept,
+    etudes: [...activeEtudes, ...archivedEtudes], notificationPreferences, filterByDept, missionZoneFilter,
     availableTotal: availableMeta.totalItems, pendingTotal: pendingMeta.totalItems,
     activeEtudeTotal: activeMeta.totalItems, archivedEtudeTotal: archivedMeta.totalItems,
     availablePage: availableMeta.page, pendingPage: pendingMeta.page,
     activeEtudePage: activeMeta.page, archivedEtudePage: archivedMeta.page,
     availableTotalPages: availableMeta.totalPages, pendingTotalPages: pendingMeta.totalPages,
     activeEtudeTotalPages: activeMeta.totalPages, archivedEtudeTotalPages: archivedMeta.totalPages,
-    setFilterByDept, setAvailablePage, setPendingPage, setActiveEtudePage, setArchivedEtudePage,
+    setFilterByDept, setMissionZoneFilter, setAvailablePage, setPendingPage, setActiveEtudePage, setArchivedEtudePage,
     isLoading, isUpdatingAvailable, error, refetch: () => setTick(value => value + 1),
   };
 }

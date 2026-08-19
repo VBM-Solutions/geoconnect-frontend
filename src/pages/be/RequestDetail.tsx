@@ -267,7 +267,7 @@ export default function BERequestDetail() {
     );
   }
 
-  if (!demande) return <div>Demande introuvable.</div>;
+  if (!demande) return <div>Contenu indisponible.</div>;
 
   const statusConfig: Record<string, { border: string; bg: string; text: string; title: string }> = {
     ACCEPTEE: { border: 'border-green-200', bg: 'bg-green-50', text: 'text-green-800', title: 'Offre Acceptée' },

@@ -37,7 +37,7 @@ export default function BureauEtudeDetail() {
   }, [etude?.dateRenduPrevue]);
 
   if (isLoading) return <EtudeDetailLoadingSpinner />;
-  if (!etude) return <div className="text-center text-slate-500 py-12">Étude introuvable.</div>;
+  if (!etude) return <div className="text-center text-slate-500 py-12">Contenu indisponible.</div>;
 
   const prop    = etude.propositionDevis;
   const demande = prop?.demandeDevis;

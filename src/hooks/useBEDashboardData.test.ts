@@ -23,7 +23,12 @@ describe('useBEDashboardData', () => {
     vi.clearAllMocks();
     vi.spyOn(AuthContext, 'useAuth').mockReturnValue({ user: { userId: 7 } } as never);
     vi.mocked(getBureauByUserId).mockResolvedValue({ id: 10 } as never);
-    vi.mocked(getNotificationPreferences).mockResolvedValue({ notifierTousDepartements: false, departementsSuivis: ['75'] } as never);
+    vi.mocked(getNotificationPreferences).mockResolvedValue({
+      notifierTousDepartements: false,
+      departementsSuivis: ['92'],
+      afficherTousDepartements: false,
+      departementsVisibles: ['75'],
+    } as never);
     vi.mocked(getBureauEtudeWorkItemsPaginated).mockImplementation(async category =>
       category === 'AVAILABLE' ? page([{ demande, proposition: null }]) as never : page([{ demande, proposition }]) as never);
     vi.mocked(getEtudeDetailsByBureauIdPaginated).mockImplementation(async (_id, category) =>
@@ -34,6 +39,7 @@ describe('useBEDashboardData', () => {
     const { result } = renderHook(() => useBEDashboardData());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.filterByDept).toBe(true);
+    expect(result.current.missionZoneFilter).toBe('VISIBLE');
     expect(result.current.demandes).toHaveLength(2);
     expect(result.current.myPropositions).toEqual([proposition]);
     expect(result.current.etudes).toEqual([etude]);
@@ -64,6 +70,17 @@ describe('useBEDashboardData', () => {
     vi.mocked(getBureauEtudeWorkItemsPaginated).mockClear();
     await act(() => result.current.setFilterByDept(false));
     expect(getBureauEtudeWorkItemsPaginated).toHaveBeenCalledWith('AVAILABLE', 0, 8, []);
+  });
+
+  it('permet de basculer sur les missions notifiées', async () => {
+    const { result } = renderHook(() => useBEDashboardData());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    vi.mocked(getBureauEtudeWorkItemsPaginated).mockClear();
+
+    await act(() => result.current.setMissionZoneFilter('NOTIFIED'));
+
+    expect(result.current.missionZoneFilter).toBe('NOTIFIED');
+    expect(getBureauEtudeWorkItemsPaginated).toHaveBeenCalledWith('AVAILABLE', 0, 8, ['92']);
   });
 
   it('conserve le dashboard affiché pendant la mise à jour du filtre', async () => {

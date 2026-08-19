@@ -84,7 +84,7 @@ export default function ClientRequestDetail() {
   }
 
   if (!demande) {
-    return <div>Demande introuvable.</div>;
+    return <div>Contenu indisponible.</div>;
   }
 
   const acceptedProp = propositions.find(p => p.statut === 'ACCEPTEE');

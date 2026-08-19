@@ -32,11 +32,15 @@ export function SectionNotifications({
   // État du formulaire local — initialisé depuis les préférences chargées
   const [notifierTous, setNotifierTous] = useState(true);
   const [selectedDepts, setSelectedDepts] = useState<string[]>([]);
+  const [afficherTous, setAfficherTous] = useState(true);
+  const [visibleDepts, setVisibleDepts] = useState<string[]>([]);
 
   useEffect(() => {
     if (preferences) {
       setNotifierTous(preferences.notifierTousDepartements);
       setSelectedDepts(preferences.departementsSuivis);
+      setAfficherTous(preferences.afficherTousDepartements ?? true);
+      setVisibleDepts(preferences.departementsVisibles ?? []);
     }
   }, [preferences]);
 
@@ -48,10 +52,16 @@ export function SectionNotifications({
       toastError('Aucun département sélectionné — vous ne recevrez aucune notification. Veuillez en sélectionner au moins un ou choisir "Tous les départements".');
       return;
     }
+    if (!afficherTous && visibleDepts.length === 0) {
+      toastError('Sélectionnez au moins un département visible ou choisissez « Toutes les missions ».');
+      return;
+    }
 
     const prefs: NotificationPreferencesDTO = {
       notifierTousDepartements: notifierTous,
       departementsSuivis: notifierTous ? [] : selectedDepts,
+      afficherTousDepartements: afficherTous,
+      departementsVisibles: afficherTous ? [] : visibleDepts,
     };
 
     const success = await savePreferences(prefs);
@@ -154,6 +164,28 @@ export function SectionNotifications({
             </p>
           )}
         </div>
+
+        <fieldset className="space-y-3 mb-5 border-t border-slate-100 pt-5">
+          <legend className="text-sm font-semibold text-slate-800 mb-2">Missions visibles par défaut</legend>
+          <p className="text-xs text-slate-500 mb-3">
+            Ce réglage filtre la carte et la liste sans restreindre l'accès aux autres missions.
+          </p>
+          <label className="flex items-center gap-3 text-sm text-slate-700">
+            <input type="radio" name="modeVisibilite" checked={afficherTous}
+              onChange={() => setAfficherTous(true)} className="accent-blue-600" />
+            Toutes les missions
+          </label>
+          <label className="flex items-center gap-3 text-sm text-slate-700">
+            <input type="radio" name="modeVisibilite" checked={!afficherTous}
+              onChange={() => setAfficherTous(false)} className="accent-blue-600" />
+            Uniquement mes zones visibles
+          </label>
+          <div className="pt-2">
+            <DepartementMultiSelect departements={departements} selectedCodes={visibleDepts}
+              onChange={setVisibleDepts} disabled={afficherTous} id="dept-visible-select"
+              ariaLabel="Sélectionner les départements visibles" />
+          </div>
+        </fieldset>
 
         {/* Bouton de sauvegarde */}
         <div className="flex justify-end">

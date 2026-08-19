@@ -1,5 +1,5 @@
 import api from './index';
-import { AdresseDTO, BureauEtudesDTO, ClientDTO, NotificationPreferencesDTO } from '../types';
+import { AdresseDTO, BureauEtudesDTO, ClientDTO, EmailNotificationPreferencesDTO, NotificationPreferencesDTO } from '../types';
 
 export interface MotDePassePayload {
   ancienMotDePasse: string;
@@ -28,6 +28,20 @@ export async function updateNotificationPreferences(
   prefs: NotificationPreferencesDTO,
 ): Promise<NotificationPreferencesDTO> {
   const { data } = await api.put<NotificationPreferencesDTO>('/parametres/bureau/me/notifications', prefs);
+  return data;
+}
+
+export async function getEmailNotificationPreferences(): Promise<EmailNotificationPreferencesDTO> {
+  const { data } = await api.get<EmailNotificationPreferencesDTO>('/parametres/me/notifications-email');
+  return data;
+}
+
+export async function updateEmailNotificationPreferences(
+  preferences: EmailNotificationPreferencesDTO,
+): Promise<EmailNotificationPreferencesDTO> {
+  const { data } = await api.put<EmailNotificationPreferencesDTO>(
+    '/parametres/me/notifications-email', preferences,
+  );
   return data;
 }
 

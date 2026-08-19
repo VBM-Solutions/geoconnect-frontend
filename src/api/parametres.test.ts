@@ -1,12 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   getClientProfil,
+  getEmailNotificationPreferences,
   getNotificationPreferences,
   updateBureauEtudeIban,
   updateBureauEtudeMotDePasse,
   updateClientAdresseFacturation,
   updateClientMotDePasse,
   updateClientTelephone,
+  updateEmailNotificationPreferences,
   updateNotificationPreferences,
 } from './parametres';
 
@@ -139,6 +141,20 @@ describe('parametres API', () => {
   });
 
   describe('client / bureau paramètres', () => {
+    it('lit et met à jour les catégories de notifications email', async () => {
+      const { default: api } = await import('./index');
+      const preferences = { categoriesActives: ['OPPORTUNITES', 'PROPOSITIONS'] as const };
+      (api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: preferences });
+      (api.put as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: preferences });
+
+      await expect(getEmailNotificationPreferences()).resolves.toEqual(preferences);
+      await expect(updateEmailNotificationPreferences({ categoriesActives: [...preferences.categoriesActives] })).resolves.toEqual(preferences);
+      expect(api.get).toHaveBeenCalledWith('/parametres/me/notifications-email');
+      expect(api.put).toHaveBeenCalledWith('/parametres/me/notifications-email', {
+        categoriesActives: ['OPPORTUNITES', 'PROPOSITIONS'],
+      });
+    });
+
     it('appelle GET /parametres/client/me/profil', async () => {
       const { default: api } = await import('./index');
       (api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: fakeClient });
