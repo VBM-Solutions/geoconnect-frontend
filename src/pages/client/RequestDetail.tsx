@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { getDemandeDetail } from '../../api/demandeDevis';
 import { accepterPropositionDevis, refuserPropositionDevis } from '../../api/propositionDevis';
 import { DemandeDevisDTO, PropositionDevisDTO } from '../../types';
@@ -17,6 +17,8 @@ import { BureauEtudeProfileLink } from '../../components/profil-be/BureauEtudePr
 export default function ClientRequestDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedPropositionId = Number(searchParams.get('proposition')) || null;
   const { toastError, toastSuccess } = useToast();
   const [demande, setDemande] = useState<DemandeDevisDTO | null>(null);
   const [propositions, setPropositions] = useState<PropositionDevisDTO[]>([]);
@@ -177,14 +179,16 @@ export default function ClientRequestDetail() {
                     {propositions.map(prop => {
                       const isAccepted = prop.statut === 'ACCEPTEE';
                       const isRefused  = prop.statut === 'REFUSEE';
+                      const isSelected = prop.id === selectedPropositionId;
                       let rowClassName = 'hover:bg-slate-50';
                       if (isAccepted) {
                         rowClassName = 'bg-green-50/50';
                       } else if (isRefused) {
                         rowClassName = 'opacity-50';
                       }
+                      if (isSelected) rowClassName += ' ring-2 ring-inset ring-blue-400 bg-blue-50';
                       return (
-                        <tr key={prop.id} className={`border-b border-slate-50 ${rowClassName}`}>
+                        <tr key={prop.id} aria-current={isSelected ? 'true' : undefined} className={`border-b border-slate-50 ${rowClassName}`}>
                           <td className="px-4 py-3">
                             <div className="flex items-center">
                               <Building2 className="w-3 h-3 mr-1.5 text-slate-400"/>

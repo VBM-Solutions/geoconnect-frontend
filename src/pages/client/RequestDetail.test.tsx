@@ -21,9 +21,9 @@ vi.mock('../../contexts/ToastContext', () => ({
   }),
 }));
 
-function renderPage() {
+function renderPage(url = '/client/demande/12') {
   return render(
-    <MemoryRouter initialEntries={['/client/demande/12']}>
+    <MemoryRouter initialEntries={[url]}>
       <Routes>
         <Route path="/client/demande/:id" element={<ClientRequestDetail />} />
       </Routes>
@@ -85,5 +85,17 @@ describe('ClientRequestDetail — identité du bureau', () => {
 
     expect(await screen.findByText('Sols & Structures')).toBeTruthy();
     expect(screen.queryByRole('link', { name: /consulter la fiche/i })).toBeNull();
+  });
+
+  it('sélectionne visuellement la proposition ciblée par une notification', async () => {
+    vi.mocked(getDemandeDetail).mockResolvedValue({ demande: { id: 12, adresseProjet: { ville: 'Nantes' } }, propositions: [{
+      id: 43, prix: 1600, delaiMaxRendu: 3, statut: 'EN_ATTENTE',
+      bureauEtude: { id: 8, raisonSociale: 'Sols & Structures' },
+    }], bureauEtudeId: null });
+
+    renderPage('/client/demande/12?section=propositions&proposition=43');
+
+    const bureau = await screen.findByText('Sols & Structures');
+    expect(bureau.closest('tr')?.getAttribute('aria-current')).toBe('true');
   });
 });
