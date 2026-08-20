@@ -16,6 +16,7 @@ function renderLogin(state?: unknown) {
         <Route path="/login" element={<Login />} />
         <Route path="/client/demande/:id" element={<div>Destination notification</div>} />
         <Route path="/client/dashboard" element={<div>Tableau de bord client</div>} />
+        <Route path="/be/dashboard" element={<div>Tableau de bord BE</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -43,6 +44,12 @@ describe('Login — retour après authentification', () => {
 
   it('refuse une redirection externe et utilise la destination du rôle', async () => {
     renderLogin({ returnTo: '//site-malveillant.test/path' });
+    await authenticate();
+    await waitFor(() => expect(screen.getByText('Tableau de bord client')).toBeTruthy());
+  });
+
+  it('ignore la destination d’un autre rôle lors d’une nouvelle connexion', async () => {
+    renderLogin({ returnTo: '/be/demande/12' });
     await authenticate();
     await waitFor(() => expect(screen.getByText('Tableau de bord client')).toBeTruthy());
   });

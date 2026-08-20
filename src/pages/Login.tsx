@@ -7,6 +7,20 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import { loginCall } from '../api/auth';
 import { getPublicApiError } from '../lib/utils';
+
+function isRoleCompatibleReturnTo(requestedPath: unknown, role: string): requestedPath is string {
+  if (typeof requestedPath !== 'string' || !requestedPath.startsWith('/') || requestedPath.startsWith('//')) {
+    return false;
+  }
+
+  const rolePrefix: Record<string, string> = {
+    ADMIN: '/admin/',
+    BUREAU_ETUDE: '/be/',
+    CLIENT: '/client/',
+  };
+  return requestedPath.startsWith(rolePrefix[role] ?? '/__unsupported_role__/');
+}
+
 export default function Login() {
   const { register, handleSubmit, formState: { errors } } = useForm();
   const [error, setError] = useState<string | null>(null);
@@ -26,8 +40,8 @@ export default function Login() {
       login(authRes);
 
       const requestedPath = (location.state as { returnTo?: unknown } | null)?.returnTo;
-      if (typeof requestedPath === 'string' && requestedPath.startsWith('/') && !requestedPath.startsWith('//')) {
-        navigate(requestedPath, { replace: true });
+      if (isRoleCompatibleReturnTo(requestedPath, authRes.role)) {
+        navigate(requestedPath, { replace: true, state: null });
       } else if (authRes.role === 'ADMIN') {
         navigate('/admin/utilisateurs');
       } else if (authRes.role === 'BUREAU_ETUDE') {
