@@ -174,6 +174,32 @@ export interface EtudeDTO {
   dateRenduPrevue?: string;
 }
 
+export type PlanningEventType = 'INTERVENTION' | 'RENDU';
+export type PlanningEventPrecision = 'JOUR' | 'SEMAINE';
+export type PlanningEventStatus = 'CONTRACTUEL' | 'A_CONFIRMER' | 'CONFIRME' | 'ANNONCE' | 'REALISE';
+
+export interface PlanningEventDTO {
+  id: string;
+  etudeId: number;
+  type: PlanningEventType;
+  precision: PlanningEventPrecision;
+  statut: PlanningEventStatus;
+  startDate: string;
+  endDate: string;
+  typeEtude?: TypeDemandeDevis;
+  clientPrenom?: string;
+  clientNom?: string;
+  ville?: string;
+  codePostal?: string;
+}
+
+export interface PlanningDTO {
+  start: string;
+  /** Borne de fin exclusive de la période demandée. */
+  end: string;
+  events: PlanningEventDTO[];
+}
+
 export type StatutDocument = 'ORPHELIN' | 'ATTACHE';
 
 export interface DocumentDTO {

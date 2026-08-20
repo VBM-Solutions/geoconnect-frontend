@@ -78,6 +78,7 @@ export default function MainLayout() {
   } else if (user?.role === 'BUREAU_ETUDE') {
     navItems = [
       { label: 'Accueil', path: '/be/dashboard' },
+      { label: 'Planning', path: '/be/planning' },
       { label: 'Ma fiche', path: '/be/ma-fiche' },
     ];
   } else if (user?.role === 'ADMIN') {
