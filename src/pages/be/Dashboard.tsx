@@ -309,7 +309,7 @@ function MissionZoneFilterSelect({ value, onChange, disabled = false }: Readonly
   const selected = options.find(option => option.value === value) ?? options[1];
 
   return (
-    <div className="relative">
+    <div className={`relative ${open ? 'z-[700]' : ''}`}>
       <button
         type="button"
         role="combobox"
@@ -325,7 +325,7 @@ function MissionZoneFilterSelect({ value, onChange, disabled = false }: Readonly
       </button>
       {open && !disabled && (
         <div id="mission-zone-options" role="listbox" aria-label="Zone des missions"
-          className="absolute right-0 z-40 mt-2 min-w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10">
+          className="absolute right-0 z-[710] mt-2 min-w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10">
           {options.map(option => (
             <button key={option.value} type="button" role="option" aria-selected={option.value === value}
               onClick={() => { onChange(option.value); setOpen(false); }}

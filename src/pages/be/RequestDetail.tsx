@@ -84,15 +84,15 @@ function OfferForm({ isResubmit, isSubmitting, register, errors, pdfFile, pdfReq
   const pdfInputRef = React.useRef<HTMLInputElement>(null);
 
   return (
-    <Card className="border-slate-200 h-full flex flex-col">
+    <Card className="border-slate-200">
       <CardHeader className="bg-slate-50/50 pb-3 border-b border-slate-100">
         <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
           {isResubmit ? 'Resoumettre une offre' : 'Formuler une offre'}
         </CardTitle>
         <CardDescription className="text-[10px]">Déposez votre estimation pour ce projet</CardDescription>
       </CardHeader>
-      <form className="flex-1 flex flex-col">
-        <CardContent className="pt-4 space-y-3 flex-1">
+      <form>
+        <CardContent className="pt-4 space-y-3">
           <Input
             label="PRIX D'INTERVENTION (€ HT) *"
             type="number"

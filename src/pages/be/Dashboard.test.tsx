@@ -235,7 +235,9 @@ describe('BEDashboard', () => {
     expect(map.contains(selector)).toBe(true);
 
     await user.click(selector);
-    await user.click(screen.getByRole('option', { name: 'Missions notifiées' }));
+    const notifiedOption = screen.getByRole('option', { name: 'Missions notifiées' });
+    expect(notifiedOption.parentElement).toHaveClass('z-[710]');
+    await user.click(notifiedOption);
 
     expect(setMissionZoneFilter).toHaveBeenCalledWith('NOTIFIED');
   });

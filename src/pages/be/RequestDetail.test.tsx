@@ -71,7 +71,11 @@ describe('BERequestDetail — rendu initial', () => {
   it('affiche le formulaire de proposition quand aucune offre n\'existe', async () => {
     renderRequestDetail();
 
-    expect(await screen.findByText(/formuler une offre/i)).toBeTruthy();
+    const title = await screen.findByText(/formuler une offre/i);
+    expect(title).toBeTruthy();
+    const form = screen.getByRole('button', { name: /soumettre mon offre/i }).closest('form');
+    expect(form).toBeTruthy();
+    expect(form?.parentElement).not.toHaveClass('h-full');
   });
 
   it('affiche les champs prix, délai rendu et délai intervention', async () => {
