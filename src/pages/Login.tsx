@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../components/ui/Card';
@@ -12,6 +12,7 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   const onSubmit = async (data: any) => {
@@ -23,8 +24,11 @@ export default function Login() {
         password: data.password
       });
       login(authRes);
-      
-      if (authRes.role === 'ADMIN') {
+
+      const requestedPath = (location.state as { returnTo?: unknown } | null)?.returnTo;
+      if (typeof requestedPath === 'string' && requestedPath.startsWith('/') && !requestedPath.startsWith('//')) {
+        navigate(requestedPath, { replace: true });
+      } else if (authRes.role === 'ADMIN') {
         navigate('/admin/utilisateurs');
       } else if (authRes.role === 'BUREAU_ETUDE') {
         navigate('/be/dashboard');
