@@ -121,16 +121,17 @@ body {
 
 .gc-secondary-action {
   display: inline-flex;
-  min-height: 2.75rem;
+  height: 2.75rem;
   align-items: center;
   justify-content: center;
-  border: 1px solid #d6d3d1;
-  border-radius: 0.65rem;
+  border: 1px solid #d2c8b7;
+  border-radius: 0.25rem;
   background: white;
   padding: 0 1.5rem;
-  color: #44403c;
+  color: #423d35;
   font-size: 0.875rem;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: 0.025em;
   transition: border-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
 
@@ -138,6 +139,15 @@ body {
   border-color: #779649;
   color: #688239;
   transform: translateY(-1px);
+}
+
+.gc-carousel-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.gc-carousel-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

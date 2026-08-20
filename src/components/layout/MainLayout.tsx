@@ -119,9 +119,9 @@ export default function MainLayout() {
           )}
           {!isAuthenticated && (
             <div className="hidden gap-6 text-sm font-bold text-stone-600 lg:flex">
-              <a href="/#fonctionnement" className="hover:text-[#688239]">Comment ça marche ?</a>
-              <a href="/#quelle-etude" className="hover:text-[#688239]">Quelle étude choisir ?</a>
-              <a href="/#questions" className="hover:text-[#688239]">Questions fréquentes</a>
+              <a href="/#accueil" className="hover:text-[#688239]">Accueil</a>
+              <a href="/#etudes" className="hover:text-[#688239]">Les études que nous proposons</a>
+              <a href="/#questions" className="hover:text-[#688239]">Les questions que vous vous posez</a>
             </div>
           )}
         </div>

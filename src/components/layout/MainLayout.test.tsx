@@ -140,7 +140,9 @@ describe('MainLayout', () => {
     renderLayout('/');
 
     expect(screen.getByRole('img', { name: 'Mon étude de sol.fr' })).toBeVisible();
-    expect(screen.getByRole('link', { name: /comment ça marche/i })).toHaveAttribute('href', '/#fonctionnement');
+    expect(screen.getByRole('link', { name: 'Accueil' })).toHaveAttribute('href', '/#accueil');
+    expect(screen.getByRole('link', { name: /les études que nous proposons/i })).toHaveAttribute('href', '/#etudes');
+    expect(screen.getByRole('link', { name: /les questions que vous vous posez/i })).toHaveAttribute('href', '/#questions');
     expect(screen.getByRole('link', { name: /conditions générales/i })).toHaveAttribute('href', '#conditions');
     expect(screen.getByText(/© 2026 Mon Étude de Sol SAS/i)).toBeVisible();
     expect(screen.queryByText(/serveur opérationnel/i)).toBeNull();

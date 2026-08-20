@@ -35,6 +35,17 @@ describe('Login — retour après authentification', () => {
     vi.mocked(loginCall).mockResolvedValue({ role: 'CLIENT', onboardingFinalized: false } as never);
   });
 
+  it('affiche le logo officiel à la place de l’ancien monogramme', () => {
+    renderLogin();
+
+    expect(screen.getByRole('img', { name: 'Mon étude de sol.fr' })).toHaveAttribute(
+      'src',
+      '/brand/mon-etude-de-sol-logo.png',
+    );
+    expect(screen.queryByText(/^G$/)).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'MON ÉTUDE DE SOL' })).toBeNull();
+  });
+
   it('retourne vers le lien profond demandé, paramètres inclus', async () => {
     renderLogin({ returnTo: '/client/demande/12?section=propositions&proposition=43' });
     await authenticate();

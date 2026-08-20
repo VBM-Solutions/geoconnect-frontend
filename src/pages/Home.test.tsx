@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Home from './Home';
@@ -56,7 +56,7 @@ function renderHome() {
 
 async function startTunnel(user: ReturnType<typeof userEvent.setup>) {
   renderHome();
-  await user.click(screen.getAllByRole('button', { name: /demander mes devis/i })[0]);
+  await user.click(screen.getAllByRole('button', { name: /demander mon devis/i })[0]);
   expect(await screen.findByText(/quel est votre besoin/i)).toBeTruthy();
 }
 
@@ -76,7 +76,7 @@ async function completeStep2(user: ReturnType<typeof userEvent.setup>) {
     screen.getByLabelText('Description du projet *'),
     'Maison individuelle avec accès étroit.'
   );
-  await user.click(screen.getByRole('button', { name: /suivant/i }));
+  await user.click(screen.getByRole('button', { name: /^suivant$/i }));
 
   expect(await screen.findByText(/vos coordonnées/i)).toBeTruthy();
 }
@@ -108,6 +108,7 @@ describe('Home — tunnel utilisateur', () => {
     vi.mocked(referentielApi.getTypesEtude).mockResolvedValue([
       { code: 'G0', libelle: 'G0 — Étude préalable' },
       { code: 'G1', libelle: 'G1 — Étude de site' },
+      { code: 'G1_ES_PGC', libelle: 'G1 ES/PGC — Étude de site' },
       { code: 'G2_AVP', libelle: 'G2 AVP — Avant-projet' },
       { code: 'G2_PRO', libelle: 'G2 PRO — Projet' },
       { code: 'G5', libelle: 'Mission G5' },
@@ -119,24 +120,25 @@ describe('Home — tunnel utilisateur', () => {
     vi.mocked(addressAutocompleteApi.searchAddressSuggestions).mockResolvedValue([]);
   });
 
-  it('présente les situations, les missions et la promesse financière exacte', () => {
+  it('présente les missions et la promesse financière exacte', () => {
     renderHome();
 
     expect(screen.getByRole('heading', { name: /votre étude de sol/i })).toBeVisible();
-    expect(screen.getByText('Mission G1')).toBeVisible();
-    expect(screen.getByText('Mission G2 AVP')).toBeVisible();
-    expect(screen.getByText(/une ou plusieurs propositions peuvent vous parvenir/i)).toBeInTheDocument();
-    expect(screen.getByText(/aucun frais supplémentaire/i)).toBeVisible();
+    expect(screen.getByRole('heading', { name: /G1 ES\/PGC/i })).toBeVisible();
+    expect(screen.getByRole('heading', { name: /G2 AVP/i })).toBeVisible();
+    expect(screen.getByText(/système de notation des bureaux d’études partenaires/i)).toBeInTheDocument();
+    expect(screen.queryByText(/aucun frais supplémentaire/i)).toBeNull();
   });
 
   it('préremplit le tunnel depuis une carte situation', async () => {
     const user = userEvent.setup();
     renderHome();
 
-    await user.click(screen.getByRole('button', { name: /demander une étude G1/i }));
+    const g1Card = screen.getByRole('heading', { name: /G1 ES\/PGC/i }).closest('article');
+    await user.click(within(g1Card!).getByRole('button', { name: /demander mon devis/i }));
 
     expect(await screen.findByText(/quel est votre besoin/i)).toBeVisible();
-    await waitFor(() => expect(screen.getByLabelText('Type de mission *')).toHaveValue('G1'));
+    await waitFor(() => expect(screen.getByLabelText('Type de mission *')).toHaveValue('G1_ES_PGC'));
   });
 
   it("remplit l'adresse du projet depuis une suggestion officielle", async () => {
@@ -361,7 +363,7 @@ describe('Home — tunnel utilisateur', () => {
     const superficieInput = screen.getByPlaceholderText('Ex : 500') as HTMLInputElement;
     await user.clear(superficieInput);
     await user.type(superficieInput, '-10');
-    await user.click(screen.getByRole('button', { name: /suivant/i }));
+    await user.click(screen.getByRole('button', { name: /^suivant$/i }));
 
     expect(await screen.findByText('La superficie doit être positive')).toBeTruthy();
     expect(screen.queryByText(/vos coordonnées/i)).toBeNull();
@@ -393,7 +395,7 @@ describe('Home — tunnel utilisateur', () => {
     await user.clear(descInput);
     descInput.value = longDesc;
     descInput.dispatchEvent(new Event('input', { bubbles: true }));
-    await user.click(screen.getByRole('button', { name: /suivant/i }));
+    await user.click(screen.getByRole('button', { name: /^suivant$/i }));
 
     expect(await screen.findByText('La description ne doit pas dépasser 2000 caractères')).toBeTruthy();
     expect(screen.queryByText(/vos coordonnées/i)).toBeNull();
