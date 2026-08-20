@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { NotificationDTO } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
+import { resolveNotificationPath } from '../../lib/notificationTarget';
 
 interface NotificationItemProps {
   readonly notification: NotificationDTO;
@@ -12,18 +14,20 @@ interface NotificationItemProps {
 
 export function NotificationItem({ notification, onMarkAsRead, onClose }: NotificationItemProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleClick = async () => {
     if (!notification.lue) {
       await onMarkAsRead(notification.id);
     }
     onClose();
-    if (notification.lienAction) {
-      navigate(notification.lienAction);
+    const target = resolveNotificationPath(notification, user?.role);
+    if (target) {
+      navigate(target);
     }
   };
 
-  const timeAgo = formatDistanceToNow(new Date(notification.createdAt), {
+  const timeAgo = formatDistanceToNow(new Date(notification.occurredAt ?? notification.createdAt), {
     addSuffix: true,
     locale: fr,
   });

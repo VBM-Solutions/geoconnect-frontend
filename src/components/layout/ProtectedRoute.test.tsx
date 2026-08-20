@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
 import * as AuthContextModule from '../../contexts/AuthContext';
 
@@ -25,12 +25,17 @@ function renderWithAuth(
         <Route element={<ProtectedRoute allowedRoles={allowedRoles as any} />}>
           <Route path="/protected" element={<div>Contenu protégé</div>} />
         </Route>
-        <Route path="/login" element={<div>Page login</div>} />
+        <Route path="/login" element={<LoginDestination />} />
         <Route path="/403" element={<div>Page 403</div>} />
         <Route path="/" element={<div>Page accueil</div>} />
       </Routes>
     </MemoryRouter>
   );
+}
+
+function LoginDestination() {
+  const location = useLocation();
+  return <div>Page login <span>{String((location.state as { returnTo?: string } | null)?.returnTo ?? '')}</span></div>;
 }
 
 describe('ProtectedRoute', () => {
@@ -43,6 +48,7 @@ describe('ProtectedRoute', () => {
   it('redirige vers /login si non authentifié', () => {
     renderWithAuth({ isLoading: false, isAuthenticated: false });
     expect(screen.getByText('Page login')).toBeTruthy();
+    expect(screen.getByText('/protected')).toBeTruthy();
   });
 
   it('affiche le contenu si authentifié sans restriction de rôle', () => {

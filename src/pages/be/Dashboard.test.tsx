@@ -107,6 +107,7 @@ describe('BEDashboard', () => {
       ],
       notificationPreferences: null,
       filterByDept: false,
+      missionZoneFilter: 'ALL',
       availableTotal: 1,
       pendingTotal: 1,
       activeEtudeTotal: 1,
@@ -120,6 +121,7 @@ describe('BEDashboard', () => {
       activeEtudeTotalPages: 1,
       archivedEtudeTotalPages: 1,
       setFilterByDept: vi.fn(),
+      setMissionZoneFilter: vi.fn(),
       setAvailablePage: vi.fn(),
       setPendingPage: vi.fn(),
       setActiveEtudePage: vi.fn(),
@@ -218,23 +220,26 @@ describe('BEDashboard', () => {
 
   it('affiche le filtre départemental à côté du switch et pilote le dashboard', async () => {
     const user = userEvent.setup();
-    const setFilterByDept = vi.fn();
+    const setMissionZoneFilter = vi.fn();
     mockUseBEDashboardData.mockReturnValue({
       ...mockUseBEDashboardData(),
       notificationPreferences: { notifierTousDepartements: false, departementsSuivis: ['44', '35'] },
       filterByDept: true,
-      setFilterByDept,
+      missionZoneFilter: 'VISIBLE',
+      setMissionZoneFilter,
     });
     renderDashboard();
 
     const map = screen.getByTestId('be-interactive-map');
-    const checkbox = screen.getByRole('checkbox', { name: /filtrer par mes départements/i });
-    expect(map.contains(checkbox)).toBe(true);
-    expect(screen.getByText('(2 suivis)')).toBeTruthy();
+    const selector = screen.getByRole('combobox', { name: /zone des missions/i });
+    expect(map.contains(selector)).toBe(true);
 
-    await user.click(checkbox);
+    await user.click(selector);
+    const notifiedOption = screen.getByRole('option', { name: 'Missions notifiées' });
+    expect(notifiedOption.parentElement).toHaveClass('z-[710]');
+    await user.click(notifiedOption);
 
-    expect(setFilterByDept).toHaveBeenCalledWith(false);
+    expect(setMissionZoneFilter).toHaveBeenCalledWith('NOTIFIED');
   });
 
   it('conserve le filtre départemental à côté du switch en mode liste', async () => {
@@ -243,13 +248,14 @@ describe('BEDashboard', () => {
       ...mockUseBEDashboardData(),
       notificationPreferences: { notifierTousDepartements: false, departementsSuivis: ['44'] },
       filterByDept: true,
+      missionZoneFilter: 'NOTIFIED',
     });
     renderDashboard();
 
     await user.click(screen.getByRole('button', { name: 'Liste' }));
 
     expect(screen.queryByTestId('be-interactive-map')).toBeNull();
-    expect(screen.getByRole('checkbox', { name: /filtrer par mes départements/i })).toBeChecked();
+    expect(screen.getByRole('combobox', { name: /zone des missions/i })).toHaveTextContent('Missions notifiées');
     expect(screen.getByRole('button', { name: 'Carte' })).toBeTruthy();
   });
 

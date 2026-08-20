@@ -61,8 +61,8 @@ export default function MainLayout() {
   }, [user?.role]);
 
   const handleLogout = () => {
+    navigate('/login', { replace: true, state: null });
     logout();
-    navigate('/login');
   };
 
   let parametresPath: string | null = null;

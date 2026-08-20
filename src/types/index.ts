@@ -315,6 +315,14 @@ export interface NotificationPreferencesDTO {
   notifierTousDepartements: boolean;
   /** Codes des départements souscrits — pertinent uniquement si notifierTousDepartements = false. */
   departementsSuivis: string[];
+  /** true = toutes les missions sont visibles par défaut dans carte/liste. */
+  afficherTousDepartements?: boolean;
+  /** Périmètre d'affichage, indépendant des missions qui déclenchent une alerte. */
+  departementsVisibles?: string[];
+}
+
+export interface EmailNotificationPreferencesDTO {
+  categoriesActives: NotificationCategory[];
 }
 
 export interface EvaluationEtudePayload {
@@ -434,6 +442,7 @@ export type NotificationType =
   | 'NOUVELLE_DEMANDE_DEVIS'
   | 'DEVIS_SIGNE_UPLOADE'
   | 'PROPOSITION_ACCEPTEE'
+  | 'PROPOSITION_REFUSEE'
   | 'DATE_INTERVENTION_VALIDEE'
   | 'DATE_INTERVENTION_REFUSEE'
   | 'PAIEMENT_CONFIRME'
@@ -441,13 +450,31 @@ export type NotificationType =
   | 'DATE_INTERVENTION_PROPOSEE'
   | 'RAPPORT_DISPONIBLE';
 
+export type NotificationCategory =
+  | 'OPPORTUNITES'
+  | 'PROPOSITIONS'
+  | 'PLANIFICATION'
+  | 'DOCUMENTS_LIVRABLES'
+  | 'PAIEMENT_CLOTURE'
+  | 'COMPTE_SECURITE';
+
+export type NotificationTargetType = 'DEMANDE' | 'ETUDE';
+export type NotificationTargetView = 'DETAILS' | 'PROPOSITIONS' | 'CALENDRIER' | 'DOCUMENTS' | 'PAIEMENT';
+
 export interface NotificationDTO {
   id: number;
   type: NotificationType;
+  categorie: NotificationCategory;
   message: string;
   lienAction?: string;
+  cibleType?: NotificationTargetType;
+  cibleId?: number;
+  cibleReferenceId?: number;
+  cibleVue?: NotificationTargetView;
   lue: boolean;
+  occurredAt: string;
   createdAt: string;
+  readAt?: string;
 }
 
 export type BEMapMarkerKind =

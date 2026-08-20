@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useBEDashboardData } from '../../hooks/useBEDashboardData';
+import { useBEDashboardData, type MissionZoneFilter } from '../../hooks/useBEDashboardData';
 import { useToast } from '../../contexts/ToastContext';
 import { STATUT_LABELS } from '../../constants/labels';
 import { formatDateShort } from '../../lib/formatters';
@@ -7,7 +7,7 @@ import { extractCodeDepartement } from '../../lib/utils';
 import { DemandeDevisDTO, PropositionDevisDTO, EtudeDetailDTO } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Calendar, ChevronRight, FlaskConical, User, Clock, AlertCircle, Archive, Globe, Sparkles, CircleDashed, CheckCircle2, FolderKanban, SlidersHorizontal } from 'lucide-react';
+import { Calendar, ChevronRight, ChevronDown, Check, FlaskConical, User, Clock, AlertCircle, Archive, Globe, Sparkles, CircleDashed, CheckCircle2, FolderKanban, SlidersHorizontal } from 'lucide-react';
 import { beMustAct } from '../../components/etude/EtudeStatusBadge';
 import { EtudeCardHeader } from '../../components/etude/EtudeCardHeader';
 import { DashboardSidebarNav, type DashboardNavSection } from '../../components/ui/DashboardSidebarNav';
@@ -87,17 +87,22 @@ function getMyActivePropPerDemande(myPropositions: PropositionDevisDTO[]): Map<n
 
 function filterOpenDemandesByDepartment(
   openDemandes: DemandeDevisDTO[],
-  filterByDept: boolean,
+  missionZoneFilter: MissionZoneFilter,
   notificationPreferences: {
     notifierTousDepartements: boolean;
     departementsSuivis: string[];
+    departementsVisibles?: string[];
   } | null,
 ): DemandeDevisDTO[] {
-  if (!filterByDept || !notificationPreferences || notificationPreferences.notifierTousDepartements) {
+  if (missionZoneFilter === 'ALL' || !notificationPreferences) {
     return openDemandes;
   }
 
-  const departementsSuivis = new Set(notificationPreferences.departementsSuivis);
+  const selectedDepartments = missionZoneFilter === 'VISIBLE'
+    ? notificationPreferences.departementsVisibles ?? []
+    : notificationPreferences.departementsSuivis;
+  if (selectedDepartments.length === 0) return openDemandes;
+  const departementsSuivis = new Set(selectedDepartments);
   return openDemandes.filter((demande) => {
     const codeDepartement = extractCodeDepartement(demande.adresseProjet?.codePostal);
     return codeDepartement === null || departementsSuivis.has(codeDepartement);
@@ -109,10 +114,11 @@ function computeBEDashboardData(
   allPropositionsPerDemande: PropositionDevisDTO[][],
   myPropositions: PropositionDevisDTO[],
   etudes: EtudeDetailDTO[],
-  filterByDept: boolean,
+  missionZoneFilter: MissionZoneFilter,
   notificationPreferences: {
     notifierTousDepartements: boolean;
     departementsSuivis: string[];
+    departementsVisibles?: string[];
   } | null,
 ): BEDashboardComputedData {
   const acceptedDemandeIds = getAcceptedDemandeIds(demandes, allPropositionsPerDemande);
@@ -124,7 +130,7 @@ function computeBEDashboardData(
     return !myPropDemandeIds.has(demande.id) && !hasAccepted;
   });
 
-  const filteredOpenDemandes = filterOpenDemandesByDepartment(openDemandes, filterByDept, notificationPreferences);
+  const filteredOpenDemandes = filterOpenDemandesByDepartment(openDemandes, missionZoneFilter, notificationPreferences);
 
   const pendingItems = [...myActivePropPerDemande.entries()].filter(([demandeId, proposition]) => {
     return proposition.statut === 'EN_ATTENTE' || (proposition.statut === 'REFUSEE' && !acceptedDemandeIds.has(demandeId));
@@ -146,8 +152,10 @@ interface BEDashboardBodyProps {
   readonly activeTab: TabType;
   readonly hasDepFilter: boolean;
   readonly filterByDept: boolean;
+  readonly missionZoneFilter: MissionZoneFilter;
   readonly notificationPreferences: {
     departementsSuivis: string[];
+    departementsVisibles?: string[];
   } | null;
   readonly openDemandes: DemandeDevisDTO[];
   readonly filteredOpenDemandes: DemandeDevisDTO[];
@@ -156,6 +164,7 @@ interface BEDashboardBodyProps {
   readonly etudesArchivees: EtudeDetailDTO[];
   readonly demandes: DemandeDevisDTO[];
   readonly onFilterByDeptChange: (checked: boolean) => void;
+  readonly onMissionZoneFilterChange: (filter: MissionZoneFilter) => void;
   readonly isUpdatingAvailable: boolean;
   readonly onShowAllMissions: () => void;
   readonly renderDemandeCard: (demande: DemandeDevisDTO, prop?: PropositionDevisDTO) => React.ReactNode;
@@ -286,29 +295,48 @@ function MapListSwitch({ value, onChange }: Readonly<{
   );
 }
 
-function DepartmentFilterToggle({ checked, count, onChange, disabled = false }: Readonly<{
-  checked: boolean;
-  count: number;
-  onChange: (checked: boolean) => void;
+function MissionZoneFilterSelect({ value, onChange, disabled = false }: Readonly<{
+  value: MissionZoneFilter;
+  onChange: (value: MissionZoneFilter) => void;
   disabled?: boolean;
 }>) {
-  const followedDepartmentsLabel = `(${count} suivi${count > 1 ? 's' : ''})`;
-  const statusLabel = disabled ? 'Mise à jour…' : followedDepartmentsLabel;
+  const [open, setOpen] = useState(false);
+  const options: Array<{ value: MissionZoneFilter; label: string }> = [
+    { value: 'ALL', label: 'Toutes les missions' },
+    { value: 'VISIBLE', label: 'Missions visibles' },
+    { value: 'NOTIFIED', label: 'Missions notifiées' },
+  ];
+  const selected = options.find(option => option.value === value) ?? options[1];
 
   return (
-    <label className={`flex h-10 select-none items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 text-sm font-medium text-blue-800 ${disabled ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}>
-      <input
-        type="checkbox"
-        checked={checked}
+    <div className={`relative ${open ? 'z-[700]' : ''}`}>
+      <button
+        type="button"
+        role="combobox"
+        aria-label="Zone des missions"
+        aria-expanded={open}
+        aria-controls="mission-zone-options"
         disabled={disabled}
-        onChange={event => onChange(event.target.checked)}
-        className="h-4 w-4 cursor-pointer accent-blue-600"
-      />
-      <span>Filtrer par mes départements</span>
-      <span className="text-xs font-normal text-blue-600">
-        {statusLabel}
-      </span>
-    </label>
+        onClick={() => setOpen(current => !current)}
+        className="inline-flex h-10 min-w-44 items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 disabled:cursor-wait disabled:opacity-60"
+      >
+        <span>{disabled ? 'Mise à jour…' : selected.label}</span>
+        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && !disabled && (
+        <div id="mission-zone-options" role="listbox" aria-label="Zone des missions"
+          className="absolute right-0 z-[710] mt-2 min-w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10">
+          {options.map(option => (
+            <button key={option.value} type="button" role="option" aria-selected={option.value === value}
+              onClick={() => { onChange(option.value); setOpen(false); }}
+              className={`flex w-full items-center justify-between gap-4 rounded-lg px-3 py-2 text-left text-sm transition-colors ${option.value === value ? 'bg-blue-50 font-semibold text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
+              {option.label}
+              {option.value === value && <Check className="h-4 w-4" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -316,6 +344,7 @@ function BEDashboardBody({
   activeTab,
   hasDepFilter,
   filterByDept,
+  missionZoneFilter,
   notificationPreferences,
   openDemandes,
   filteredOpenDemandes,
@@ -324,6 +353,7 @@ function BEDashboardBody({
   etudesArchivees,
   demandes,
   onFilterByDeptChange,
+  onMissionZoneFilterChange,
   isUpdatingAvailable,
   onShowAllMissions,
   renderDemandeCard,
@@ -343,11 +373,10 @@ function BEDashboardBody({
   const showListGrid = !hasSwitchableMap || contentView === 'LISTE';
   const viewControls = hasSwitchableMap ? (
     <div className="flex flex-wrap items-center justify-end gap-2">
-      {activeTab === 'OUVERT' && hasDepFilter && notificationPreferences && (
-        <DepartmentFilterToggle
-          checked={filterByDept}
-          count={notificationPreferences.departementsSuivis.length}
-          onChange={onFilterByDeptChange}
+      {activeTab === 'OUVERT' && notificationPreferences && (
+        <MissionZoneFilterSelect
+          value={missionZoneFilter}
+          onChange={onMissionZoneFilterChange}
           disabled={isUpdatingAvailable}
         />
       )}
@@ -366,7 +395,9 @@ function BEDashboardBody({
           title="Missions disponibles géolocalisées"
           context="MISSIONS_DISPONIBLES"
           filters={{ kind: 'DEMANDE_DISPONIBLE' }}
-          defaultNotificationDepartments={notificationPreferences?.departementsSuivis ?? []}
+          defaultNotificationDepartments={missionZoneFilter === 'VISIBLE'
+            ? notificationPreferences?.departementsVisibles ?? []
+            : notificationPreferences?.departementsSuivis ?? []}
           defaultRestrictToNotificationDepartments={filterByDept}
           headerActions={viewControls}
         />
@@ -438,10 +469,10 @@ export default function BEDashboard() {
   const { toastError } = useToast();
   const {
     bureau, demandes, allPropositionsPerDemande, myPropositions, etudes, notificationPreferences,
-    filterByDept, availableTotal, pendingTotal, activeEtudeTotal, archivedEtudeTotal,
+    filterByDept, missionZoneFilter, availableTotal, pendingTotal, activeEtudeTotal, archivedEtudeTotal,
     availablePage, pendingPage, activeEtudePage, archivedEtudePage,
     availableTotalPages, pendingTotalPages, activeEtudeTotalPages, archivedEtudeTotalPages,
-    setFilterByDept, setAvailablePage, setPendingPage, setActiveEtudePage, setArchivedEtudePage,
+    setFilterByDept, setMissionZoneFilter, setAvailablePage, setPendingPage, setActiveEtudePage, setArchivedEtudePage,
     isLoading, isUpdatingAvailable, error,
   } = useBEDashboardData();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -490,10 +521,10 @@ export default function BEDashboard() {
       allPropositionsPerDemande,
       myPropositions,
       etudes,
-      filterByDept,
+      missionZoneFilter,
       notificationPreferences,
     );
-  }, [demandes, allPropositionsPerDemande, myPropositions, etudes, filterByDept, notificationPreferences]);
+  }, [demandes, allPropositionsPerDemande, myPropositions, etudes, missionZoneFilter, notificationPreferences]);
 
   if (isLoading) {
     return (
@@ -784,6 +815,7 @@ export default function BEDashboard() {
             activeTab={activeTab}
             hasDepFilter={hasDepFilter}
             filterByDept={filterByDept}
+            missionZoneFilter={missionZoneFilter}
             notificationPreferences={notificationPreferences}
             openDemandes={openDemandes}
             filteredOpenDemandes={filteredOpenDemandes}
@@ -792,6 +824,7 @@ export default function BEDashboard() {
             etudesArchivees={etudesArchivees}
             demandes={demandes}
             onFilterByDeptChange={setFilterByDept}
+            onMissionZoneFilterChange={setMissionZoneFilter}
             isUpdatingAvailable={isUpdatingAvailable}
             onShowAllMissions={() => setFilterByDept(false)}
             renderDemandeCard={renderDemandeCard}

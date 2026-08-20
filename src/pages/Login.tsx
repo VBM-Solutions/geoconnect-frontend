@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../components/ui/Card';
@@ -7,11 +7,26 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import { loginCall } from '../api/auth';
 import { getPublicApiError } from '../lib/utils';
+
+function isRoleCompatibleReturnTo(requestedPath: unknown, role: string): requestedPath is string {
+  if (typeof requestedPath !== 'string' || !requestedPath.startsWith('/') || requestedPath.startsWith('//')) {
+    return false;
+  }
+
+  const rolePrefix: Record<string, string> = {
+    ADMIN: '/admin/',
+    BUREAU_ETUDE: '/be/',
+    CLIENT: '/client/',
+  };
+  return requestedPath.startsWith(rolePrefix[role] ?? '/__unsupported_role__/');
+}
+
 export default function Login() {
   const { register, handleSubmit, formState: { errors } } = useForm();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   const onSubmit = async (data: any) => {
@@ -23,8 +38,11 @@ export default function Login() {
         password: data.password
       });
       login(authRes);
-      
-      if (authRes.role === 'ADMIN') {
+
+      const requestedPath = (location.state as { returnTo?: unknown } | null)?.returnTo;
+      if (isRoleCompatibleReturnTo(requestedPath, authRes.role)) {
+        navigate(requestedPath, { replace: true, state: null });
+      } else if (authRes.role === 'ADMIN') {
         navigate('/admin/utilisateurs');
       } else if (authRes.role === 'BUREAU_ETUDE') {
         navigate('/be/dashboard');

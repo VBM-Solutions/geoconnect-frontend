@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   CalendarDays,
   ClipboardList,
@@ -24,7 +25,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { EtudeStatusBadge } from './EtudeStatusBadge';
 import { EtudeStepper } from './EtudeStepper';
 
-type EtudeSectionId = 'synthese' | 'progression' | 'documents' | 'dates' | 'technique' | 'intervenants' | 'description';
+export type EtudeSectionId = 'synthese' | 'progression' | 'documents' | 'dates' | 'paiement' | 'technique' | 'intervenants' | 'description';
+
+export function resolveEtudeSection(section: string | null): EtudeSectionId {
+  if (section === 'calendrier') return 'dates';
+  if (section === 'documents') return 'documents';
+  if (section === 'paiement') return 'paiement';
+  return 'synthese';
+}
 
 interface EtudeDetailLayoutProps {
   etude: EtudeDetailDTO;
@@ -58,7 +66,8 @@ export function EtudeDetailLayout({
   renderActions,
   dateRenduPrevueEditor,
 }: Readonly<EtudeDetailLayoutProps>) {
-  const [activeSection, setActiveSection] = useState<EtudeSectionId>('synthese');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeSection, setActiveSection] = useState<EtudeSectionId>(() => resolveEtudeSection(searchParams.get('section')));
   const prop = etude.propositionDevis;
   const demande = prop?.demandeDevis;
   const etat = etude.etat;
@@ -79,12 +88,28 @@ export function EtudeDetailLayout({
       { id: 'progression' as const, label: 'Progression', icon: ListChecks },
       { id: 'documents' as const, label: 'Documents', icon: FolderOpen, count: documentCount },
       { id: 'dates' as const, label: 'Dates', icon: CalendarDays },
+      { id: 'paiement' as const, label: 'Paiement', icon: Landmark },
       { id: 'technique' as const, label: 'Technique', icon: Mountain, disabled: !hasTechnicalData },
       { id: 'intervenants' as const, label: etatRole === 'BE' ? 'Client' : 'Bureau', icon: UserRound },
       { id: 'description' as const, label: 'Description', icon: FileText, disabled: !demande?.description },
     ],
     [demande?.description, documentCount, etatRole, hasTechnicalData],
   );
+
+  useEffect(() => {
+    setActiveSection(resolveEtudeSection(searchParams.get('section')));
+  }, [searchParams]);
+
+  const selectSection = (section: EtudeSectionId) => {
+    setActiveSection(section);
+    setSearchParams(current => {
+      const next = new URLSearchParams(current);
+      const target = section === 'dates' ? 'calendrier' : section;
+      if (section === 'synthese') next.delete('section');
+      else next.set('section', target);
+      return next;
+    }, { replace: true });
+  };
 
   return (
     <div className="space-y-6">
@@ -143,7 +168,7 @@ export function EtudeDetailLayout({
                   key={section.id}
                   type="button"
                   disabled={section.disabled}
-                  onClick={() => setActiveSection(section.id)}
+                  onClick={() => selectSection(section.id)}
                   className={cn(
                     'flex min-h-10 shrink-0 items-center gap-2 rounded-md border px-3 text-left text-xs font-semibold transition-colors',
                     'xl:w-full',
@@ -210,6 +235,17 @@ export function EtudeDetailLayout({
                   icon={<Clock />}
                 />
                 <InfoTile label="Rendu effectif" value={formatDateLong(etude.dateRendu) ?? '-'} icon={<Clock />} />
+              </div>
+            </SectionPanel>
+          )}
+
+          {activeSection === 'paiement' && (
+            <SectionPanel title="Paiement">
+              <div className="space-y-4">
+                <p className="text-sm text-slate-600">
+                  Retrouvez ici l'état de clôture financière de l'étude et les actions de paiement disponibles.
+                </p>
+                <EtudeStepper etat={etat} role={etatRole} renderActions={renderActions} />
               </div>
             </SectionPanel>
           )}

@@ -8,6 +8,7 @@ interface DepartementMultiSelectProps {
   onChange: (codes: string[]) => void;
   disabled?: boolean;
   id?: string;
+  ariaLabel?: string;
 }
 
 /**
@@ -23,6 +24,7 @@ export function DepartementMultiSelect({
   onChange,
   disabled = false,
   id: externalId,
+  ariaLabel = 'Sélectionner des départements',
 }: Readonly<DepartementMultiSelectProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -97,7 +99,7 @@ export function DepartementMultiSelect({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-controls={listboxId}
-        aria-label="Sélectionner des départements"
+      aria-label={ariaLabel}
         className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-sm transition-colors ${
           disabled
             ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'

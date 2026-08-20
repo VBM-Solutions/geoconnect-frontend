@@ -144,6 +144,8 @@ describe('SectionNotifications', () => {
     expect(saveMock).toHaveBeenCalledWith({
       notifierTousDepartements: false,
       departementsSuivis: ['75'],
+      afficherTousDepartements: true,
+      departementsVisibles: [],
     });
     expect(mockToastSuccess).toHaveBeenCalledWith(
       expect.stringContaining('Préférences de notification enregistrées'),
@@ -163,6 +165,8 @@ describe('SectionNotifications', () => {
     expect(saveMock).toHaveBeenCalledWith({
       notifierTousDepartements: true,
       departementsSuivis: [],
+      afficherTousDepartements: true,
+      departementsVisibles: [],
     });
   });
 

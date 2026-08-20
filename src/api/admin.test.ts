@@ -7,6 +7,8 @@ import {
   listerUtilisateurs,
   listerUtilisateursPagines,
   reinitialiserMotDePasse,
+  renvoyerInvitationBureauEtude,
+  supprimerInvitationBureauEtude,
 } from './admin';
 
 vi.mock('./index', () => ({
@@ -14,6 +16,7 @@ vi.mock('./index', () => ({
     get: vi.fn(),
     post: vi.fn(),
     patch: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
@@ -102,6 +105,20 @@ describe('reinitialiserMotDePasse', () => {
     await reinitialiserMotDePasse(5, 'Nouveau123!');
 
     expect(api.patch).toHaveBeenCalledWith('/admin/utilisateurs/5/password', { nouveauMotDePasse: 'Nouveau123!' });
+  });
+});
+
+describe('gestion invitation BE', () => {
+  it('renvoie une invitation', async () => {
+    (api.post as any).mockResolvedValueOnce({});
+    await renvoyerInvitationBureauEtude(8);
+    expect(api.post).toHaveBeenCalledWith('/admin/utilisateurs/8/invitation');
+  });
+
+  it('supprime une invitation', async () => {
+    (api.delete as any).mockResolvedValueOnce({});
+    await supprimerInvitationBureauEtude(8);
+    expect(api.delete).toHaveBeenCalledWith('/admin/utilisateurs/8/invitation');
   });
 });
 

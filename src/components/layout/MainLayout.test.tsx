@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import MainLayout from './MainLayout';
 
 const useAuthMock = vi.fn();
@@ -31,15 +32,21 @@ vi.mock('../ui/ParametresButton', () => ({
   ParametresButton: ({ to }: { to: string }) => <div data-testid="parametres-button" data-to={to} />,
 }));
 
-function renderLayout(path: string) {
+function LoginDestination() {
+  const location = useLocation();
+  return <div>login-state:{location.state === null ? 'cleared' : 'present'}</div>;
+}
+
+function renderLayout(path: string, state?: unknown) {
   return render(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter initialEntries={[{ pathname: path, state }]}>
       <Routes>
         <Route element={<MainLayout />}>
           <Route path="/" element={<div>public</div>} />
           <Route path="/client/dashboard" element={<div>client</div>} />
           <Route path="/be/dashboard" element={<div>be</div>} />
           <Route path="/admin/utilisateurs" element={<div>admin</div>} />
+          <Route path="/login" element={<LoginDestination />} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -102,6 +109,22 @@ describe('MainLayout', () => {
     renderLayout('/admin/utilisateurs');
 
     expect(screen.queryByTestId('parametres-button')).toBeNull();
+  });
+
+  it('purge la destination précédente lors de la déconnexion manuelle', async () => {
+    const logout = vi.fn();
+    useAuthMock.mockReturnValue({
+      user: { role: 'CLIENT', userId: 1, login: 'client' },
+      logout,
+      isAuthenticated: true,
+      isLoading: false,
+    });
+
+    renderLayout('/client/dashboard', { returnTo: '/be/demande/12' });
+    await userEvent.click(screen.getByTitle('Se déconnecter'));
+
+    expect(await screen.findByText('login-state:cleared')).toBeVisible();
+    expect(logout).toHaveBeenCalledOnce();
   });
 
   it('affiche la marque, la navigation éditoriale et les liens légaux au public', () => {
