@@ -23,12 +23,16 @@ const getUtilisateur = vi.fn();
 const activerUtilisateur = vi.fn();
 const desactiverUtilisateur = vi.fn();
 const reinitialiserMotDePasse = vi.fn();
+const renvoyerInvitationBureauEtude = vi.fn();
+const supprimerInvitationBureauEtude = vi.fn();
 
 vi.mock('../../api/admin', () => ({
   getUtilisateur: (...args: unknown[]) => getUtilisateur(...args),
   activerUtilisateur: (...args: unknown[]) => activerUtilisateur(...args),
   desactiverUtilisateur: (...args: unknown[]) => desactiverUtilisateur(...args),
   reinitialiserMotDePasse: (...args: unknown[]) => reinitialiserMotDePasse(...args),
+  renvoyerInvitationBureauEtude: (...args: unknown[]) => renvoyerInvitationBureauEtude(...args),
+  supprimerInvitationBureauEtude: (...args: unknown[]) => supprimerInvitationBureauEtude(...args),
 }));
 
 function renderPage(initialPath = '/admin/utilisateurs/10') {
@@ -54,6 +58,8 @@ describe('UtilisateurDetailPage', () => {
     activerUtilisateur.mockResolvedValue(undefined);
     desactiverUtilisateur.mockResolvedValue(undefined);
     reinitialiserMotDePasse.mockResolvedValue(undefined);
+    renvoyerInvitationBureauEtude.mockResolvedValue(undefined);
+    supprimerInvitationBureauEtude.mockResolvedValue(undefined);
   });
 
   it('charge et affiche les informations de l utilisateur', async () => {
@@ -119,6 +125,26 @@ describe('UtilisateurDetailPage', () => {
       expect(activerUtilisateur).toHaveBeenCalledWith(10);
       expect(mockToastSuccess).toHaveBeenCalledWith('Compte active');
     });
+  });
+
+  it('renvoie l invitation d un compte BE en attente', async () => {
+    getUtilisateur.mockResolvedValueOnce({ id: 10, login: 'be@test.fr', role: 'BUREAU_ETUDE', enabled: true,
+      activationStatus: 'INVITED', createdAt: '2026-01-10T10:00:00' });
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: /renvoyer l'e-mail d'activation/i }));
+    await waitFor(() => expect(renvoyerInvitationBureauEtude).toHaveBeenCalledWith(10));
+    expect(mockToastSuccess).toHaveBeenCalledWith("L'e-mail d'activation a été renvoyé");
+    expect(screen.queryByRole('button', { name: /reinitialiser/i })).toBeNull();
+  });
+
+  it('supprime une invitation BE après confirmation', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+    getUtilisateur.mockResolvedValueOnce({ id: 10, login: 'be@test.fr', role: 'BUREAU_ETUDE', enabled: true,
+      activationStatus: 'INVITED', createdAt: '2026-01-10T10:00:00' });
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: /supprimer l'invitation/i }));
+    await waitFor(() => expect(supprimerInvitationBureauEtude).toHaveBeenCalledWith(10));
+    expect(mockNavigate).toHaveBeenCalledWith('/admin/utilisateurs');
   });
 });
 

@@ -46,3 +46,11 @@ export const reinitialiserMotDePasse = async (id: number, nouveauMotDePasse: str
   await api.patch(`${BASE_ADMIN_UTILISATEURS}/${id}/password`, { nouveauMotDePasse });
 };
 
+export const renvoyerInvitationBureauEtude = async (id: number): Promise<void> => {
+  await api.post(`${BASE_ADMIN_UTILISATEURS}/${id}/invitation`);
+};
+
+export const supprimerInvitationBureauEtude = async (id: number): Promise<void> => {
+  await api.delete(`${BASE_ADMIN_UTILISATEURS}/${id}/invitation`);
+};
+

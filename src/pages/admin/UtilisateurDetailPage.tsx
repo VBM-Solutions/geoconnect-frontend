@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ShieldUser } from 'lucide-react';
-import { activerUtilisateur, desactiverUtilisateur, getUtilisateur, reinitialiserMotDePasse } from '../../api/admin';
+import { activerUtilisateur, desactiverUtilisateur, getUtilisateur, reinitialiserMotDePasse, renvoyerInvitationBureauEtude, supprimerInvitationBureauEtude } from '../../api/admin';
 import { useToast } from '../../contexts/ToastContext';
 import { Button } from '../../components/ui/Button';
 import { UtilisateurStatusBadge } from '../../components/admin/UtilisateurStatusBadge';
@@ -87,6 +87,32 @@ export default function UtilisateurDetailPage() {
     }
   };
 
+  const handleResendInvitation = async () => {
+    if (!utilisateur) return;
+    setIsSubmitting(true);
+    try {
+      await renvoyerInvitationBureauEtude(utilisateur.id);
+      toastSuccess("L'e-mail d'activation a été renvoyé");
+    } catch (error: any) {
+      toastError(getApiMessage(error, "Impossible de renvoyer l'e-mail d'activation"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteInvitation = async () => {
+    if (!utilisateur || !window.confirm(`Supprimer l'invitation de ${utilisateur.login} ?`)) return;
+    setIsSubmitting(true);
+    try {
+      await supprimerInvitationBureauEtude(utilisateur.id);
+      toastSuccess('Invitation supprimée');
+      navigate('/admin/utilisateurs');
+    } catch (error: any) {
+      toastError(getApiMessage(error, "Impossible de supprimer l'invitation"));
+      setIsSubmitting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -129,7 +155,16 @@ export default function UtilisateurDetailPage() {
         </dl>
 
         <div className="mt-6 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-          {utilisateur.enabled ? (
+          {utilisateur.activationStatus === 'INVITED' ? (
+            <>
+              <Button onClick={handleResendInvitation} isLoading={isSubmitting}>
+                Renvoyer l'e-mail d'activation
+              </Button>
+              <Button variant="danger" onClick={handleDeleteInvitation} disabled={isSubmitting}>
+                Supprimer l'invitation
+              </Button>
+            </>
+          ) : utilisateur.enabled ? (
             <Button variant="danger" onClick={() => setShowDisableModal(true)} disabled={isSubmitting}>
               Desactiver
             </Button>
@@ -138,9 +173,11 @@ export default function UtilisateurDetailPage() {
               Activer
             </Button>
           )}
-          <Button variant="outline" onClick={() => setShowResetModal(true)} disabled={isSubmitting}>
-            Reinitialiser le mot de passe
-          </Button>
+          {utilisateur.activationStatus !== 'INVITED' && (
+            <Button variant="outline" onClick={() => setShowResetModal(true)} disabled={isSubmitting}>
+              Reinitialiser le mot de passe
+            </Button>
+          )}
         </div>
       </div>
 
