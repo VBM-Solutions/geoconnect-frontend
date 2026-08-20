@@ -29,6 +29,7 @@ const BEEtudeDetail = lazy(() => import('./pages/be/EtudeDetail'));
 const BERegister = lazy(() => import('./pages/be/BERegister'));
 const BEParametresPage = lazy(() => import('./pages/be/ParametresPage'));
 const FicheBureauEtudePage = lazy(() => import('./pages/be/FicheBureauEtudePage'));
+const BEPlanning = lazy(() => import('./pages/be/Planning'));
 const UtilisateursPage = lazy(() => import('./pages/admin/UtilisateursPage'));
 const UtilisateurDetailPage = lazy(() => import('./pages/admin/UtilisateurDetailPage'));
 const CreerUtilisateurPage = lazy(() => import('./pages/admin/CreerUtilisateurPage'));
@@ -103,6 +104,7 @@ export default function App() {
               <Route path="/be/etude/:id" element={<BEEtudeDetail />} />
               <Route path="/be/ma-fiche" element={<FicheBureauEtudePage />} />
               <Route path="/be/parametres" element={<BEParametresPage />} />
+              <Route path="/be/planning" element={<BEPlanning />} />
             </Route>
 
             {/* Admin Routes */}

@@ -45,6 +45,7 @@ function renderLayout(path: string, state?: unknown) {
           <Route path="/" element={<div>public</div>} />
           <Route path="/client/dashboard" element={<div>client</div>} />
           <Route path="/be/dashboard" element={<div>be</div>} />
+          <Route path="/be/planning" element={<div>planning</div>} />
           <Route path="/admin/utilisateurs" element={<div>admin</div>} />
           <Route path="/login" element={<LoginDestination />} />
         </Route>
@@ -94,6 +95,7 @@ describe('MainLayout', () => {
 
     await waitFor(() => expect(screen.getByTestId('parametres-button').getAttribute('data-to')).toBe('/be/parametres'));
     expect(screen.getByRole('link', { name: 'Accueil' }).getAttribute('href')).toBe('/be/dashboard');
+    expect(screen.getByRole('link', { name: 'Planning' })).toHaveAttribute('href', '/be/planning');
     expect(screen.queryByRole('link', { name: /marketplace/i })).toBeNull();
     expect(screen.getByRole('link', { name: /ma fiche/i }).getAttribute('href')).toBe('/be/ma-fiche');
   });

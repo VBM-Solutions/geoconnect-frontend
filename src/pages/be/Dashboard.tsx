@@ -742,6 +742,12 @@ export default function BEDashboard() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Link
+              to="/be/planning"
+              className="gc-motion-fast inline-flex h-9 items-center gap-1.5 rounded-md border border-white/30 px-3 text-xs font-semibold uppercase tracking-wider text-white transition-colors hover:bg-white/10"
+            >
+              <Calendar className="h-3.5 w-3.5" /> Planning
+            </Link>
             {activeTab !== 'OUVERT' && (
               <button
                 type="button"
