@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../components/ui/Card';
+import { Card, CardContent, CardDescription, CardHeader, CardFooter } from '../components/ui/Card';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import { loginCall } from '../api/auth';
 import { getPublicApiError } from '../lib/utils';
+import { BrandLogo } from '../components/brand/BrandLogo';
 
 function isRoleCompatibleReturnTo(requestedPath: unknown, role: string): requestedPath is string {
   if (typeof requestedPath !== 'string' || !requestedPath.startsWith('/') || requestedPath.startsWith('//')) {
@@ -62,12 +63,9 @@ export default function Login() {
     <div className="flex justify-center items-center py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center pb-2">
-          <div className="flex justify-center mb-3">
-            <div className="w-10 h-10 bg-blue-500 rounded flex items-center justify-center font-bold text-white text-2xl italic">
-              G
-            </div>
+          <div className="mb-2 flex justify-center overflow-hidden">
+            <BrandLogo priority className="h-32 w-56 object-cover object-center mix-blend-multiply" />
           </div>
-          <CardTitle className="text-xl">MON ÉTUDE DE SOL</CardTitle>
           <CardDescription>Portail Professionnel & Particulier</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
