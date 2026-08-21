@@ -29,6 +29,7 @@ const BEEtudeDetail = lazy(() => import('./pages/be/EtudeDetail'));
 const BERegister = lazy(() => import('./pages/be/BERegister'));
 const BEParametresPage = lazy(() => import('./pages/be/ParametresPage'));
 const FicheBureauEtudePage = lazy(() => import('./pages/be/FicheBureauEtudePage'));
+const PerformanceBureauEtudePage = lazy(() => import('./pages/be/PerformanceBureauEtudePage'));
 const BEPlanning = lazy(() => import('./pages/be/Planning'));
 const UtilisateursPage = lazy(() => import('./pages/admin/UtilisateursPage'));
 const UtilisateurDetailPage = lazy(() => import('./pages/admin/UtilisateurDetailPage'));
@@ -102,7 +103,9 @@ export default function App() {
               <Route path="/be/dashboard" element={<BEDashboard />} />
               <Route path="/be/demande/:id" element={<BERequestDetail />} />
               <Route path="/be/etude/:id" element={<BEEtudeDetail />} />
-              <Route path="/be/ma-fiche" element={<FicheBureauEtudePage />} />
+              <Route path="/be/mon-bureau" element={<FicheBureauEtudePage />} />
+              <Route path="/be/performance" element={<PerformanceBureauEtudePage />} />
+              <Route path="/be/ma-fiche" element={<Navigate to="/be/mon-bureau" replace />} />
               <Route path="/be/parametres" element={<BEParametresPage />} />
               <Route path="/be/planning" element={<BEPlanning />} />
             </Route>

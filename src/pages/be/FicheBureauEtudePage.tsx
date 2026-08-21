@@ -3,8 +3,7 @@ import { AlertCircle, CheckCircle2, Eye, Pencil, RefreshCw } from 'lucide-react'
 import { getDepartements } from '../../api/referentiel';
 import { ProfilBureauEtudeForm } from '../../components/profil-be/ProfilBureauEtudeForm';
 import { ProfilBureauEtudePreview } from '../../components/profil-be/ProfilBureauEtudePreview';
-import { ProfilBureauEtudeStats } from '../../components/profil-be/ProfilBureauEtudeStats';
-import { ProfilBureauEtudeEvaluations } from '../../components/profil-be/ProfilBureauEtudeEvaluations';
+import { ProfilBureauEtudeMedia } from '../../components/profil-be/ProfilBureauEtudeMedia';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
@@ -124,7 +123,7 @@ export default function FicheBureauEtudePage() {
       <header className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-950">Ma fiche bureau d’études</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-950">Mon Bureau</h1>
             <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
               isPublished ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
             }`}>
@@ -136,7 +135,7 @@ export default function FicheBureauEtudePage() {
           </p>
           {isPublished && (
             <a
-              href={`/bureaux-etudes/${fiche.profilPublic.slug}?retour=${encodeURIComponent('/be/ma-fiche')}`}
+              href={`/bureaux-etudes/${fiche.profilPublic.slug}?retour=${encodeURIComponent('/be/mon-bureau')}`}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-green-700 hover:text-green-800 hover:underline"
@@ -184,15 +183,13 @@ export default function FicheBureauEtudePage() {
         </div>
       </header>
 
-      <ProfilBureauEtudeStats stats={fiche.activite} />
-      <ProfilBureauEtudeEvaluations evaluations={fiche.evaluations} />
-
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Card>
           <CardHeader>
             <CardTitle>{viewMode === 'edit' ? 'Informations publiques' : 'Aperçu de votre page'}</CardTitle>
           </CardHeader>
           <CardContent>
+            {viewMode === 'edit' && <div className="mb-7 border-b border-stone-200 pb-7"><ProfilBureauEtudeMedia profil={fiche.profilPublic} disabled={isBusy} onUpdated={() => void reload()} /></div>}
             {viewMode === 'edit' ? (
               <ProfilBureauEtudeForm
                 value={draft}
@@ -207,6 +204,7 @@ export default function FicheBureauEtudePage() {
                 draft={draft}
                 typesEtude={typesEtude}
                 departements={departements}
+                evaluations={fiche.evaluations}
               />
             )}
           </CardContent>

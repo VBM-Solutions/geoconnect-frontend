@@ -97,7 +97,8 @@ describe('MainLayout', () => {
     expect(screen.getByRole('link', { name: 'Accueil' }).getAttribute('href')).toBe('/be/dashboard');
     expect(screen.getByRole('link', { name: 'Planning' })).toHaveAttribute('href', '/be/planning');
     expect(screen.queryByRole('link', { name: /marketplace/i })).toBeNull();
-    expect(screen.getByRole('link', { name: /ma fiche/i }).getAttribute('href')).toBe('/be/ma-fiche');
+    expect(screen.getByRole('link', { name: /mon bureau/i }).getAttribute('href')).toBe('/be/mon-bureau');
+    expect(screen.getByRole('link', { name: /performance/i }).getAttribute('href')).toBe('/be/performance');
   });
 
   it('n’affiche pas de bouton paramètres pour l’admin', () => {

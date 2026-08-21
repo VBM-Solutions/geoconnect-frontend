@@ -72,9 +72,8 @@ describe('FicheBureauEtudePage', () => {
   it('affiche les statistiques privées et le formulaire du profil', () => {
     render(<FicheBureauEtudePage />);
 
-    expect(screen.getByRole('heading', { name: /ma fiche bureau d’études/i })).toBeTruthy();
-    expect(screen.getByText('8')).toBeTruthy();
-    expect(screen.getByText('50 %')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /mon bureau/i })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /identité visuelle/i })).toBeTruthy();
     expect(screen.getByLabelText(/présentation courte/i)).toHaveValue(
       fiche.profilPublic.descriptionCourte,
     );
@@ -140,7 +139,7 @@ describe('FicheBureauEtudePage', () => {
     expect(screen.getByRole('link', { name: /voir ma page publique/i }))
       .toHaveAttribute(
         'href',
-        '/bureaux-etudes/geo-atlantique-nantes-42?retour=%2Fbe%2Fma-fiche',
+        '/bureaux-etudes/geo-atlantique-nantes-42?retour=%2Fbe%2Fmon-bureau',
       );
     expect(screen.getByRole('link', { name: /voir ma page publique/i }))
       .toHaveAttribute('target', '_blank');

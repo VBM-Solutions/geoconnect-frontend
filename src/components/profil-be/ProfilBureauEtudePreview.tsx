@@ -4,6 +4,7 @@ import {
   EnumValueDTO,
   ProfilPublicBureauEtudeDTO,
   UpdateProfilPublicBureauEtudePayload,
+  SyntheseEvaluationsDTO,
 } from '../../types';
 import { extractCodeDepartement } from '../../lib/utils';
 
@@ -12,6 +13,7 @@ interface ProfilBureauEtudePreviewProps {
   draft: UpdateProfilPublicBureauEtudePayload;
   typesEtude: EnumValueDTO[];
   departements: DepartementDTO[];
+  evaluations?: SyntheseEvaluationsDTO;
 }
 
 export function ProfilBureauEtudePreview({
@@ -19,6 +21,7 @@ export function ProfilBureauEtudePreview({
   draft,
   typesEtude,
   departements,
+  evaluations,
 }: Readonly<ProfilBureauEtudePreviewProps>) {
   const typeLabels = new Map(typesEtude.map(type => [type.code, type.libelle]));
   const departementLabels = new Map(departements.map(departement => [departement.code, departement.libelle]));
@@ -29,11 +32,9 @@ export function ProfilBureauEtudePreview({
 
   return (
     <article className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="bg-gradient-to-br from-slate-900 to-blue-950 px-6 py-8 text-white">
+      <div className="relative min-h-52 bg-gradient-to-br from-[#26311c] to-[#779649] bg-cover bg-center px-6 py-8 text-white" style={profil.banniereDocumentId ? { backgroundImage: `linear-gradient(90deg,rgba(28,25,23,.8),rgba(28,25,23,.15)),url(/api/public/profil-media/${profil.banniereDocumentId})` } : undefined}>
         <div className="flex items-start gap-4">
-          <div className="rounded-xl bg-white/10 p-3">
-            <Building2 className="h-7 w-7" aria-hidden="true" />
-          </div>
+          {profil.logoDocumentId ? <img src={`/api/public/profil-media/${profil.logoDocumentId}`} alt="Logo du bureau" className="h-20 w-20 rounded-2xl border-4 border-white bg-white object-contain shadow-lg" /> : <div className="rounded-xl bg-white/10 p-3"><Building2 className="h-7 w-7" aria-hidden="true" /></div>}
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">Bureau d’études</p>
             <h2 className="mt-1 text-2xl font-bold">{profil.raisonSociale}</h2>
@@ -94,6 +95,24 @@ export function ProfilBureauEtudePreview({
           {draft.anneesExperience != null && (
             <p className="text-slate-700"><strong>{draft.anneesExperience}</strong> années d’expérience</p>
           )}
+        </section>
+
+        <section className="border-t border-stone-200 pt-5">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-stone-500">Avis clients</h3>
+          {evaluations && evaluations.nombreEvaluations > 0 ? (
+            <>
+              <p className="mt-2 text-2xl font-black text-[#688239]">
+                {evaluations.noteGlobale?.toFixed(1)}<span className="text-sm text-stone-500"> / 5 · {evaluations.nombreEvaluations} avis</span>
+              </p>
+              <div className="mt-3 space-y-3">
+                {evaluations.avis.slice(0, 3).map((avis, index) => (
+                  <blockquote key={avis.evaluationId ?? index} className="rounded-xl bg-[#f7f4ed] p-3 text-sm text-stone-700">
+                    “{avis.commentaire}”
+                  </blockquote>
+                ))}
+              </div>
+            </>
+          ) : <p className="mt-2 text-sm text-stone-500">Aucun avis publié pour le moment.</p>}
         </section>
       </div>
     </article>

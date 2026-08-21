@@ -387,6 +387,8 @@ export interface ProfilPublicBureauEtudeDTO {
   anneesExperience?: number;
   telephonePublic?: string;
   emailPublic?: string;
+  logoDocumentId?: number;
+  banniereDocumentId?: number;
   afficherAdresseComplete: boolean;
   typesEtude: TypeDemandeDevis[];
   zonesIntervention: string[];
@@ -419,6 +421,37 @@ export interface FicheBureauEtudeDTO {
   profilPublic: ProfilPublicBureauEtudeDTO;
   activite: StatistiquesActiviteBureauEtudeDTO;
   evaluations: SyntheseEvaluationsDTO;
+}
+
+export interface IndicateursPerformanceDTO {
+  demandesTraitees: number;
+  propositionsEnvoyees: number;
+  propositionsAcceptees: number;
+  propositionsRefusees: number;
+  propositionsEnAttente: number;
+  tauxAcceptation: number;
+  montantPropositions: number;
+  montantAccepte: number;
+  etudesDemarrees: number;
+  rapportsRendus: number;
+  rapportsRendusDansLesDelais: number;
+  tauxRapportsDansLesDelais: number;
+  delaiMoyenReponseJours?: number;
+  delaiMoyenRenduJours?: number;
+  evaluations: number;
+  noteGlobale?: number;
+  qualiteEchanges?: number;
+  respectDelais?: number;
+  qualiteRapport?: number;
+  adequationBesoin?: number;
+}
+
+export interface PerformanceBureauEtudeDTO {
+  debut: string;
+  fin: string;
+  indicateurs: IndicateursPerformanceDTO;
+  periodePrecedente: IndicateursPerformanceDTO;
+  etudesEnCours: number;
 }
 
 export interface SyntheseEvaluationsDTO {
