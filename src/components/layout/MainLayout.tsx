@@ -79,7 +79,8 @@ export default function MainLayout() {
     navItems = [
       { label: 'Accueil', path: '/be/dashboard' },
       { label: 'Planning', path: '/be/planning' },
-      { label: 'Ma fiche', path: '/be/ma-fiche' },
+      { label: 'Mon Bureau', path: '/be/mon-bureau' },
+      { label: 'Performance', path: '/be/performance' },
     ];
   } else if (user?.role === 'ADMIN') {
     navItems = [
