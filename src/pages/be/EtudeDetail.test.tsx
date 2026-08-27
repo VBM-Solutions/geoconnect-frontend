@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
-import { BEStepActions } from './EtudeDetail';
+import { BEStepActions, DevisNegotiationBE } from './EtudeDetail';
 
 // ─── Mock de uploadDocument (non utilisé dans les cas testés ici) ─────────────
 vi.mock('../../api/document', () => ({
@@ -217,6 +217,26 @@ describe('BEStepActions — autres états', () => {
     expect(screen.getByRole('button', { name: /envoyer la date/i })).toBeTruthy();
   });
 
+  it('exige et transmet la demi-journée avec la date', () => {
+    const onProposerDate = vi.fn();
+    renderActions({ etat: 'DEVIS_SIGNE', onProposerDate });
+    const submit = screen.getByRole('button', { name: /envoyer la date/i });
+    fireEvent.change(screen.getByLabelText(/date d'intervention/i), { target: { value: dateInDays(2) } });
+    expect(submit).toBeDisabled();
+    fireEvent.click(screen.getByRole('radio', { name: 'Après-midi' }));
+    fireEvent.click(submit);
+    expect(onProposerDate).not.toHaveBeenCalled();
+    expect(screen.getByText(/confirmer la proposition de date/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /oui, proposer ce créneau/i }));
+    expect(onProposerDate).toHaveBeenCalledWith(dateInDays(2), 'APRES_MIDI');
+  });
+
+  it('affiche le motif du dernier refus jusqu’à la nouvelle proposition', () => {
+    renderActions({ etat: 'DEVIS_SIGNE', motifRefusDateIntervention: 'Présence impossible ce matin.' });
+    expect(screen.getByText(/voici son message/i)).toBeInTheDocument();
+    expect(screen.getByText(/présence impossible ce matin/i)).toBeInTheDocument();
+  });
+
   it('affiche un message d\'attente pour DEVIS_VALIDE', () => {
     renderActions({ etat: 'DEVIS_VALIDE' });
     expect(screen.queryByRole('button', { name: /envoyer la date/i })).toBeNull();
@@ -227,10 +247,12 @@ describe('BEStepActions — autres états', () => {
     renderActions({
       etat: 'DATE_INTERVENTION_PROPOSEE',
       dateIntervention: '2026-07-15',
+      periodeIntervention: 'MATIN',
     });
     expect(screen.queryByRole('button', { name: /envoyer la date/i })).toBeNull();
-    expect(screen.getByText(/date proposée au client/i)).toBeTruthy();
+    expect(screen.getByText(/créneau proposé au client/i)).toBeTruthy();
     expect(screen.getByText(/en attente de sa validation ou de son refus/i)).toBeTruthy();
+    expect(screen.getByText(/15 juillet 2026 - matin/i)).toBeTruthy();
   });
 
   it('affiche le formulaire pour DATE_INTERVENTION_PROPOSEE sans date après refus client', () => {
@@ -242,6 +264,20 @@ describe('BEStepActions — autres états', () => {
   it('ne rend rien pour un état inconnu', () => {
     const { container } = renderActions({ etat: undefined });
     expect(container.firstChild).toBeNull();
+  });
+});
+
+describe('DevisNegotiationBE — validation du devis signé', () => {
+  it('demande confirmation avant de lancer la validation', () => {
+    const run = vi.fn().mockResolvedValue(undefined);
+    render(<DevisNegotiationBE etudeId={12} devisSigneId={34} run={run} onVersionCreated={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Valider le devis signé' }));
+    expect(run).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Valider le devis signé' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Oui, valider le devis' }));
+    expect(run).toHaveBeenCalledWith(expect.any(Function), 'devisValidation');
   });
 });
 

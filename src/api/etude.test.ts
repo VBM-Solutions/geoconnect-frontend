@@ -92,15 +92,17 @@ describe('proposerDateIntervention', () => {
   it('appelle PATCH /etude/{id}/proposer-date et retourne le détail', async () => {
     (api.patch as any).mockResolvedValueOnce({ data: fakeDetail });
 
-    const result = await proposerDateIntervention(1, '2026-06-01');
+    const result = await proposerDateIntervention(1, '2026-06-01', 'MATIN');
 
-    expect(api.patch).toHaveBeenCalledWith('/etude/1/proposer-date', { dateIntervention: '2026-06-01' });
+    expect(api.patch).toHaveBeenCalledWith('/etude/1/proposer-date', {
+      dateIntervention: '2026-06-01', periodeIntervention: 'MATIN',
+    });
     expect(result).toEqual(fakeDetail);
   });
 
   it('propage l\'erreur réseau', async () => {
     (api.patch as any).mockRejectedValueOnce(new Error('Network error'));
-    await expect(proposerDateIntervention(1, '2026-06-01')).rejects.toThrow('Network error');
+    await expect(proposerDateIntervention(1, '2026-06-01', 'APRES_MIDI')).rejects.toThrow('Network error');
   });
 });
 
@@ -116,8 +118,10 @@ describe('validerDateIntervention', () => {
 describe('refuserDateIntervention', () => {
   it('appelle PATCH /etude/{id}/refuser-date', async () => {
     (api.patch as any).mockResolvedValueOnce({ data: fakeDetail });
-    const result = await refuserDateIntervention(1);
-    expect(api.patch).toHaveBeenCalledWith('/etude/1/refuser-date');
+    const result = await refuserDateIntervention(1, 'Je ne serai pas disponible.');
+    expect(api.patch).toHaveBeenCalledWith('/etude/1/refuser-date', {
+      motifRefusDateIntervention: 'Je ne serai pas disponible.',
+    });
     expect(result).toEqual(fakeDetail);
   });
 });

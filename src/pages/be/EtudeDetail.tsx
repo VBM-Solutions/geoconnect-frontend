@@ -7,7 +7,7 @@ import {
   definirDateRenduPrevue,
 } from '../../api/etude';
 import { uploadDocument } from '../../api/document';
-import { EtatEtude } from '../../types';
+import { EtatEtude, PeriodeIntervention } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
@@ -18,7 +18,7 @@ import {
   CheckCircle2, Upload, AlertCircle, MapPin, Clock, User, Pencil, CalendarClock, Mail, Paperclip, X,
 } from 'lucide-react';
 import { useEtudeDetail } from '../../hooks/useEtudeDetail';
-import { formatDateLong } from '../../lib/formatters';
+import { formatCreneauIntervention, formatDateLong } from '../../lib/formatters';
 import { useToast } from '../../contexts/ToastContext';
 import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 import { EtudeInfoMetric } from '../../components/etude/EtudeInfoMetric';
@@ -175,9 +175,11 @@ export default function BureauEtudeDetail() {
         <BEStepActions
           etat={etat}
           dateIntervention={etude.dateIntervention}
+          periodeIntervention={etude.periodeIntervention}
+          motifRefusDateIntervention={etude.motifRefusDateIntervention}
           isLoading={interventionLoading}
-          onProposerDate={(date) => withAction(async () => {
-            await proposerDateIntervention(etude.id, date);
+          onProposerDate={(date, periode) => withAction(async () => {
+            await proposerDateIntervention(etude.id, date, periode);
             toastSuccess('Date d\'intervention proposée au client avec succès.');
           })}
           onInterventionEffectuee={() => withAction(() => marquerInterventionEffectuee(etude.id))}
@@ -188,18 +190,37 @@ export default function BureauEtudeDetail() {
   );
 }
 
-function DevisNegotiationBE({ etudeId, devisSigneId, run, onVersionCreated }: Readonly<{
+export function DevisNegotiationBE({ etudeId, devisSigneId, run, onVersionCreated }: Readonly<{
   etudeId: number; devisSigneId?: number;
   run: (action: () => Promise<unknown>, key?: string) => Promise<void>;
   onVersionCreated: () => void;
 }>) {
   const [file, setFile] = useState<File | null>(null);
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [validationLoading, setValidationLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileInputId = `nouveau-devis-${etudeId}`;
+  const confirmerValidation = async () => {
+    setValidationLoading(true);
+    try {
+      await run(() => validerDernierDevisSigne(etudeId), 'devisValidation');
+      setShowValidationModal(false);
+    } finally {
+      setValidationLoading(false);
+    }
+  };
   if (devisSigneId != null) return <Card className="border-blue-200"><CardContent className="space-y-3 pt-4">
     <p className="text-xs font-semibold text-blue-800">Le client a déposé le dernier devis signé. Vérifiez-le avant de valider l'étape.</p>
-    <div className="flex gap-2"><Button onClick={() => run(() => validerDernierDevisSigne(etudeId), 'devisValidation')}>Valider le devis signé</Button>
+    <div className="flex gap-2"><Button onClick={() => setShowValidationModal(true)}>Valider le devis signé</Button>
       <Button variant="danger" onClick={() => run(() => refuserDernierDevisSigne(etudeId), 'devisRefus')}>Refuser</Button></div>
+    {showValidationModal && <ConfirmModal
+      title="Valider le devis signé"
+      message="Confirmez-vous avoir vérifié le devis signé déposé par le client ? Cette validation permettra de poursuivre la planification de l'intervention."
+      confirmLabel="Oui, valider le devis"
+      isLoading={validationLoading}
+      onConfirm={() => void confirmerValidation()}
+      onCancel={() => setShowValidationModal(false)}
+    />}
   </CardContent></Card>;
   return <Card><CardHeader><CardTitle className="text-xs">Proposer une nouvelle version</CardTitle></CardHeader><CardContent className="space-y-2">
     <span className="block text-[10px] font-bold uppercase text-slate-500">Nouveau devis (PDF)</span>
@@ -265,18 +286,22 @@ function DaysRemainingBadge({ dateIso }: Readonly<{ dateIso: string }>) {
 export interface BEStepActionsProps {
   etat?: EtatEtude;
   dateIntervention?: string;
+  periodeIntervention?: PeriodeIntervention;
+  motifRefusDateIntervention?: string;
   isLoading: boolean;
-  onProposerDate: (date: string) => void;
+  onProposerDate: (date: string, periode: PeriodeIntervention) => void;
   onInterventionEffectuee: () => void;
   onTerminerRapport: (rapportId: number) => void;
 }
 
-export function BEStepActions({ etat, dateIntervention, isLoading, onProposerDate, onInterventionEffectuee, onTerminerRapport }: Readonly<BEStepActionsProps>) {
+export function BEStepActions({ etat, dateIntervention, periodeIntervention, motifRefusDateIntervention, isLoading, onProposerDate, onInterventionEffectuee, onTerminerRapport }: Readonly<BEStepActionsProps>) {
   const [dateInput, setDateInput] = useState('');
+  const [periodeInput, setPeriodeInput] = useState<PeriodeIntervention | ''>('');
   const [dateError, setDateError] = useState('');
   const [rapportFile, setRapportFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showInterventionModal, setShowInterventionModal] = useState(false);
+  const [showDateProposalModal, setShowDateProposalModal] = useState(false);
 
   const handleTerminerRapport = async () => {
     if (!rapportFile) return;
@@ -314,7 +339,7 @@ export function BEStepActions({ etat, dateIntervention, isLoading, onProposerDat
       <CalendarClock className="w-4 h-4 shrink-0 mt-0.5 text-orange-500" />
       <span>
         La date d'intervention est prévue au{' '}
-        <strong>{formatDateLong(dateIntervention)}</strong>, dans{' '}
+        <strong>{formatCreneauIntervention(dateIntervention, periodeIntervention)}</strong>, dans{' '}
         <strong>
           {interventionDaysRemaining} jour{interventionDaysRemaining > 1 ? 's' : ''}
         </strong>
@@ -325,7 +350,7 @@ export function BEStepActions({ etat, dateIntervention, isLoading, onProposerDat
 
   const dateProposalForm = (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2 items-end">
+      <div className="flex flex-wrap gap-3 items-end">
         <div>
           <label htmlFor="dateIntervention" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
             Date d'intervention
@@ -352,6 +377,17 @@ export function BEStepActions({ etat, dateIntervention, isLoading, onProposerDat
           />
           {dateError && <p className="text-red-500 text-[10px] mt-1">{dateError}</p>}
         </div>
+        <fieldset>
+          <legend className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Période</legend>
+          <div className="flex gap-3 rounded border border-slate-300 px-3 py-1.5 text-xs">
+            {(['MATIN', 'APRES_MIDI'] as const).map(periode => (
+              <label key={periode} className="flex cursor-pointer items-center gap-1.5">
+                <input type="radio" name="periodeIntervention" value={periode} checked={periodeInput === periode} onChange={() => setPeriodeInput(periode)} />
+                {periode === 'MATIN' ? 'Matin' : 'Après-midi'}
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <Button
           onClick={() => {
             if (dateInput && dateInput < today) {
@@ -359,14 +395,22 @@ export function BEStepActions({ etat, dateIntervention, isLoading, onProposerDat
               return;
             }
             setDateError('');
-            onProposerDate(dateInput);
+            if (periodeInput) setShowDateProposalModal(true);
           }}
-          disabled={!dateInput || !!dateError}
+          disabled={!dateInput || !periodeInput || !!dateError}
           isLoading={isLoading}
         >
           Envoyer la date
         </Button>
       </div>
+      {showDateProposalModal && periodeInput && <ConfirmModal
+        title="Confirmer la proposition de date"
+        message={`Voulez-vous proposer le créneau du ${formatCreneauIntervention(dateInput, periodeInput)} au client ?`}
+        confirmLabel="Oui, proposer ce créneau"
+        isLoading={isLoading}
+        onConfirm={() => onProposerDate(dateInput, periodeInput)}
+        onCancel={() => setShowDateProposalModal(false)}
+      />}
     </div>
   );
 
@@ -379,7 +423,13 @@ export function BEStepActions({ etat, dateIntervention, isLoading, onProposerDat
       );
 
     case 'DEVIS_SIGNE':
-      return dateProposalForm;
+      return <div className="space-y-3">
+        {motifRefusDateIntervention && <InfoMsg color="orange" icon={<Clock className="w-4 h-4" />}>
+          <span className="block font-semibold">Le client a refusé la date proposée. Voici son message :</span>
+          <span className="mt-2 block whitespace-pre-line rounded-md border border-orange-200 bg-white/70 px-3 py-2 font-medium italic text-slate-700">{motifRefusDateIntervention}</span>
+        </InfoMsg>}
+        {dateProposalForm}
+      </div>;
 
     case 'DATE_INTERVENTION_PROPOSEE':
       if (!dateIntervention) {
@@ -395,7 +445,7 @@ export function BEStepActions({ etat, dateIntervention, isLoading, onProposerDat
 
       return (
         <InfoMsg color="orange" icon={<Clock className="w-4 h-4" />}>
-          Date proposée au client : <strong>{formatDateLong(dateIntervention)}</strong>. En attente de sa validation ou de son refus.
+          Créneau proposé au client : <strong>{formatCreneauIntervention(dateIntervention, periodeIntervention)}</strong>. En attente de sa validation ou de son refus.
         </InfoMsg>
       );
 

@@ -10,13 +10,14 @@ import { InfoMsg } from '../../components/etude/InfoMsg';
 import { clientMustAct } from '../../components/etude/EtudeStatusBadge';
 import { RapportDownloadCard } from '../../components/etude/RapportDownloadCard';
 import { CheckCircle2, XCircle, CreditCard, AlertCircle, Clock, Building2, Upload, FilePen } from 'lucide-react';
-import { formatDateLong } from '../../lib/formatters';
+import { formatCreneauIntervention } from '../../lib/formatters';
 import { useEtudeDetail } from '../../hooks/useEtudeDetail';
 import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 import { EtudeInfoMetric } from '../../components/etude/EtudeInfoMetric';
 import { EvaluationEtudeCard } from '../../components/etude/EvaluationEtudeCard';
 import { BureauEtudeProfileLink } from '../../components/profil-be/BureauEtudeProfileLink';
 import { DevisVersionsCard } from '../../components/etude/DevisVersionsCard';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 export default function ClientEtudeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -107,9 +108,10 @@ export default function ClientEtudeDetail() {
           etat={etat}
           etude={etude}
           isLoading={stepLoading}
-          onValiderDate={() => withAction(() => validerDateIntervention(etude.id))}
-          onRefuserDate={() => withAction(() => refuserDateIntervention(etude.id))}
-          onConfirmerPaiement={() => withAction(() => confirmerPaiement(etude.id))}
+          actionKey={actionKey}
+          onValiderDate={() => withAction(() => validerDateIntervention(etude.id), 'validerDate')}
+          onRefuserDate={(motif) => withAction(() => refuserDateIntervention(etude.id, motif), 'refuserDate')}
+          onConfirmerPaiement={() => withAction(() => confirmerPaiement(etude.id), 'confirmerPaiement')}
         />
       )}
     />
@@ -200,13 +202,17 @@ interface ClientStepActionsProps {
   etat?: EtatEtude;
   etude: EtudeDetailDTO;
   isLoading: boolean;
+  actionKey?: string | null;
   onValiderDate: () => void;
-  onRefuserDate: () => void;
+  onRefuserDate: (motif: string) => void;
   onConfirmerPaiement: () => void;
 }
 
-function ClientStepActions({ etat, etude, isLoading, onValiderDate, onRefuserDate, onConfirmerPaiement }: Readonly<ClientStepActionsProps>) {
-  const dateProposee = formatDateLong(etude.dateIntervention);
+export function ClientStepActions({ etat, etude, isLoading, actionKey, onValiderDate, onRefuserDate, onConfirmerPaiement }: Readonly<ClientStepActionsProps>) {
+  const dateProposee = formatCreneauIntervention(etude.dateIntervention, etude.periodeIntervention);
+  const [refusOuvert, setRefusOuvert] = useState(false);
+  const [motifRefus, setMotifRefus] = useState('');
+  const [confirmation, setConfirmation] = useState<'validation' | 'refus' | null>(null);
 
   switch (etat) {
     case 'DATE_INTERVENTION_PROPOSEE':
@@ -228,21 +234,49 @@ function ClientStepActions({ etat, etude, isLoading, onValiderDate, onRefuserDat
             Date proposée : <strong>{dateProposee}</strong>
           </InfoMsg>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={onValiderDate} isLoading={isLoading} className="bg-green-600 hover:bg-green-700 text-white">
+            <Button onClick={() => setConfirmation('validation')} disabled={isLoading} className="bg-green-600 hover:bg-green-700 text-white">
               <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
               Valider la date
             </Button>
-            <Button variant="danger" onClick={onRefuserDate} isLoading={isLoading}>
+            <Button variant="danger" onClick={() => setRefusOuvert(true)} disabled={isLoading}>
               <XCircle className="w-3.5 h-3.5 mr-1.5" />
               Refuser la date
             </Button>
           </div>
+          {refusOuvert && <div className="space-y-2 rounded-lg border border-red-200 bg-red-50 p-3">
+            <label htmlFor="motifRefusDateIntervention" className="block text-xs font-semibold text-red-900">Expliquez votre refus au bureau d'études</label>
+            <textarea id="motifRefusDateIntervention" value={motifRefus} maxLength={1000} rows={4}
+              onChange={event => setMotifRefus(event.target.value)}
+              className="w-full rounded-md border border-red-200 bg-white p-2 text-sm" />
+            <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
+              <span>{motifRefus.length}/1000</span>
+              <div className="flex gap-2"><Button variant="ghost" onClick={() => setRefusOuvert(false)}>Annuler</Button>
+                <Button variant="danger" disabled={!motifRefus.trim() || isLoading} onClick={() => setConfirmation('refus')}>Confirmer le refus</Button></div>
+            </div>
+          </div>}
+          {confirmation === 'validation' && <ConfirmModal
+            title="Valider le créneau d'intervention"
+            message={`Confirmez-vous le créneau du ${dateProposee} ?`}
+            confirmLabel="Oui, valider la date"
+            isLoading={isLoading && actionKey === 'validerDate'}
+            onConfirm={onValiderDate}
+            onCancel={() => setConfirmation(null)}
+          />}
+          {confirmation === 'refus' && <ConfirmModal
+            title="Refuser le créneau d'intervention"
+            message="Confirmez-vous le refus de ce créneau ? Votre message sera transmis au bureau d'études."
+            confirmLabel="Oui, refuser la date"
+            variant="warning"
+            isLoading={isLoading && actionKey === 'refuserDate'}
+            onConfirm={() => onRefuserDate(motifRefus.trim())}
+            onCancel={() => setConfirmation(null)}
+          />}
         </div>
       );
 
     case 'RAPPORT_TERMINE':
       return (
-        <Button onClick={onConfirmerPaiement} isLoading={isLoading} className="bg-teal-600 hover:bg-teal-700 text-white">
+        <Button onClick={onConfirmerPaiement} isLoading={isLoading && actionKey === 'confirmerPaiement'} className="bg-teal-600 hover:bg-teal-700 text-white">
           <CreditCard className="w-3.5 h-3.5 mr-1.5" />
           Confirmer le paiement
         </Button>

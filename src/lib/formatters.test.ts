@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDateShort, formatDateLong, buildDemandeDocuments } from './formatters';
+import { buildDemandeDocuments, formatCreneauIntervention, formatDateLong, formatDateShort, formatPeriodeIntervention } from './formatters';
 
 // ...existing code...
 
@@ -67,6 +67,17 @@ describe('formatDateLong', () => {
   it('formate correctement un mois en minuscules (locale fr)', () => {
     const result = formatDateLong('2024-12-25T00:00:00Z');
     expect(result).toMatch(/25 décembre 2024/);
+  });
+});
+
+describe('formatage du créneau d’intervention', () => {
+  it('formate les deux demi-journées et conserve les anciennes dates', () => {
+    expect(formatPeriodeIntervention('MATIN')).toBe('matin');
+    expect(formatPeriodeIntervention('APRES_MIDI')).toBe('après-midi');
+    expect(formatPeriodeIntervention()).toBeNull();
+    expect(formatCreneauIntervention('2026-07-20', 'MATIN')).toBe('20 juillet 2026 - matin');
+    expect(formatCreneauIntervention('2026-07-20')).toBe('20 juillet 2026');
+    expect(formatCreneauIntervention()).toBeNull();
   });
 });
 
