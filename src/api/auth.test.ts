@@ -42,6 +42,7 @@ describe('registerClientCall', () => {
       prenom: 'Jean',
       telContact: '0612345678',
       adresseFacturation: { rue: '12 rue de la Paix', codePostal: '75001', ville: 'Paris' },
+      cgvAcceptees: true,
       demande: { type: 'G0' as const, adresseProjet: { rue: '1 rue du Projet', codePostal: '75002', ville: 'Paris' } },
     };
     const response = { ...fakeAuthResponse, clientId: 10 };

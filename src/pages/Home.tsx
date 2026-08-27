@@ -97,6 +97,7 @@ function QuoteTunnel({
     },
   });
   const passwordValue = String(watch('password', '') ?? '');
+  const cgvAcceptees = watch('cgvAcceptees') === true;
 
   useEffect(() => {
     if (initialType && typesEtude.some(({ code }) => code === initialType)) {
@@ -136,6 +137,7 @@ function QuoteTunnel({
           ville: data.ville as string,
           codePostal: data.codePostal as string,
         },
+        cgvAcceptees: data.cgvAcceptees === true,
         demande: {
           delaiMaxSouhaite: pendingPayload.delaiMaxSouhaite,
           adresseProjet: pendingPayload.adresseProjet,
@@ -405,12 +407,41 @@ function QuoteTunnel({
                 error={getFieldMessage(errors.confirmPassword)}
                 showPasswordToggle
               />
+              <div className="space-y-1">
+                <div className="flex items-start gap-2">
+                  <input
+                    id="cgvAcceptees"
+                    type="checkbox"
+                    {...formRegister('cgvAcceptees', {
+                      required: 'Vous devez accepter les CGV pour publier votre demande',
+                    })}
+                    aria-invalid={errors.cgvAcceptees ? 'true' : 'false'}
+                    aria-describedby={errors.cgvAcceptees ? 'cgvAcceptees-error' : undefined}
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="cgvAcceptees" className="text-sm leading-5 text-slate-700">
+                    Je reconnais avoir pris connaissance et accepté les{' '}
+                    <a
+                      href="/conditions-generales-de-vente"
+                      className="font-medium text-blue-700 underline underline-offset-2 hover:text-blue-800"
+                    >
+                      CGV
+                    </a>{' '}
+                    de mon-etude-de-sol.fr *
+                  </label>
+                </div>
+                {errors.cgvAcceptees && (
+                  <p id="cgvAcceptees-error" role="alert" className="text-xs text-red-500">
+                    {getFieldMessage(errors.cgvAcceptees)}
+                  </p>
+                )}
+              </div>
             </CardContent>
             <CardFooter className="flex justify-between bg-slate-50/80 px-5 py-4">
               <Button type="button" variant="outline" onClick={() => setStep(2)}>
                 Retour
               </Button>
-              <Button type="submit" isLoading={isLoading}>
+              <Button type="submit" isLoading={isLoading} disabled={!cgvAcceptees}>
                 Publier ma demande
               </Button>
             </CardFooter>

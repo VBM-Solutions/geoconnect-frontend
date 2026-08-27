@@ -14,6 +14,7 @@ export interface ClientRegistrationRequest {
   prenom: string;
   telContact: string;
   adresseFacturation: AdresseDTO;
+  cgvAcceptees: boolean;
   demande: Omit<DemandeDevisDTO, 'id' | 'clientId' | 'docsDevisIds' | 'documentsDevis'>;
 }
 
