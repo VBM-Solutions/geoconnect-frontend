@@ -162,6 +162,8 @@ export type EtatEtude =
   | 'RAPPORT_TERMINE'
   | 'PAIEMENT_EFFECTUE';
 
+export type PeriodeIntervention = 'MATIN' | 'APRES_MIDI';
+
 export interface EtudeDTO {
   id?: number;
   propositionDevisId?: number;
@@ -170,6 +172,8 @@ export interface EtudeDTO {
   rapportId?: number;
   chargeAffaire?: string;
   dateIntervention?: string;
+  periodeIntervention?: PeriodeIntervention;
+  motifRefusDateIntervention?: string;
   dateRendu?: string;
   dateRenduPrevue?: string;
 }
@@ -186,6 +190,7 @@ export interface PlanningEventDTO {
   statut: PlanningEventStatus;
   startDate: string;
   endDate: string;
+  periodeIntervention?: PeriodeIntervention;
   typeEtude?: TypeDemandeDevis;
   clientPrenom?: string;
   clientNom?: string;
@@ -319,6 +324,8 @@ export interface EtudeDetailDTO {
   etat?: EtatEtude;
   chargeAffaire?: string;
   dateIntervention?: string;
+  periodeIntervention?: PeriodeIntervention;
+  motifRefusDateIntervention?: string;
   dateRendu?: string;
   dateRenduPrevue?: string;
   devisSigneId?: number;
@@ -566,6 +573,7 @@ export interface BEMapMarkerDTO {
   description?: string;
   prix?: number;
   dateIntervention?: string;
+  periodeIntervention?: PeriodeIntervention;
   dateRenduPrevue?: string;
   dateRendu?: string;
   actionUrl?: string;

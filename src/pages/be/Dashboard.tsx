@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useBEDashboardData, type MissionZoneFilter } from '../../hooks/useBEDashboardData';
 import { useToast } from '../../contexts/ToastContext';
 import { STATUT_LABELS } from '../../constants/labels';
-import { formatDateShort } from '../../lib/formatters';
+import { formatCreneauIntervention, formatDateShort } from '../../lib/formatters';
 import { extractCodeDepartement } from '../../lib/utils';
 import { DemandeDevisDTO, PropositionDevisDTO, EtudeDetailDTO } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
@@ -722,7 +722,7 @@ export default function BEDashboard() {
           <div className="grid grid-cols-2 gap-2 text-[11px]">
             <div className="p-2 bg-slate-50 rounded border border-slate-100">
               <p className="text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1"><Clock className="w-3 h-3"/>Intervention</p>
-              <p className="font-semibold text-slate-700">{formatDateShort(etude.dateIntervention)}</p>
+              <p className="font-semibold text-slate-700">{formatCreneauIntervention(etude.dateIntervention, etude.periodeIntervention, formatDateShort)}</p>
             </div>
             <div className="p-2 bg-slate-50 rounded border border-slate-100">
               <p className="text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1"><Clock className="w-3 h-3"/>Rendu</p>

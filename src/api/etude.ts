@@ -14,8 +14,8 @@ export type EtudeListCategory = 'ACTIVE' | 'ARCHIVED' | 'COMPLETED';
 // ─── Transitions d'état ───────────────────────────────────────────────────────
 
 /** BE → propose une date d'intervention */
-export const proposerDateIntervention = async (id: number, dateIntervention: string): Promise<EtudeDetailDTO> => {
-  const { data } = await api.patch(`/etude/${id}/proposer-date`, { dateIntervention });
+export const proposerDateIntervention = async (id: number, dateIntervention: string, periodeIntervention: 'MATIN' | 'APRES_MIDI'): Promise<EtudeDetailDTO> => {
+  const { data } = await api.patch(`/etude/${id}/proposer-date`, { dateIntervention, periodeIntervention });
   return data;
 };
 
@@ -26,8 +26,8 @@ export const validerDateIntervention = async (id: number): Promise<EtudeDetailDT
 };
 
 /** CLIENT → refuse la date proposée */
-export const refuserDateIntervention = async (id: number): Promise<EtudeDetailDTO> => {
-  const { data } = await api.patch(`/etude/${id}/refuser-date`);
+export const refuserDateIntervention = async (id: number, motifRefusDateIntervention: string): Promise<EtudeDetailDTO> => {
+  const { data } = await api.patch(`/etude/${id}/refuser-date`, { motifRefusDateIntervention });
   return data;
 };
 

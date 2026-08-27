@@ -29,3 +29,20 @@ export const formatDateLong = (value?: string): string | null => {
   return Number.isNaN(parsed.getTime()) ? null : format(parsed, 'dd MMMM yyyy', { locale: fr });
 };
 
+export const formatPeriodeIntervention = (periode?: 'MATIN' | 'APRES_MIDI'): string | null => {
+  if (periode === 'MATIN') return 'matin';
+  if (periode === 'APRES_MIDI') return 'après-midi';
+  return null;
+};
+
+export const formatCreneauIntervention = (
+  date?: string,
+  periode?: 'MATIN' | 'APRES_MIDI',
+  formatDate: (value?: string) => string | null = formatDateLong,
+): string | null => {
+  const dateFormatee = formatDate(date);
+  if (!dateFormatee) return null;
+  const periodeFormatee = formatPeriodeIntervention(periode);
+  return periodeFormatee ? `${dateFormatee} - ${periodeFormatee}` : dateFormatee;
+};
+

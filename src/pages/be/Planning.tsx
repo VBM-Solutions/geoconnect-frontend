@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { useBEPlanning } from '../../hooks/useBEPlanning';
 import { eventOccursOn } from '../../lib/planningCalendar';
 import { PlanningEventDTO, PlanningEventStatus } from '../../types';
+import { formatPeriodeIntervention } from '../../lib/formatters';
 
 const WEEK_DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
@@ -45,6 +46,10 @@ function eventTitle(event: PlanningEventDTO): string {
   return `${type} · ${event.typeEtude}`;
 }
 
+function eventPeriod(event: PlanningEventDTO): string | null {
+  return event.type === 'INTERVENTION' ? formatPeriodeIntervention(event.periodeIntervention) : null;
+}
+
 function eventLocation(event: PlanningEventDTO): string | undefined {
   if (event.ville && event.codePostal) return `${event.ville} - ${event.codePostal}`;
   return event.ville || event.codePostal;
@@ -53,14 +58,19 @@ function eventLocation(event: PlanningEventDTO): string | undefined {
 function PlanningEvent({ event, day }: Readonly<{ event: PlanningEventDTO; day: Date }>) {
   const weekly = event.precision === 'SEMAINE';
   const location = eventLocation(event);
+  const title = eventTitle(event);
+  const period = eventPeriod(event);
+  const status = STATUS_LABELS[event.statut];
+  const titleText = [title, period, status].filter(Boolean).join(' — ');
+  const accessibleText = [title, period, status].filter(Boolean).join(', ');
   return (
     <Link
       to={`/be/etude/${event.etudeId}`}
-      title={`${eventTitle(event)} — ${STATUS_LABELS[event.statut]}`}
-      aria-label={`${eventTitle(event)}, ${STATUS_LABELS[event.statut]}`}
+      title={titleText}
+      aria-label={accessibleText}
       className={`block min-h-7 border px-1.5 py-1 text-[10px] font-semibold leading-tight hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${eventStyle(event, day)} ${weekly ? 'rounded-sm' : 'rounded-md'}`}
     >
-      <span className="block truncate">{eventTitle(event)}</span>
+      <span className="block truncate">{[title, period].filter(Boolean).join(' · ')}</span>
       {location && <span className="mt-0.5 flex items-center gap-0.5 truncate font-normal"><MapPin className="h-2.5 w-2.5 shrink-0" />{location}</span>}
     </Link>
   );
@@ -76,23 +86,34 @@ interface PositionedEvent {
   startColumn: number;
   span: number;
   lane: number;
+  band: 'CONTRACTUEL' | 'MATIN' | 'APRES_MIDI' | 'RENDU';
+}
+
+function eventBand(event: PlanningEventDTO): PositionedEvent['band'] {
+  if (event.precision === 'SEMAINE') return 'CONTRACTUEL';
+  if (event.type === 'RENDU') return 'RENDU';
+  return event.periodeIntervention === 'MATIN' ? 'MATIN' : 'APRES_MIDI';
 }
 
 function positionWeekEvents(events: PlanningEventDTO[], days: Date[]): PositionedEvent[] {
-  const lanes: Array<Array<{ start: number; end: number }>> = [];
+  const lanesByBand: Record<PositionedEvent['band'], Array<Array<{ start: number; end: number }>>> = {
+    CONTRACTUEL: [], MATIN: [], APRES_MIDI: [], RENDU: [],
+  };
   return events.map(event => {
     const startColumn = event.precision === 'SEMAINE'
       ? 1
       : Math.max(1, days.findIndex(day => eventOccursOn(event, day)) + 1);
     const span = event.precision === 'SEMAINE' ? 5 : 1;
     const endColumn = startColumn + span - 1;
+    const band = eventBand(event);
+    const lanes = lanesByBand[band];
     let lane = lanes.findIndex(occupied => occupied.every(slot => endColumn < slot.start || startColumn > slot.end));
     if (lane === -1) {
       lane = lanes.length;
       lanes.push([]);
     }
     lanes[lane].push({ start: startColumn, end: endColumn });
-    return { event, startColumn, span, lane };
+    return { event, startColumn, span, lane, band };
   });
 }
 
@@ -119,11 +140,24 @@ function CalendarWeek({ days, events, anchor, monthView }: Readonly<{
 }>) {
   const weekEvents = events.filter(event => days.some(day => eventOccursOn(event, day)));
   const positionedEvents = positionWeekEvents(weekEvents, days);
-  const laneCount = positionedEvents.reduce((maximum, event) => Math.max(maximum, event.lane + 1), 0);
-  const minHeight = 78 + laneCount * 38;
+  const hasContractualBand = positionedEvents.some(event => event.band === 'CONTRACTUEL');
+  const dailyStart = hasContractualBand ? 52 : 0;
+  const bandBase: Record<PositionedEvent['band'], number> = {
+    CONTRACTUEL: 0,
+    MATIN: dailyStart,
+    APRES_MIDI: dailyStart + 56,
+    RENDU: dailyStart + 112,
+  };
+  const eventTop = (event: PositionedEvent) => bandBase[event.band] + event.lane * 48;
+  const maxEventTop = positionedEvents.reduce((maximum, event) => Math.max(maximum, eventTop(event)), 0);
+  const minHeight = Math.max(196 + dailyStart, 96 + maxEventTop);
 
   return (
-    <div className="relative grid grid-cols-7 border-l border-slate-200" style={{ minHeight }}>
+    <div className="relative grid grid-cols-[48px_repeat(7,minmax(0,1fr))] border-l border-slate-200" style={{ minHeight }}>
+      <aside aria-label="Repères des demi-journées" className="relative border-b border-r border-slate-200 bg-slate-50 text-[8px] font-semibold uppercase text-slate-400">
+        <span className="absolute inset-x-0 block text-center" style={{ top: 40 + dailyStart }}>Matin</span>
+        <span className="absolute inset-x-0 block text-center leading-tight" style={{ top: 96 + dailyStart }}>Après-<br />midi</span>
+      </aside>
       {days.map((day, index) => {
         const outsideMonth = monthView && !isSameMonth(day, anchor);
         const weekend = index >= 5;
@@ -140,14 +174,16 @@ function CalendarWeek({ days, events, anchor, monthView }: Readonly<{
             <time dateTime={format(day, 'yyyy-MM-dd')} className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${dayNumberStyle(currentDay, outsideMonth, weekend)}`}>
               {format(day, 'd')}
             </time>
+            <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 border-t border-dashed border-slate-200" style={{ top: 94 + dailyStart }} />
           </article>
         );
       })}
-      <div className="pointer-events-none absolute inset-x-0 top-10 space-y-1 px-1">
-        {positionedEvents.map(({ event, startColumn, span, lane }) => {
+      <div className="pointer-events-none absolute bottom-0 left-12 right-0 top-10 space-y-1 px-1">
+        {positionedEvents.map(positioned => {
+          const { event, startColumn, span, lane, band } = positioned;
           const eventDay = toLocalDate(event.startDate);
           return (
-            <div key={event.id} className="absolute inset-x-0 grid grid-cols-7 gap-0" style={{ top: lane * 38 }} data-event-lane={lane}>
+            <div key={event.id} className="absolute inset-x-0 grid grid-cols-7 gap-0" style={{ top: eventTop(positioned) }} data-event-lane={lane} data-event-band={band} data-periode={event.periodeIntervention}>
               <div className="pointer-events-auto mx-1" style={{ gridColumn: `${startColumn} / span ${span}` }}>
                 <PlanningEvent event={event} day={eventDay} />
               </div>
@@ -303,7 +339,8 @@ export default function Planning() {
           <div className="overflow-x-auto">
             <div className="min-w-[720px]">
               <div className="border-t border-slate-200">
-                <div className="grid grid-cols-7 border-l border-slate-200">
+                <div className="grid grid-cols-[48px_repeat(7,minmax(0,1fr))] border-l border-slate-200">
+                  <div aria-hidden="true" className="border-b border-r border-slate-200 bg-slate-50" />
                   {WEEK_DAYS.map((day, index) => <div key={day} className={`border-b border-r border-slate-200 py-2 text-center text-xs font-bold uppercase text-slate-500 ${index >= 5 ? 'bg-slate-200/80' : 'bg-slate-50'}`}>{day}</div>)}
                 </div>
                 {Array.from({ length: planning.range.days.length / 7 }, (_, index) => {

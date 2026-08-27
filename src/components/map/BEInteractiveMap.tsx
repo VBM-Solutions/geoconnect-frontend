@@ -7,7 +7,7 @@ import { BEMapDTO, BEMapFilters, BEMapMarkerDTO } from '../../types';
 import { useBEMapData } from '../../hooks/useBEMapData';
 import { Button } from '../ui/Button';
 import { ETAT_LABELS, TYPE_LABELS } from '../../constants/labels';
-import { formatDateShort } from '../../lib/formatters';
+import { formatCreneauIntervention, formatDateShort } from '../../lib/formatters';
 import { BEMapFiltersPanel } from './BEMapFiltersPanel';
 import {
   BEMapContext,
@@ -135,7 +135,7 @@ function MarkerPopup({ marker }: Readonly<{ marker: BEMapMarkerDTO }>) {
       {marker.type && <p className="text-xs font-medium text-slate-700">{TYPE_LABELS[marker.type] ?? marker.type}</p>}
       {marker.dateIntervention && (
         <div className="rounded-md border border-blue-100 bg-blue-50 px-2 py-1 text-xs text-blue-800">
-          <span className="font-semibold">Intervention :</span> {formatDateShort(marker.dateIntervention)}
+          <span className="font-semibold">Intervention :</span> {formatCreneauIntervention(marker.dateIntervention, marker.periodeIntervention, formatDateShort)}
         </div>
       )}
       {!marker.dateIntervention && marker.kind === 'ETUDE_EN_COURS' && (
@@ -235,7 +235,7 @@ function MarkerList({
                   {marker.dateIntervention && (
                     <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-blue-700">
                       <CalendarClock className="h-3.5 w-3.5" />
-                      Intervention {formatDateShort(marker.dateIntervention)}
+                      Intervention {formatCreneauIntervention(marker.dateIntervention, marker.periodeIntervention, formatDateShort)}
                     </p>
                   )}
                   {!marker.dateIntervention && marker.kind === 'ETUDE_EN_COURS' && (

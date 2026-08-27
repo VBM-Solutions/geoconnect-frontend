@@ -36,7 +36,7 @@ describe('BE Planning page', () => {
   it('renders daily events and a visibly distinct contractual week', () => {
     vi.mocked(useBEPlanning).mockReturnValue(basePlanning({
       events: [
-        { id: 'INTERVENTION-1', etudeId: 1, type: 'INTERVENTION', precision: 'JOUR', statut: 'A_CONFIRMER', startDate: '2026-08-19', endDate: '2026-08-19', typeEtude: 'G2_AVP', ville: 'Nantes', codePostal: '44000' },
+        { id: 'INTERVENTION-1', etudeId: 1, type: 'INTERVENTION', precision: 'JOUR', statut: 'A_CONFIRMER', startDate: '2026-08-19', endDate: '2026-08-19', periodeIntervention: 'APRES_MIDI', typeEtude: 'G2_AVP', ville: 'Nantes', codePostal: '44000' },
         { id: 'RENDU-2', etudeId: 2, type: 'RENDU', precision: 'SEMAINE', statut: 'CONTRACTUEL', startDate: '2026-08-17', endDate: '2026-08-23', typeEtude: 'G1_ES_PGC' },
         { id: 'INTERVENTION-6', etudeId: 6, type: 'INTERVENTION', precision: 'SEMAINE', statut: 'CONTRACTUEL', startDate: '2026-08-17', endDate: '2026-08-23' },
         { id: 'INTERVENTION-3', etudeId: 3, type: 'INTERVENTION', precision: 'JOUR', statut: 'CONFIRME', startDate: '2026-08-20', endDate: '2026-08-20' },
@@ -48,7 +48,13 @@ describe('BE Planning page', () => {
     renderPage();
 
     expect(screen.getByRole('heading', { name: 'Planning' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Intervention · G2_AVP, À confirmer/ })).toHaveAttribute('href', '/be/etude/1');
+    const halfDayAxis = screen.getByRole('complementary', { name: 'Repères des demi-journées' });
+    expect(halfDayAxis).toHaveTextContent('Matin');
+    expect(halfDayAxis).toHaveTextContent(/Après-midi/);
+    const afternoon = screen.getByRole('link', { name: /Intervention · G2_AVP, après-midi, À confirmer/ });
+    expect(afternoon).toHaveAttribute('href', '/be/etude/1');
+    expect(afternoon.closest('[data-event-lane]')).toHaveAttribute('data-periode', 'APRES_MIDI');
+    expect(afternoon.closest('[data-event-band]')).toHaveAttribute('data-event-band', 'APRES_MIDI');
     const contractualLinks = screen.getAllByRole('link', { name: /Rendu · G1_ES_PGC, Semaine contractuelle/ });
     expect(contractualLinks).toHaveLength(1);
     expect(contractualLinks[0]).toHaveClass('border-dashed', 'border-emerald-500');
@@ -56,6 +62,21 @@ describe('BE Planning page', () => {
       .toHaveClass('border-dashed', 'border-violet-400');
     expect(screen.getByRole('link', { name: 'Intervention, Confirmé' })).toHaveClass('bg-red-600');
     expect(screen.getByText('Nantes - 44000')).toBeInTheDocument();
+  });
+
+  it('range les interventions et rendus dans leurs bandes respectives', () => {
+    vi.mocked(useBEPlanning).mockReturnValue(basePlanning({
+      events: [
+        { id: 'INTERVENTION-M', etudeId: 1, type: 'INTERVENTION', precision: 'JOUR', statut: 'CONFIRME', startDate: '2026-08-20', endDate: '2026-08-20', periodeIntervention: 'MATIN' },
+        { id: 'INTERVENTION-A', etudeId: 2, type: 'INTERVENTION', precision: 'JOUR', statut: 'CONFIRME', startDate: '2026-08-20', endDate: '2026-08-20', periodeIntervention: 'APRES_MIDI' },
+        { id: 'RENDU', etudeId: 3, type: 'RENDU', precision: 'JOUR', statut: 'ANNONCE', startDate: '2026-08-20', endDate: '2026-08-20' },
+      ],
+    }));
+    renderPage();
+
+    expect(screen.getByRole('link', { name: /Intervention, matin, Confirmé/ }).closest('[data-event-band]')).toHaveAttribute('data-event-band', 'MATIN');
+    expect(screen.getByRole('link', { name: /Intervention, après-midi, Confirmé/ }).closest('[data-event-band]')).toHaveAttribute('data-event-band', 'APRES_MIDI');
+    expect(screen.getByRole('link', { name: 'Rendu, Annoncé' }).closest('[data-event-band]')).toHaveAttribute('data-event-band', 'RENDU');
   });
 
   it('aligns non-overlapping daily events on the same row', () => {

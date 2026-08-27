@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { EtudeDetailDTO, EtudeDocumentsDTO } from '../../types';
 import { TYPE_LABELS } from '../../constants/labels';
-import { formatDateLong } from '../../lib/formatters';
+import { formatCreneauIntervention, formatDateLong } from '../../lib/formatters';
 import { cn } from '../../lib/utils';
 import { DocumentList } from './DocumentList';
 import { BackButton } from '../ui/BackButton';
@@ -143,7 +143,7 @@ export function EtudeDetailLayout({
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <HeaderMetric label="Intervention" value={formatDateLong(etude.dateIntervention) ?? '-'} />
+            <HeaderMetric label="Intervention" value={formatCreneauIntervention(etude.dateIntervention, etude.periodeIntervention) ?? '-'} />
             <HeaderMetric label="Rendu prevu" value={formatDateLong(etude.dateRenduPrevue) ?? '-'} />
             <EtudeStatusBadge etat={etat} className="self-start border-white/30 bg-white/95 sm:self-center" />
           </div>
@@ -199,7 +199,7 @@ export function EtudeDetailLayout({
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   <SummaryMetric label="Statut" value={<EtudeStatusBadge etat={etat} />} />
                   <SummaryMetric label="Montant" value={prop?.prix == null ? '-' : `${prop.prix} EUR`} />
-                  <SummaryMetric label="Intervention" value={formatDateLong(etude.dateIntervention) ?? '-'} />
+                  <SummaryMetric label="Intervention" value={formatCreneauIntervention(etude.dateIntervention, etude.periodeIntervention) ?? '-'} />
                   <SummaryMetric label="Rendu prevu" value={formatDateLong(etude.dateRenduPrevue) ?? '-'} />
                 </div>
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -228,7 +228,7 @@ export function EtudeDetailLayout({
           {activeSection === 'dates' && (
             <SectionPanel title="Dates">
               <div className="grid gap-3 md:grid-cols-3">
-                <InfoTile label="Intervention" value={formatDateLong(etude.dateIntervention) ?? '-'} icon={<CalendarDays />} />
+                <InfoTile label="Intervention" value={formatCreneauIntervention(etude.dateIntervention, etude.periodeIntervention) ?? '-'} icon={<CalendarDays />} />
                 <InfoTile
                   label="Rendu prevu"
                   value={dateRenduPrevueEditor ?? formatDateLong(etude.dateRenduPrevue) ?? '-'}
