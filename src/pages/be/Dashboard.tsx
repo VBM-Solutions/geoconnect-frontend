@@ -363,7 +363,7 @@ function BEDashboardBody({
   onPageChange,
 }: Readonly<BEDashboardBodyProps>) {
   const [contentView, setContentView] = useState<DashboardContentView>('CARTE');
-  const hasSwitchableMap = activeTab === 'OUVERT' || activeTab === 'ETUDE_EN_COURS';
+  const hasSwitchableMap = activeTab === 'OUVERT' || activeTab === 'ETUDE_EN_COURS' || activeTab === 'ARCHIVES';
 
   useEffect(() => {
     if (hasSwitchableMap) setContentView('CARTE');
@@ -407,7 +407,16 @@ function BEDashboardBody({
         <BEInteractiveMap
           title="Études en cours géolocalisées"
           context="ETUDES_EN_COURS"
-          filters={{ kind: 'ETUDE_EN_COURS' }}
+          filters={{ withArchived: true }}
+          headerActions={viewControls}
+        />
+      )}
+
+      {showIntegratedMap && activeTab === 'ARCHIVES' && (
+        <BEInteractiveMap
+          title="Études archivées géolocalisées"
+          context="ETUDES_ARCHIVEES"
+          filters={{ kind: 'ETUDE_ARCHIVEE', withArchived: true }}
           headerActions={viewControls}
         />
       )}
@@ -416,7 +425,9 @@ function BEDashboardBody({
         {hasSwitchableMap && (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
             <h3 className="text-base font-semibold text-slate-900">
-              {activeTab === 'OUVERT' ? 'Missions disponibles' : 'Études en cours'}
+              {activeTab === 'OUVERT'
+                ? 'Missions disponibles'
+                : activeTab === 'ETUDE_EN_COURS' ? 'Études en cours' : 'Études archivées'}
             </h3>
             {viewControls}
           </div>

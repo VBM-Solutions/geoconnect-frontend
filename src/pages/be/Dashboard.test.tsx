@@ -23,10 +23,19 @@ vi.mock('../../components/map/BEInteractiveMap', () => ({
   BEInteractiveMap: ({
     title,
     headerActions,
+    context,
+    filters,
   }: {
     title: string;
     headerActions?: React.ReactNode;
-  }) => <section data-testid="be-interactive-map">
+    context?: string;
+    filters?: { kind?: string; withArchived?: boolean };
+  }) => <section
+    data-testid="be-interactive-map"
+    data-context={context}
+    data-kind={filters?.kind}
+    data-with-archived={String(filters?.withArchived ?? false)}
+  >
     <h3>{title}</h3>
     {headerActions}
   </section>,
@@ -153,10 +162,25 @@ describe('BEDashboard', () => {
     expect(screen.getByText(/reproposer une offre|voir détail|répondre au devis/i)).toBeTruthy();
   });
 
-  it('prend en compte l onglet de l URL au chargement', () => {
+  it('affiche la carte dédiée aux archives depuis l URL', () => {
     renderDashboard('/be/dashboard?tab=ARCHIVES');
 
-    expect(screen.getByRole('heading', { name: /études archivées/i })).toBeTruthy();
+    const map = screen.getByTestId('be-interactive-map');
+    expect(screen.getByRole('heading', { name: 'Études archivées géolocalisées' })).toBeTruthy();
+    expect(map).toHaveAttribute('data-context', 'ETUDES_ARCHIVEES');
+    expect(map).toHaveAttribute('data-kind', 'ETUDE_ARCHIVEE');
+    expect(map).toHaveAttribute('data-with-archived', 'true');
+    expect(map.contains(screen.getByRole('button', { name: 'Carte' }))).toBe(true);
+    expect(map.contains(screen.getByRole('button', { name: 'Liste' }))).toBe(true);
+  });
+
+  it('permet de revenir à la liste des études archivées', async () => {
+    const user = userEvent.setup();
+    renderDashboard('/be/dashboard?tab=ARCHIVES');
+
+    await user.click(screen.getByRole('button', { name: 'Liste' }));
+
+    expect(screen.queryByTestId('be-interactive-map')).toBeNull();
     expect(screen.getByText(/paul durand/i)).toBeTruthy();
   });
 
@@ -267,6 +291,15 @@ describe('BEDashboard', () => {
     const intervention = screen.getAllByText(/Intervention :/i)[0];
     const rendu = screen.getAllByText(/Rendu :/i)[0];
     expect(intervention.compareDocumentPosition(rendu) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('charge aussi les archives pour permettre leur affichage sur la carte des études en cours', () => {
+    renderDashboard('/be/dashboard?tab=ETUDE_EN_COURS');
+
+    const map = screen.getByTestId('be-interactive-map');
+    expect(map).toHaveAttribute('data-context', 'ETUDES_EN_COURS');
+    expect(map).toHaveAttribute('data-with-archived', 'true');
+    expect(map).not.toHaveAttribute('data-kind');
   });
 
   it('affiche un lien email cliquable pour le client d une étude en cours', async () => {

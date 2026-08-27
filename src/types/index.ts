@@ -556,6 +556,7 @@ export interface BEMapMarkerDTO {
   prix?: number;
   dateIntervention?: string;
   dateRenduPrevue?: string;
+  dateRendu?: string;
   actionUrl?: string;
 }
 

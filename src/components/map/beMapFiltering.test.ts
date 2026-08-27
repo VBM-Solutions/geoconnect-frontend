@@ -62,6 +62,21 @@ describe('beMapFiltering', () => {
     expect(result.map(marker => marker.id)).toContain(4);
   });
 
+  it('configure la vue archives avec uniquement les études archivées', () => {
+    expect(createDefaultLocalFilters({ context: 'ETUDES_ARCHIVEES' })).toMatchObject({
+      kinds: ['ETUDE_ARCHIVEE'],
+      includeArchived: true,
+    });
+  });
+
+  it('ajoute les archives aux études en cours lorsque le filtre est coché', () => {
+    const defaultFilters = createDefaultLocalFilters({ context: 'ETUDES_EN_COURS' });
+
+    expect(filterMarkers(markers, defaultFilters, bureau).map(marker => marker.id)).toEqual([3]);
+    expect(filterMarkers(markers, { ...defaultFilters, includeArchived: true }, bureau).map(marker => marker.id))
+      .toEqual([3, 4]);
+  });
+
   it('applique les departements de notification aux missions par defaut', () => {
     const filters = createDefaultLocalFilters({ context: 'MISSIONS_DISPONIBLES', restrictToNotificationDepartments: true });
     const result = filterMarkers(markers, filters, bureau, ['75']);

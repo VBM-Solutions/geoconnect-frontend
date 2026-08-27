@@ -216,8 +216,8 @@ function getFilterConfig(context: BEMapContext): {
     showKinds: context === 'GLOBAL',
     showEtats: context !== 'MISSIONS_DISPONIBLES',
     showType: true,
-    showInterventionTiming: context !== 'MISSIONS_DISPONIBLES',
-    showArchivesToggle: context === 'GLOBAL',
+    showInterventionTiming: context === 'ETUDES_EN_COURS' || context === 'GLOBAL',
+    showArchivesToggle: context === 'GLOBAL' || context === 'ETUDES_EN_COURS',
   };
 }
 
