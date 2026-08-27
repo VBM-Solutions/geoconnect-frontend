@@ -355,7 +355,6 @@ export interface EvaluationEtudePayload {
   qualiteEchanges: number;
   respectDelais: number;
   qualiteRapport: number;
-  adequationBesoin: number;
   commentaire?: string;
 }
 
@@ -443,7 +442,6 @@ export interface IndicateursPerformanceDTO {
   qualiteEchanges?: number;
   respectDelais?: number;
   qualiteRapport?: number;
-  adequationBesoin?: number;
 }
 
 export interface PerformanceBureauEtudeDTO {
@@ -460,7 +458,6 @@ export interface SyntheseEvaluationsDTO {
   qualiteEchanges?: number;
   respectDelais?: number;
   qualiteRapport?: number;
-  adequationBesoin?: number;
   avis: Array<{
     evaluationId?: number;
     noteGlobale: number;

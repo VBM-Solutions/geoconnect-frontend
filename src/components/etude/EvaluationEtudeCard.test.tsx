@@ -23,13 +23,13 @@ describe('EvaluationEtudeCard', () => {
     getStatutEvaluation.mockResolvedValue({ eligible: true });
   });
 
-  it('propose les quatre critères uniquement quand l’étude est éligible', async () => {
+  it('propose les trois critères uniquement quand l’étude est éligible', async () => {
     render(<EvaluationEtudeCard etudeId={42} />);
 
     expect(await screen.findByText('Qualité des échanges')).toBeInTheDocument();
     expect(screen.getByText('Respect des délais')).toBeInTheDocument();
     expect(screen.getByText('Qualité et clarté du rapport')).toBeInTheDocument();
-    expect(screen.getByText('Adéquation au besoin')).toBeInTheDocument();
+    expect(screen.queryByText('Adéquation au besoin')).not.toBeInTheDocument();
     expect(getStatutEvaluation).toHaveBeenCalledWith(42);
   });
 
@@ -49,8 +49,7 @@ describe('EvaluationEtudeCard', () => {
       qualiteEchanges: 5,
       respectDelais: 4,
       qualiteRapport: 5,
-      adequationBesoin: 4,
-      noteGlobale: 4.5,
+      noteGlobale: 4.67,
       createdAt: '2026-07-29T15:00:00',
     });
     render(<EvaluationEtudeCard etudeId={42} />);
@@ -60,7 +59,6 @@ describe('EvaluationEtudeCard', () => {
       '5 sur 5 pour Qualité des échanges',
       '4 sur 5 pour Respect des délais',
       '5 sur 5 pour Qualité et clarté du rapport',
-      '4 sur 5 pour Adéquation au besoin',
     ]) {
       fireEvent.click(screen.getByRole('button', { name: label }));
     }
@@ -73,10 +71,9 @@ describe('EvaluationEtudeCard', () => {
       qualiteEchanges: 5,
       respectDelais: 4,
       qualiteRapport: 5,
-      adequationBesoin: 4,
       commentaire: 'Très bon accompagnement.',
     }));
-    expect(await screen.findByText(/Note globale/i)).toHaveTextContent('4.5/5');
+    expect(await screen.findByText(/Note globale/i)).toHaveTextContent('4.7/5');
     expect(toastSuccess).toHaveBeenCalled();
   });
 

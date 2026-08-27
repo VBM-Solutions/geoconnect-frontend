@@ -12,7 +12,7 @@ const indicateurs = {
   montantPropositions: 10000, montantAccepte: 5000, etudesDemarrees: 4,
   rapportsRendus: 3, rapportsRendusDansLesDelais: 2, tauxRapportsDansLesDelais: 66.7,
   delaiMoyenReponseJours: 1.5, delaiMoyenRenduJours: 12, evaluations: 2,
-  noteGlobale: 4.5, qualiteEchanges: 4.5, respectDelais: 4, qualiteRapport: 5, adequationBesoin: 4.5,
+  noteGlobale: 4.5, qualiteEchanges: 4.5, respectDelais: 4, qualiteRapport: 5,
 };
 
 describe('PerformanceBureauEtudePage', () => {

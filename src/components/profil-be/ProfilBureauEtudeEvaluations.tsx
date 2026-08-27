@@ -40,7 +40,6 @@ export function ProfilBureauEtudeEvaluations({
     ['Qualité des échanges', evaluations.qualiteEchanges],
     ['Respect des délais', evaluations.respectDelais],
     ['Qualité du rapport', evaluations.qualiteRapport],
-    ['Adéquation au besoin', evaluations.adequationBesoin],
   ] as const;
 
   const submitSignalement = async () => {

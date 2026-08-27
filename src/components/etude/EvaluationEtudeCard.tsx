@@ -17,14 +17,12 @@ const CRITERES: ReadonlyArray<{ key: Critere; label: string }> = [
   { key: 'qualiteEchanges', label: 'Qualité des échanges' },
   { key: 'respectDelais', label: 'Respect des délais' },
   { key: 'qualiteRapport', label: 'Qualité et clarté du rapport' },
-  { key: 'adequationBesoin', label: 'Adéquation au besoin' },
 ];
 
 const NOTES_INITIALES: Notes = {
   qualiteEchanges: 0,
   respectDelais: 0,
   qualiteRapport: 0,
-  adequationBesoin: 0,
 };
 
 export function EvaluationEtudeCard({ etudeId }: Readonly<EvaluationEtudeCardProps>) {

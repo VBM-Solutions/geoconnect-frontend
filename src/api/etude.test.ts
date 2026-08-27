@@ -79,7 +79,6 @@ describe('évaluation d’étude', () => {
       qualiteEchanges: 5,
       respectDelais: 4,
       qualiteRapport: 5,
-      adequationBesoin: 4,
     };
     (api.post as any).mockResolvedValueOnce({ data: { id: 1, ...payload } });
 
