@@ -84,7 +84,7 @@ describe('BEDashboard', () => {
               id: 30,
               description: 'Residence',
               adresseProjet: { ville: 'Rennes', codePostal: '35000' },
-              client: { prenom: 'Alice', nom: 'Martin' },
+              client: { prenom: 'Alice', nom: 'Martin', emailContact: 'alice.martin@example.com' },
             },
           },
         },
@@ -267,6 +267,16 @@ describe('BEDashboard', () => {
     const intervention = screen.getAllByText(/Intervention :/i)[0];
     const rendu = screen.getAllByText(/Rendu :/i)[0];
     expect(intervention.compareDocumentPosition(rendu) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('affiche un lien email cliquable pour le client d une étude en cours', async () => {
+    const user = userEvent.setup();
+    renderDashboard('/be/dashboard?tab=ETUDE_EN_COURS');
+
+    await user.click(screen.getByRole('button', { name: 'Liste' }));
+
+    expect(screen.getByRole('link', { name: 'alice.martin@example.com' }))
+      .toHaveAttribute('href', 'mailto:alice.martin@example.com');
   });
 });
 

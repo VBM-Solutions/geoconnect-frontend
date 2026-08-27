@@ -266,6 +266,7 @@ export interface ClientDetail {
   nom?: string;
   prenom?: string;
   tel?: string;
+  emailContact?: string;
   adresseFacturation?: AdresseDTO;
 }
 

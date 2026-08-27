@@ -651,12 +651,20 @@ export default function BEDashboard() {
 
           {/* Client commanditaire */}
           {client && (
-            <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded border border-slate-100 text-[11px]">
+            <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-50 rounded border border-slate-100 text-[11px]">
               <User className="w-3 h-3 text-slate-400 shrink-0" />
               <span className="text-slate-500 font-bold uppercase tracking-wider mr-1">Client :</span>
               <span className="font-semibold text-slate-700">
                 {[client.prenom, client.nom].filter(Boolean).join(' ') || '—'}
               </span>
+              {client.emailContact && (
+                <a
+                  href={`mailto:${client.emailContact}`}
+                  className="basis-full pl-[4.25rem] text-blue-700 underline-offset-2 hover:underline"
+                >
+                  {client.emailContact}
+                </a>
+              )}
             </div>
           )}
 

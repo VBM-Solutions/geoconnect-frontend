@@ -15,7 +15,7 @@ import { EtudeDetailLayout, EtudeDetailLoadingSpinner } from '../../components/e
 import { InfoMsg } from '../../components/etude/InfoMsg';
 import { beMustAct } from '../../components/etude/EtudeStatusBadge';
 import {
-  CheckCircle2, Upload, AlertCircle, MapPin, Clock, User, Pencil, CalendarClock,
+  CheckCircle2, Upload, AlertCircle, MapPin, Clock, User, Pencil, CalendarClock, Mail,
 } from 'lucide-react';
 import { useEtudeDetail } from '../../hooks/useEtudeDetail';
 import { formatDateLong } from '../../lib/formatters';
@@ -114,6 +114,15 @@ export default function BureauEtudeDetail() {
               {[client.prenom, client.nom].filter(Boolean).join(' ') || '—'}
             </p>
             {client.tel && <p className="text-slate-500">{client.tel}</p>}
+            {client.emailContact && (
+              <a
+                href={`mailto:${client.emailContact}`}
+                className="flex w-fit items-center gap-1 text-blue-700 underline-offset-2 hover:underline"
+              >
+                <Mail className="h-3 w-3" aria-hidden="true" />
+                {client.emailContact}
+              </a>
+            )}
             {client.adresseFacturation?.ville && (
               <p className="text-slate-500 flex items-center gap-1">
                 <MapPin className="w-3 h-3" />
