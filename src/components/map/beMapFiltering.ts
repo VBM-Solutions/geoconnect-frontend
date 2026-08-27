@@ -2,7 +2,7 @@ import { BEMapMarkerDTO, BEMapMarkerKind, EtatEtude, TypeDemandeDevis } from '..
 import { extractCodeDepartement } from '../../lib/utils';
 
 export type MapDistanceFilter = 'ALL' | 25 | 50 | 100 | 200;
-export type BEMapContext = 'MISSIONS_DISPONIBLES' | 'ETUDES_EN_COURS' | 'GLOBAL';
+export type BEMapContext = 'MISSIONS_DISPONIBLES' | 'ETUDES_EN_COURS' | 'ETUDES_ARCHIVEES' | 'GLOBAL';
 export type InterventionTimingFilter = 'ALL' | 'TODAY' | 'TOMORROW' | 'UNPLANNED' | 'PLANNED';
 
 export interface MapPoint {
@@ -104,8 +104,18 @@ export function createDefaultLocalFilters(params: Readonly<{
   context: BEMapContext;
   restrictToNotificationDepartments?: boolean;
 }>): LocalBEMapFilters {
+  const archivedContext = params.context === 'ETUDES_ARCHIVEES';
+  const activeStudiesContext = params.context === 'ETUDES_EN_COURS';
+  let kinds: BEMapMarkerKind[] = [];
+  if (archivedContext) {
+    kinds = ['ETUDE_ARCHIVEE'];
+  } else if (activeStudiesContext) {
+    kinds = ['ETUDE_EN_COURS'];
+  }
   return {
     ...DEFAULT_LOCAL_BE_MAP_FILTERS,
+    kinds,
+    includeArchived: archivedContext,
     restrictToNotificationDepartments:
       params.context === 'MISSIONS_DISPONIBLES' && Boolean(params.restrictToNotificationDepartments),
   };
@@ -153,7 +163,12 @@ function matchesArchiveFilter(marker: BEMapMarkerDTO, filters: LocalBEMapFilters
 }
 
 function matchesCollectionFilters(marker: BEMapMarkerDTO, filters: LocalBEMapFilters): boolean {
-  return matchesSelectedValues(filters.kinds, marker.kind) &&
+  const matchesKind = matchesSelectedValues(filters.kinds, marker.kind)
+    || (filters.includeArchived
+      && marker.kind === 'ETUDE_ARCHIVEE'
+      && filters.kinds.length === 1
+      && filters.kinds[0] === 'ETUDE_EN_COURS');
+  return matchesKind &&
     matchesSelectedValues(filters.etats, marker.etatEtude) &&
     matchesSelectedValues(filters.types, marker.type);
 }

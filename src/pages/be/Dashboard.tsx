@@ -363,7 +363,7 @@ function BEDashboardBody({
   onPageChange,
 }: Readonly<BEDashboardBodyProps>) {
   const [contentView, setContentView] = useState<DashboardContentView>('CARTE');
-  const hasSwitchableMap = activeTab === 'OUVERT' || activeTab === 'ETUDE_EN_COURS';
+  const hasSwitchableMap = activeTab === 'OUVERT' || activeTab === 'ETUDE_EN_COURS' || activeTab === 'ARCHIVES';
 
   useEffect(() => {
     if (hasSwitchableMap) setContentView('CARTE');
@@ -371,6 +371,12 @@ function BEDashboardBody({
 
   const showIntegratedMap = hasSwitchableMap && contentView === 'CARTE';
   const showListGrid = !hasSwitchableMap || contentView === 'LISTE';
+  let listTitle = 'Études archivées';
+  if (activeTab === 'OUVERT') {
+    listTitle = 'Missions disponibles';
+  } else if (activeTab === 'ETUDE_EN_COURS') {
+    listTitle = 'Études en cours';
+  }
   const viewControls = hasSwitchableMap ? (
     <div className="flex flex-wrap items-center justify-end gap-2">
       {activeTab === 'OUVERT' && notificationPreferences && (
@@ -407,7 +413,16 @@ function BEDashboardBody({
         <BEInteractiveMap
           title="Études en cours géolocalisées"
           context="ETUDES_EN_COURS"
-          filters={{ kind: 'ETUDE_EN_COURS' }}
+          filters={{ withArchived: true }}
+          headerActions={viewControls}
+        />
+      )}
+
+      {showIntegratedMap && activeTab === 'ARCHIVES' && (
+        <BEInteractiveMap
+          title="Études archivées géolocalisées"
+          context="ETUDES_ARCHIVEES"
+          filters={{ kind: 'ETUDE_ARCHIVEE', withArchived: true }}
           headerActions={viewControls}
         />
       )}
@@ -416,7 +431,7 @@ function BEDashboardBody({
         {hasSwitchableMap && (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
             <h3 className="text-base font-semibold text-slate-900">
-              {activeTab === 'OUVERT' ? 'Missions disponibles' : 'Études en cours'}
+              {listTitle}
             </h3>
             {viewControls}
           </div>
@@ -651,12 +666,20 @@ export default function BEDashboard() {
 
           {/* Client commanditaire */}
           {client && (
-            <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded border border-slate-100 text-[11px]">
+            <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-50 rounded border border-slate-100 text-[11px]">
               <User className="w-3 h-3 text-slate-400 shrink-0" />
               <span className="text-slate-500 font-bold uppercase tracking-wider mr-1">Client :</span>
               <span className="font-semibold text-slate-700">
                 {[client.prenom, client.nom].filter(Boolean).join(' ') || '—'}
               </span>
+              {client.emailContact && (
+                <a
+                  href={`mailto:${client.emailContact}`}
+                  className="basis-full pl-[4.25rem] text-blue-700 underline-offset-2 hover:underline"
+                >
+                  {client.emailContact}
+                </a>
+              )}
             </div>
           )}
 

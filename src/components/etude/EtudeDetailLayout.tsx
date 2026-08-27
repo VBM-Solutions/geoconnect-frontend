@@ -205,7 +205,7 @@ export function EtudeDetailLayout({
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
                   <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-4">
                     <h3 className="mb-3 text-sm font-bold text-slate-800">Progression</h3>
-                    <EtudeStepper etat={etat} role={etatRole} renderActions={renderActions} />
+                    <EtudeStepper etat={etat} datesEtapes={etude.datesEtapes} role={etatRole} renderActions={renderActions} />
                   </div>
                   <div className="min-w-0 space-y-4">{infoCard}</div>
                 </div>
@@ -215,7 +215,7 @@ export function EtudeDetailLayout({
 
           {activeSection === 'progression' && (
             <SectionPanel title="Progression du dossier">
-              <EtudeStepper etat={etat} role={etatRole} renderActions={renderActions} />
+              <EtudeStepper etat={etat} datesEtapes={etude.datesEtapes} role={etatRole} renderActions={renderActions} />
             </SectionPanel>
           )}
 
@@ -245,7 +245,7 @@ export function EtudeDetailLayout({
                 <p className="text-sm text-slate-600">
                   Retrouvez ici l'état de clôture financière de l'étude et les actions de paiement disponibles.
                 </p>
-                <EtudeStepper etat={etat} role={etatRole} renderActions={renderActions} />
+                <EtudeStepper etat={etat} datesEtapes={etude.datesEtapes} role={etatRole} renderActions={renderActions} />
               </div>
             </SectionPanel>
           )}

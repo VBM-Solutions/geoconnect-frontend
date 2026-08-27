@@ -55,21 +55,6 @@ export const confirmerPaiement = async (id: number): Promise<EtudeDetailDTO> => 
   return data;
 };
 
-/** BE → attache le devis signé (pas de transition d'état) */
-export const attacherDevisSigne = async (id: number, documentId: number): Promise<EtudeDetailDTO> => {
-  const { data } = await api.patch(`/etude/${id}/devis-signe`, { documentId });
-  return data;
-};
-
-/** CLIENT → upload le devis signé, passe l'étude à DEVIS_SIGNE et notifie le BE */
-export const uploaderDevisSigne = async (id: number, file: File): Promise<void> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  await api.post(`/etude/${id}/devis-signe/upload`, formData, {
-    headers: { 'Content-Type': undefined as any },
-  });
-};
-
 // ─── CRUD de base ─────────────────────────────────────────────────────────────
 
 export const createEtude = async (etude: EtudeDTO) => {

@@ -83,7 +83,7 @@ async function completeStep2(user: ReturnType<typeof userEvent.setup>) {
 
 async function fillStep3Required(
   user: ReturnType<typeof userEvent.setup>,
-  options?: { password?: string; confirmPassword?: string }
+  options?: { password?: string; confirmPassword?: string; acceptCgv?: boolean }
 ) {
   await user.selectOptions(screen.getByLabelText('Civilité *'), 'MR');
   await user.type(screen.getByLabelText('Prénom *'), 'Jean');
@@ -99,6 +99,9 @@ async function fillStep3Required(
     screen.getByLabelText('Confirmation du mot de passe *'),
     options?.confirmPassword ?? password
   );
+  if (options?.acceptCgv !== false) {
+    await user.click(screen.getByRole('checkbox', { name: /accepté les CGV/i }));
+  }
 }
 
 describe('Home — tunnel utilisateur', () => {
@@ -215,6 +218,25 @@ describe('Home — tunnel utilisateur', () => {
     expect(vi.mocked(authApi.registerClientCall)).not.toHaveBeenCalled();
     expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
   }, 20000);
+
+  it("désactive la publication jusqu'à l'acceptation des CGV", async () => {
+    const user = userEvent.setup();
+    await startTunnel(user);
+    await completeStep1(user);
+    await completeStep2(user);
+    await fillStep3Required(user, { acceptCgv: false });
+
+    const cgvLink = screen.getByRole('link', { name: 'CGV' });
+    expect(cgvLink).toHaveAttribute('href', '/conditions-generales-de-vente');
+
+    const submitButton = screen.getByRole('button', { name: /publier ma demande/i });
+    expect(submitButton).toBeDisabled();
+    expect(vi.mocked(authApi.registerClientCall)).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('checkbox', { name: /accepté les CGV/i }));
+
+    expect(submitButton).toBeEnabled();
+  }, 10000);
 
   it('bloque la soumission si le mot de passe ne respecte pas les critères de sécurité', async () => {
     const user = userEvent.setup();

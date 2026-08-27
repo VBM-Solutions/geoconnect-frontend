@@ -28,7 +28,6 @@ describe('ProfilBureauEtudeEvaluations', () => {
       qualiteEchanges: 5,
       respectDelais: 4,
       qualiteRapport: 4.5,
-      adequationBesoin: 4.5,
       avis: [{
         noteGlobale: 4.5,
         commentaire: 'Très bon accompagnement.',
@@ -68,7 +67,6 @@ describe('ProfilBureauEtudeEvaluations', () => {
       qualiteEchanges: 2,
       respectDelais: 3,
       qualiteRapport: 2,
-      adequationBesoin: 3,
       avis: [{
         evaluationId: 9,
         noteGlobale: 2.5,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { EtatEtude } from '../../types';
+import { formatDateLong } from '../../lib/formatters';
 
 // ─── Définition des étapes ────────────────────────────────────────────────────
 
@@ -103,6 +104,7 @@ type Role = 'CLIENT' | 'BE';
 
 interface EtudeStepperProps {
   etat?: EtatEtude;
+  datesEtapes?: Partial<Record<EtatEtude, string>>;
   role: Role;
   /** Contenu action rendu à l'intérieur de l'étape active */
   renderActions?: (step: StepDef, index: number) => React.ReactNode;
@@ -110,7 +112,7 @@ interface EtudeStepperProps {
 
 // ─── Composant ────────────────────────────────────────────────────────────────
 
-export const EtudeStepper: React.FC<EtudeStepperProps> = ({ etat, role, renderActions }) => {
+export const EtudeStepper: React.FC<EtudeStepperProps> = ({ etat, datesEtapes, role, renderActions }) => {
   const currentIndex = etat !== undefined ? getActiveStepIndex(etat) : -1;
 
   return (
@@ -123,6 +125,9 @@ export const EtudeStepper: React.FC<EtudeStepperProps> = ({ etat, role, renderAc
 
         const description = role === 'CLIENT' ? step.descriptionClient : step.descriptionBE;
         const actions = isCurrent && renderActions ? renderActions(step, index) : null;
+        const dateFranchissement = (isCompleted || isCurrent)
+          ? formatDateLong(datesEtapes?.[step.etat])
+          : null;
 
         return (
           <div key={step.etat} className="flex gap-4">
@@ -154,13 +159,23 @@ export const EtudeStepper: React.FC<EtudeStepperProps> = ({ etat, role, renderAc
             {/* Colonne droite : contenu */}
             <div className={`pb-6 flex-1 ${isLast ? '' : ''}`}>
               {/* Label */}
-              <p className={`text-xs font-bold uppercase tracking-wider leading-none mb-1 ${
-                isCurrent  ? 'text-blue-700' :
-                isCompleted ? 'text-green-600' :
-                'text-slate-400'
-              }`}>
-                {step.label}
-              </p>
+              <div className="mb-1 flex items-baseline justify-between gap-3">
+                <p className={`text-xs font-bold uppercase tracking-wider leading-none ${
+                  isCurrent  ? 'text-blue-700' :
+                  isCompleted ? 'text-green-600' :
+                  'text-slate-400'
+                }`}>
+                  {step.label}
+                </p>
+                {dateFranchissement && (
+                  <time
+                    dateTime={datesEtapes?.[step.etat]}
+                    className="shrink-0 text-right text-[11px] italic text-slate-400"
+                  >
+                    {dateFranchissement}
+                  </time>
+                )}
+              </div>
 
               {/* Description */}
               {(isCurrent || isCompleted) && (

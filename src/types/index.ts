@@ -266,6 +266,7 @@ export interface ClientDetail {
   nom?: string;
   prenom?: string;
   tel?: string;
+  emailContact?: string;
   adresseFacturation?: AdresseDTO;
 }
 
@@ -322,7 +323,18 @@ export interface EtudeDetailDTO {
   dateRenduPrevue?: string;
   devisSigneId?: number;
   rapportId?: number;
+  datesEtapes?: Partial<Record<EtatEtude, string>>;
   propositionDevis?: PropositionDevisDetail;
+}
+
+export interface DevisVersionDTO {
+  id: number;
+  numero: number;
+  documentId: number;
+  prix: number;
+  delaiMaxIntervention: number;
+  delaiMaxRendu: number;
+  createdAt: string;
 }
 
 // ─── Référentiel ─────────────────────────────────────────────────────────────
@@ -355,7 +367,6 @@ export interface EvaluationEtudePayload {
   qualiteEchanges: number;
   respectDelais: number;
   qualiteRapport: number;
-  adequationBesoin: number;
   commentaire?: string;
 }
 
@@ -443,7 +454,6 @@ export interface IndicateursPerformanceDTO {
   qualiteEchanges?: number;
   respectDelais?: number;
   qualiteRapport?: number;
-  adequationBesoin?: number;
 }
 
 export interface PerformanceBureauEtudeDTO {
@@ -460,7 +470,6 @@ export interface SyntheseEvaluationsDTO {
   qualiteEchanges?: number;
   respectDelais?: number;
   qualiteRapport?: number;
-  adequationBesoin?: number;
   avis: Array<{
     evaluationId?: number;
     noteGlobale: number;
@@ -558,6 +567,7 @@ export interface BEMapMarkerDTO {
   prix?: number;
   dateIntervention?: string;
   dateRenduPrevue?: string;
+  dateRendu?: string;
   actionUrl?: string;
 }
 

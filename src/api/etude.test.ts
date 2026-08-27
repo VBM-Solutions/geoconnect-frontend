@@ -6,8 +6,6 @@ import {
   marquerInterventionEffectuee,
   terminerRapport,
   confirmerPaiement,
-  attacherDevisSigne,
-  uploaderDevisSigne,
   createEtude,
   updateEtude,
   getEtudesByBureauId,
@@ -79,7 +77,6 @@ describe('évaluation d’étude', () => {
       qualiteEchanges: 5,
       respectDelais: 4,
       qualiteRapport: 5,
-      adequationBesoin: 4,
     };
     (api.post as any).mockResolvedValueOnce({ data: { id: 1, ...payload } });
 
@@ -157,52 +154,12 @@ describe('confirmerPaiement', () => {
   });
 });
 
-describe('attacherDevisSigne', () => {
-  it('appelle PATCH /etude/{id}/devis-signe avec documentId', async () => {
-    (api.patch as any).mockResolvedValueOnce({ data: fakeDetail });
-    const result = await attacherDevisSigne(1, 55);
-    expect(api.patch).toHaveBeenCalledWith('/etude/1/devis-signe', { documentId: 55 });
-    expect(result).toEqual(fakeDetail);
-  });
-});
-
 describe('definirDateRenduPrevue', () => {
   it('appelle PATCH /etude/{id}/date-rendu-prevue avec la date fournie', async () => {
     (api.patch as any).mockResolvedValueOnce({ data: fakeDetail });
     const result = await definirDateRenduPrevue(1, '2026-08-15');
     expect(api.patch).toHaveBeenCalledWith('/etude/1/date-rendu-prevue', { dateRenduPrevue: '2026-08-15' });
     expect(result).toEqual(fakeDetail);
-  });
-});
-
-// ─── uploaderDevisSigne ───────────────────────────────────────────────────────
-
-describe('uploaderDevisSigne', () => {
-  it('envoie un POST multipart /etude/{id}/devis-signe/upload avec le fichier', async () => {
-    (api.post as any).mockResolvedValueOnce({ data: undefined });
-
-    const file = new File(['data'], 'devis-signe.pdf', { type: 'application/pdf' });
-    await uploaderDevisSigne(1, file);
-
-    expect(api.post).toHaveBeenCalledOnce();
-    const [url, body, config] = (api.post as any).mock.calls[0];
-    expect(url).toBe('/etude/1/devis-signe/upload');
-    expect(body).toBeInstanceOf(FormData);
-    expect(body.get('file')).toBe(file);
-    expect(config.headers['Content-Type']).toBeUndefined();
-  });
-
-  it('propage l\'erreur réseau', async () => {
-    (api.post as any).mockRejectedValueOnce(new Error('Network error'));
-    const file = new File(['data'], 'devis-signe.pdf');
-    await expect(uploaderDevisSigne(1, file)).rejects.toThrow('Network error');
-  });
-
-  it('propage l\'erreur 403 si l\'étude n\'appartient pas au client', async () => {
-    const err = { response: { status: 403, data: { message: 'Accès refusé : droits insuffisants' } } };
-    (api.post as any).mockRejectedValueOnce(err);
-    const file = new File(['data'], 'devis-signe.pdf');
-    await expect(uploaderDevisSigne(1, file)).rejects.toEqual(err);
   });
 });
 
