@@ -15,6 +15,10 @@ vi.mock('../../components/etude/EvaluationEtudeCard', () => ({
   EvaluationEtudeCard: () => <div data-testid="evaluation-etude-card" />,
 }));
 
+vi.mock('../../components/etude/DevisVersionsCard', () => ({
+  DevisVersionsCard: () => <div data-testid="devis-versions-card" />,
+}));
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function renderPage(path: string) {

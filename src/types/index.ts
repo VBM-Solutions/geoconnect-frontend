@@ -327,6 +327,16 @@ export interface EtudeDetailDTO {
   propositionDevis?: PropositionDevisDetail;
 }
 
+export interface DevisVersionDTO {
+  id: number;
+  numero: number;
+  documentId: number;
+  prix: number;
+  delaiMaxIntervention: number;
+  delaiMaxRendu: number;
+  createdAt: string;
+}
+
 // ─── Référentiel ─────────────────────────────────────────────────────────────
 
 /** Département français (code INSEE + libellé). */

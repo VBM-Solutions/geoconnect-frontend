@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { validerDateIntervention, refuserDateIntervention, confirmerPaiement, uploaderDevisSigne } from '../../api/etude';
+import { validerDateIntervention, refuserDateIntervention, confirmerPaiement } from '../../api/etude';
+import { deposerDernierDevisSigne } from '../../api/devisVersion';
 import { EtudeDetailDTO, EtatEtude } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -15,6 +16,7 @@ import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 import { EtudeInfoMetric } from '../../components/etude/EtudeInfoMetric';
 import { EvaluationEtudeCard } from '../../components/etude/EvaluationEtudeCard';
 import { BureauEtudeProfileLink } from '../../components/profil-be/BureauEtudeProfileLink';
+import { DevisVersionsCard } from '../../components/etude/DevisVersionsCard';
 
 export default function ClientEtudeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -70,10 +72,11 @@ export default function ClientEtudeDetail() {
       </Card>
 
       {/* Carte devis signé — visible tant que le document n'est pas déposé */}
+      {etude.id != null && <DevisVersionsCard etudeId={etude.id} />}
       <DevisSigneCard
         devisSigneId={etude.devisSigneId}
         isLoading={devisSigneLoading}
-        onUpload={(file) => withAction(() => uploaderDevisSigne(etude.id, file), 'devisSigne')}
+        onUpload={(file) => withAction(() => deposerDernierDevisSigne(etude.id, file), 'devisSigne')}
       />
     </>
   );
@@ -151,7 +154,7 @@ function DevisSigneCard({ devisSigneId, isLoading, onUpload }: Readonly<DevisSig
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-3 text-xs text-green-700 font-medium">
-          Votre devis signé a bien été déposé.
+          Votre devis signé a bien été déposé. Il doit maintenant être validé par le bureau d'études.
         </CardContent>
       </Card>
     );

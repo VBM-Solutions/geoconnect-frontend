@@ -106,11 +106,15 @@ export function createDefaultLocalFilters(params: Readonly<{
 }>): LocalBEMapFilters {
   const archivedContext = params.context === 'ETUDES_ARCHIVEES';
   const activeStudiesContext = params.context === 'ETUDES_EN_COURS';
+  let kinds: BEMapMarkerKind[] = [];
+  if (archivedContext) {
+    kinds = ['ETUDE_ARCHIVEE'];
+  } else if (activeStudiesContext) {
+    kinds = ['ETUDE_EN_COURS'];
+  }
   return {
     ...DEFAULT_LOCAL_BE_MAP_FILTERS,
-    kinds: archivedContext
-      ? ['ETUDE_ARCHIVEE']
-      : activeStudiesContext ? ['ETUDE_EN_COURS'] : [],
+    kinds,
     includeArchived: archivedContext,
     restrictToNotificationDepartments:
       params.context === 'MISSIONS_DISPONIBLES' && Boolean(params.restrictToNotificationDepartments),

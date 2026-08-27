@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   proposerDateIntervention,
@@ -15,13 +15,15 @@ import { EtudeDetailLayout, EtudeDetailLoadingSpinner } from '../../components/e
 import { InfoMsg } from '../../components/etude/InfoMsg';
 import { beMustAct } from '../../components/etude/EtudeStatusBadge';
 import {
-  CheckCircle2, Upload, AlertCircle, MapPin, Clock, User, Pencil, CalendarClock, Mail,
+  CheckCircle2, Upload, AlertCircle, MapPin, Clock, User, Pencil, CalendarClock, Mail, Paperclip, X,
 } from 'lucide-react';
 import { useEtudeDetail } from '../../hooks/useEtudeDetail';
 import { formatDateLong } from '../../lib/formatters';
 import { useToast } from '../../contexts/ToastContext';
 import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 import { EtudeInfoMetric } from '../../components/etude/EtudeInfoMetric';
+import { DevisVersionsCard } from '../../components/etude/DevisVersionsCard';
+import { proposerDevisVersion, refuserDernierDevisSigne, validerDernierDevisSigne } from '../../api/devisVersion';
 
 export default function BureauEtudeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +32,7 @@ export default function BureauEtudeDetail() {
 
   const [dateRenduPrevueInput, setDateRenduPrevueInput] = useState('');
   const [editingDateRenduPrevue, setEditingDateRenduPrevue] = useState(false);
+  const [devisVersionsRevision, setDevisVersionsRevision] = useState(0);
 
   // Synchronise l'input avec la valeur retournée par le serveur
   useEffect(() => {
@@ -100,7 +103,12 @@ export default function BureauEtudeDetail() {
     )
   ) : undefined;
 
-  const infoCard = (
+  const infoCard = (<div className="space-y-4">
+    {etude.id != null && etat === 'DEVIS_VALIDE' && <DevisNegotiationBE
+      etudeId={etude.id} devisSigneId={etude.devisSigneId}
+      run={withAction} onVersionCreated={() => setDevisVersionsRevision(value => value + 1)}
+    />}
+    {etude.id != null && <DevisVersionsCard etudeId={etude.id} refreshKey={devisVersionsRevision} />}
     <Card>
       <CardHeader className="pb-2 border-b border-slate-100">
         <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
@@ -139,8 +147,7 @@ export default function BureauEtudeDetail() {
           <EtudeInfoMetric label="Délai rendu">{formatDelaiWithProjection(prop?.delaiMaxRendu, prop?.delaiProjectionRendu)}</EtudeInfoMetric>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card></div>);
 
   const actionBanner = beMustAct(etat) ? (
     <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-2 text-orange-800 text-xs font-semibold">
@@ -179,6 +186,45 @@ export default function BureauEtudeDetail() {
       )}
     />
   );
+}
+
+function DevisNegotiationBE({ etudeId, devisSigneId, run, onVersionCreated }: Readonly<{
+  etudeId: number; devisSigneId?: number;
+  run: (action: () => Promise<unknown>, key?: string) => Promise<void>;
+  onVersionCreated: () => void;
+}>) {
+  const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputId = `nouveau-devis-${etudeId}`;
+  if (devisSigneId != null) return <Card className="border-blue-200"><CardContent className="space-y-3 pt-4">
+    <p className="text-xs font-semibold text-blue-800">Le client a déposé le dernier devis signé. Vérifiez-le avant de valider l'étape.</p>
+    <div className="flex gap-2"><Button onClick={() => run(() => validerDernierDevisSigne(etudeId), 'devisValidation')}>Valider le devis signé</Button>
+      <Button variant="danger" onClick={() => run(() => refuserDernierDevisSigne(etudeId), 'devisRefus')}>Refuser</Button></div>
+  </CardContent></Card>;
+  return <Card><CardHeader><CardTitle className="text-xs">Proposer une nouvelle version</CardTitle></CardHeader><CardContent className="space-y-2">
+    <span className="block text-[10px] font-bold uppercase text-slate-500">Nouveau devis (PDF)</span>
+    <div className="flex items-center gap-2">
+      <label htmlFor={fileInputId} className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md border border-dashed border-slate-300 px-3 py-2 transition-colors hover:bg-slate-50">
+        <Paperclip className="h-4 w-4 shrink-0 text-slate-400" />
+        <span className="truncate text-xs text-slate-500">{file ? file.name : 'Joindre un nouveau devis PDF…'}</span>
+      </label>
+      {file && <button type="button" aria-label="Retirer le nouveau devis sélectionné" title="Retirer le fichier" onClick={() => {
+        setFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }}
+        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded border border-slate-300 text-slate-500 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600">
+        <X className="h-4 w-4" />
+      </button>}
+    </div>
+    <input ref={fileInputRef} id={fileInputId} type="file" accept="application/pdf" aria-label="Nouveau devis PDF" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
+    <p className="text-xs text-slate-500">Le prix et les délais convenus restent inchangés. Ce PDF remplacera la version précédente auprès du client.</p>
+    <Button disabled={!file} onClick={() => file && run(async () => {
+      await proposerDevisVersion(etudeId, file);
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      onVersionCreated();
+    }, 'devisVersion')}>Publier la nouvelle version</Button>
+  </CardContent></Card>;
 }
 
 // ─── Badge jours restants ─────────────────────────────────────────────────────

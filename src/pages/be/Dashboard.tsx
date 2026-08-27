@@ -371,6 +371,12 @@ function BEDashboardBody({
 
   const showIntegratedMap = hasSwitchableMap && contentView === 'CARTE';
   const showListGrid = !hasSwitchableMap || contentView === 'LISTE';
+  let listTitle = 'Études archivées';
+  if (activeTab === 'OUVERT') {
+    listTitle = 'Missions disponibles';
+  } else if (activeTab === 'ETUDE_EN_COURS') {
+    listTitle = 'Études en cours';
+  }
   const viewControls = hasSwitchableMap ? (
     <div className="flex flex-wrap items-center justify-end gap-2">
       {activeTab === 'OUVERT' && notificationPreferences && (
@@ -425,9 +431,7 @@ function BEDashboardBody({
         {hasSwitchableMap && (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
             <h3 className="text-base font-semibold text-slate-900">
-              {activeTab === 'OUVERT'
-                ? 'Missions disponibles'
-                : activeTab === 'ETUDE_EN_COURS' ? 'Études en cours' : 'Études archivées'}
+              {listTitle}
             </h3>
             {viewControls}
           </div>
