@@ -323,6 +323,7 @@ export interface EtudeDetailDTO {
   dateRenduPrevue?: string;
   devisSigneId?: number;
   rapportId?: number;
+  datesEtapes?: Partial<Record<EtatEtude, string>>;
   propositionDevis?: PropositionDevisDetail;
 }
 
