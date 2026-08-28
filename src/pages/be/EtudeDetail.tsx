@@ -7,7 +7,7 @@ import {
   definirDateRenduPrevue,
 } from '../../api/etude';
 import { uploadDocument } from '../../api/document';
-import { DemandeDevisDetail, EtatEtude, PeriodeIntervention } from '../../types';
+import { DemandeDevisDetail, EtatEtude, PeriodeIntervention, TerrainAnswer } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
@@ -524,8 +524,10 @@ export function BEStepActions({ etat, dateIntervention, periodeIntervention, mot
 function InterventionCondition({
   label,
   value,
-}: Readonly<{ label: string; value?: 'OUI' | 'NON' | 'NE_SAIS_PAS' }>) {
-  const displayValue = value === 'OUI' ? 'Oui' : value === 'NON' ? 'Non' : 'Ne sais pas';
+}: Readonly<{ label: string; value?: TerrainAnswer }>) {
+  let displayValue = 'Ne sais pas';
+  if (value === 'OUI') displayValue = 'Oui';
+  if (value === 'NON') displayValue = 'Non';
   return (
     <div>
       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>

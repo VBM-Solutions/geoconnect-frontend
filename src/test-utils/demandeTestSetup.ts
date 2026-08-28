@@ -47,7 +47,7 @@ export async function fillRequiredProjectFields(
   const cp = values?.cp ?? '75001';
   const ville = values?.ville ?? 'Paris';
 
-  await user.selectOptions(screen.getByRole('combobox'), type);
+  await user.selectOptions(screen.getByLabelText(/Type de mission/i), type);
   await user.type(screen.getByPlaceholderText(/15 Avenue des Champs/i), rue);
   await user.type(screen.getByPlaceholderText('Ex : 75001'), cp);
   await user.type(screen.getByPlaceholderText('Ex : Paris'), ville);

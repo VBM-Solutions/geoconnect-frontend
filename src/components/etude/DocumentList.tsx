@@ -4,6 +4,7 @@ import { DocumentRef, DocumentDTO } from '../../types';
 import { openDocument, downloadDocument } from '../../api/document';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useToast } from '../../contexts/ToastContext';
+import { categoryShortLabel } from '../../constants/documentCategories';
 
 interface DocumentListProps {
   readonly documents: (DocumentRef | DocumentDTO)[];
@@ -49,6 +50,12 @@ export function DocumentList({ documents, showCard = true }: DocumentListProps) 
       {validDocs.map((doc) => {
         const isBusy = loadingId === doc.id;
         const label = getDocLabel(doc);
+        const category = 'categorieDemande' in doc ? doc.categorieDemande : undefined;
+        const precision = 'precisionCategorieDemande' in doc ? doc.precisionCategorieDemande : undefined;
+        const precisionLabel = precision ? ` — ${precision}` : '';
+        const categoryLabel = category
+          ? `${categoryShortLabel(category)}${precisionLabel}`
+          : undefined;
         return (
           <li
             key={doc.id}
@@ -56,8 +63,9 @@ export function DocumentList({ documents, showCard = true }: DocumentListProps) 
           >
             <span className="flex items-center gap-2 text-xs font-medium text-slate-700 min-w-0">
               <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span className="truncate" title={label}>
-                {label}
+              <span className="min-w-0">
+                <span className="block truncate" title={categoryLabel ?? label}>{categoryLabel ?? label}</span>
+                {categoryLabel && <span className="block truncate text-[10px] font-normal text-slate-500" title={label}>{label}</span>}
               </span>
             </span>
             <span className="flex items-center gap-1 shrink-0">

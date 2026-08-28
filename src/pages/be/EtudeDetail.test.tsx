@@ -271,7 +271,7 @@ describe('BEStepActions — autres états', () => {
 
   it('affiche le motif du dernier refus jusqu’à la nouvelle proposition', () => {
     renderActions({ etat: 'DEVIS_SIGNE', motifRefusDateIntervention: 'Présence impossible ce matin.' });
-    expect(screen.getByText(/voici son message/i)).toBeInTheDocument();
+    expect(screen.getByText(/Jean Dupont n'est pas disponible/i)).toBeInTheDocument();
     expect(screen.getByText(/présence impossible ce matin/i)).toBeInTheDocument();
   });
 

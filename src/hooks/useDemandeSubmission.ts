@@ -3,6 +3,7 @@ import { createDemandeDevis } from '../api/demandeDevis';
 import { uploadDocuments } from '../api/document';
 import { DemandeDevisDTO } from '../types';
 import { isAxiosError } from 'axios';
+import { TypedDocumentDraft } from '../constants/documentCategories';
 
 interface UseDemandeSubmissionOptions {
   onSuccess: () => void;
@@ -10,7 +11,7 @@ interface UseDemandeSubmissionOptions {
 }
 
 interface UseDemandeSubmissionReturn {
-  submit: (payload: DemandeDevisDTO, docFiles: File[]) => Promise<void>;
+  submit: (payload: DemandeDevisDTO, documents: TypedDocumentDraft[]) => Promise<void>;
   isSubmitting: boolean;
 }
 
@@ -23,11 +24,19 @@ export function useDemandeSubmission(
 ): UseDemandeSubmissionReturn {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const submit = async (payload: DemandeDevisDTO, docFiles: File[]) => {
+  const submit = async (payload: DemandeDevisDTO, documents: TypedDocumentDraft[]) => {
     setIsSubmitting(true);
     try {
-      const docsDevisIds = await uploadDocuments(docFiles);
-      await createDemandeDevis({ ...payload, docsDevisIds });
+      const docsDevisIds = await uploadDocuments(documents.map(document => document.file));
+      await createDemandeDevis({
+        ...payload,
+        docsDevisIds,
+        documentsDemande: documents.map((document, index) => ({
+          documentId: docsDevisIds[index],
+          categorie: document.categorie,
+          precision: document.precision,
+        })),
+      });
       options.onSuccess();
     } catch (err: unknown) {
       let msg = 'Une erreur est survenue.';

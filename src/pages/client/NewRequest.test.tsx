@@ -9,6 +9,7 @@ import * as documentApi from '../../api/document';
 import * as AuthContextModule from '../../contexts/AuthContext';
 import { setupDefaultDemandeMocks, fillRequiredProjectFields, MOCK_USER } from '../../test-utils/demandeTestSetup';
 import { getLastMockCallPayload } from '../../test-utils/mockHelpers';
+import type { DocumentCategory } from '../../constants/documentCategories';
 
 vi.mock('../../api/referentiel');
 vi.mock('../../api/demandeDevis');
@@ -42,6 +43,17 @@ function renderNewRequest() {
 
 async function submitForm(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: /créer la demande/i }));
+}
+
+async function addTypedDocument(
+  user: ReturnType<typeof userEvent.setup>,
+  file: File,
+  category: DocumentCategory,
+) {
+  await user.selectOptions(screen.getByLabelText('Type de document'), category);
+  await user.click(screen.getByRole('button', { name: /ajouter un document/i }));
+  const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+  await user.upload(fileInput, file);
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
@@ -79,7 +91,7 @@ describe('NewRequest — chargement des types d\'étude', () => {
     renderNewRequest();
 
     await waitFor(() => {
-      const select = screen.getByRole('combobox');
+      const select = screen.getByLabelText(/Type de mission/i);
       expect(select).not.toHaveAttribute('disabled');
     });
   });
@@ -233,20 +245,25 @@ describe('NewRequest — soumission du formulaire', () => {
 
     await screen.findByText('G0 — Étude préalable');
 
+    await fillRequiredProjectFields(user);
     const files = [
       new File(['content'], 'plan.pdf', { type: 'application/pdf' }),
       new File(['image'], 'photo.png', { type: 'image/png' }),
     ];
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(fileInput, files);
-
-    await fillRequiredProjectFields(user);
+    await addTypedDocument(user, files[0], 'PLAN_SITUATION');
+    await addTypedDocument(user, files[1], 'PHOTO_ACCES');
     await submitForm(user);
 
     await waitFor(() => {
       expect(vi.mocked(documentApi.uploadDocuments)).toHaveBeenCalledWith(files);
       expect(vi.mocked(demandeDevisApi.createDemandeDevis)).toHaveBeenCalledWith(
-        expect.objectContaining({ docsDevisIds: [99, 100] })
+        expect.objectContaining({
+          docsDevisIds: [99, 100],
+          documentsDemande: [
+            { documentId: 99, categorie: 'PLAN_SITUATION', precision: undefined },
+            { documentId: 100, categorie: 'PHOTO_ACCES', precision: undefined },
+          ],
+        })
       );
     });
   });
@@ -267,18 +284,18 @@ describe('NewRequest — soumission du formulaire', () => {
     });
   });
 
-  it('affiche un bouton + pour ajouter d\'autres fichiers après sélection', async () => {
+  it('affiche le document qualifié après sélection', async () => {
     const user = userEvent.setup();
     renderNewRequest();
 
     await screen.findByText('G0 — Étude préalable');
 
+    await user.selectOptions(screen.getByLabelText(/Type de mission/i), 'G0');
     const file = new File(['content'], 'plan.pdf', { type: 'application/pdf' });
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(fileInput, file);
+    await addTypedDocument(user, file, 'PLAN_SITUATION');
 
     expect(await screen.findByText('plan.pdf')).toBeTruthy();
-    expect(screen.getByText(/Ajouter d'autres fichiers/i)).toBeTruthy();
+    expect(screen.getAllByText(/Plan de situation \(toute étude\)/i)).toHaveLength(2);
   });
 
   it('ajoute des fichiers supplémentaires via le bouton +', async () => {
@@ -287,14 +304,13 @@ describe('NewRequest — soumission du formulaire', () => {
 
     await screen.findByText('G0 — Étude préalable');
 
+    await user.selectOptions(screen.getByLabelText(/Type de mission/i), 'G0');
     const file1 = new File(['content1'], 'plan.pdf', { type: 'application/pdf' });
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(fileInput, file1);
+    await addTypedDocument(user, file1, 'PLAN_SITUATION');
     expect(await screen.findByText('plan.pdf')).toBeTruthy();
 
     const file2 = new File(['content2'], 'photo.png', { type: 'image/png' });
-    await user.click(screen.getByText(/Ajouter d'autres fichiers/i));
-    await user.upload(fileInput, file2);
+    await addTypedDocument(user, file2, 'PHOTO_ACCES');
 
     expect(await screen.findByText('plan.pdf')).toBeTruthy();
     expect(screen.getByText('photo.png')).toBeTruthy();
@@ -306,14 +322,13 @@ describe('NewRequest — soumission du formulaire', () => {
 
     await screen.findByText('G0 — Étude préalable');
 
+    await user.selectOptions(screen.getByLabelText(/Type de mission/i), 'G0');
     const file1 = new File(['content1'], 'plan.pdf', { type: 'application/pdf' });
     const file2 = new File(['content2'], 'photo.png', { type: 'image/png' });
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(fileInput, file1);
+    await addTypedDocument(user, file1, 'PLAN_SITUATION');
     expect(await screen.findByText('plan.pdf')).toBeTruthy();
 
-    await user.click(screen.getByText(/Ajouter d'autres fichiers/i));
-    await user.upload(fileInput, file2);
+    await addTypedDocument(user, file2, 'PHOTO_ACCES');
     expect(await screen.findByText('plan.pdf')).toBeTruthy();
     expect(screen.getByText('photo.png')).toBeTruthy();
 
@@ -331,19 +346,16 @@ describe('NewRequest — soumission du formulaire', () => {
 
     await screen.findByText('G0 — Étude préalable');
 
+    await user.selectOptions(screen.getByLabelText(/Type de mission/i), 'G0');
     const file = new File(['content'], 'plan.pdf', { type: 'application/pdf' });
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-
-    await user.upload(fileInput, file);
+    await addTypedDocument(user, file, 'PLAN_SITUATION');
     expect(await screen.findByText('plan.pdf')).toBeTruthy();
 
     const deleteButton = screen.getByLabelText('Supprimer plan.pdf');
     await user.click(deleteButton);
     await waitFor(() => expect(screen.queryByText('plan.pdf')).toBeNull());
 
-    const addFileDiv = screen.getByText(/Joindre un ou plusieurs fichiers/i);
-    await user.click(addFileDiv);
-    await user.upload(fileInput, file);
+    await addTypedDocument(user, file, 'PLAN_SITUATION');
 
     expect(await screen.findByText('plan.pdf')).toBeTruthy();
   });
@@ -487,7 +499,7 @@ describe('NewRequest — validation des champs obligatoires', () => {
     await screen.findByText('G0 — Étude préalable');
     await fillRequiredProjectFields(user);
     // Réinitialiser le select à vide
-    await user.selectOptions(screen.getByRole('combobox'), '');
+    await user.selectOptions(screen.getByLabelText(/Type de mission/i), '');
     await submitForm(user);
 
     expect(await screen.findByText('Ce champ est requis')).toBeTruthy();
@@ -499,7 +511,7 @@ describe('NewRequest — validation des champs obligatoires', () => {
     renderNewRequest();
 
     await screen.findByText('G0 — Étude préalable');
-    await user.selectOptions(screen.getByRole('combobox'), 'G0');
+    await user.selectOptions(screen.getByLabelText(/Type de mission/i), 'G0');
     await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
     await user.type(screen.getByPlaceholderText('Ex : Paris'), 'Paris');
     await submitForm(user);
@@ -514,7 +526,7 @@ describe('NewRequest — validation des champs obligatoires', () => {
     renderNewRequest();
 
     await screen.findByText('G0 — Étude préalable');
-    await user.selectOptions(screen.getByRole('combobox'), 'G0');
+    await user.selectOptions(screen.getByLabelText(/Type de mission/i), 'G0');
     await user.type(screen.getByPlaceholderText(/15 Avenue des Champs/i), '10 Rue de la Paix');
     await user.type(screen.getByPlaceholderText('Ex : 75001'), '75001');
     await submitForm(user);
@@ -529,10 +541,12 @@ describe('NewRequest — validation des champs obligatoires', () => {
     renderNewRequest();
 
     await screen.findByText('G0 — Étude préalable');
-    await user.selectOptions(screen.getByRole('combobox'), 'G0');
+    await user.selectOptions(screen.getByLabelText(/Type de mission/i), 'G0');
     await user.type(screen.getByPlaceholderText(/15 Avenue des Champs/i), '42 Rue Oberkampf');
     await user.type(screen.getByPlaceholderText('Ex : 75001'), '75011');
     await user.type(screen.getByPlaceholderText('Ex : Paris'), 'Paris');
+    await user.click(screen.getByLabelText('Oui', { selector: 'input[name="presenceReseaux"]' }));
+    await user.click(screen.getByLabelText('Non', { selector: 'input[name="accessibiliteMachines"]' }));
     await submitForm(user);
 
     await waitFor(() => {
@@ -553,7 +567,7 @@ describe('NewRequest — validation du code postal', () => {
     renderNewRequest();
 
     await screen.findByText('G0 — Étude préalable');
-    await user.selectOptions(screen.getByRole('combobox'), 'G0');
+    await user.selectOptions(screen.getByLabelText(/Type de mission/i), 'G0');
     await user.type(screen.getByPlaceholderText(/15 Avenue des Champs/i), '10 Rue de la Paix');
     await user.type(screen.getByPlaceholderText('Ex : Paris'), 'Paris');
     await submitForm(user);

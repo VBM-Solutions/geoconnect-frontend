@@ -15,7 +15,7 @@ import {
   UserRound,
   XCircle,
 } from 'lucide-react';
-import { EtudeDetailDTO, EtudeDocumentsDTO } from '../../types';
+import { EtudeDetailDTO, EtudeDocumentsDTO, TerrainAnswer } from '../../types';
 import { TYPE_LABELS } from '../../constants/labels';
 import { formatCreneauIntervention, formatDateLong } from '../../lib/formatters';
 import { cn } from '../../lib/utils';
@@ -364,8 +364,8 @@ function TechniqueSection({
   nombreLot?: number;
   delaiMaxSouhaite?: number;
   parcelles: string[];
-  presenceReseaux?: 'OUI' | 'NON' | 'NE_SAIS_PAS';
-  accessibiliteMachines?: 'OUI' | 'NON' | 'NE_SAIS_PAS';
+  presenceReseaux?: TerrainAnswer;
+  accessibiliteMachines?: TerrainAnswer;
 }>) {
   return (
     <div className="grid gap-3 md:grid-cols-3">
@@ -393,8 +393,9 @@ function TechniqueSection({
   );
 }
 
-function formatTerrainAnswer(answer?: 'OUI' | 'NON' | 'NE_SAIS_PAS') {
-  return answer === 'NE_SAIS_PAS' ? 'Ne sais pas' : answer === 'OUI' ? 'Oui' : 'Non';
+function formatTerrainAnswer(answer?: TerrainAnswer) {
+  if (answer === 'NE_SAIS_PAS') return 'Ne sais pas';
+  return answer === 'OUI' ? 'Oui' : 'Non';
 }
 
 function DocumentsSection({ documents }: Readonly<{ documents?: EtudeDocumentsDTO }>) {

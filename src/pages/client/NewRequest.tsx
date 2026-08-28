@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { CadastralReferencesField } from '../../components/ui/CadastralReferencesField';
-import { FileUploader } from '../../components/shared/FileUploader';
+import { TypedDocumentUploader } from '../../components/project/TypedDocumentUploader';
 import { AddressAutocompleteField } from '../../components/shared/AddressAutocompleteField';
 import { ProjectMetricsInputs } from '../../components/shared/ProjectMetricsInputs';
 import { TypeEtudeSelect } from '../../components/project/TypeEtudeSelect';
@@ -22,9 +22,9 @@ import { getFieldMessage } from '../../lib/formErrors';
 export default function NewRequest() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { register: formRegister, handleSubmit, setValue, formState: { errors } } = useForm<Record<string, unknown>>();
+  const { register: formRegister, handleSubmit, setValue, watch, formState: { errors } } = useForm<Record<string, unknown>>();
   const [errorDetails, setErrorDetails] = useState('');
-  const [docFiles, setDocFiles] = useState<File[]>([]);
+  const [documents, setDocuments] = useState<import('../../constants/documentCategories').TypedDocumentDraft[]>([]);
   const { typesEtude, loading: loadingTypes } = useTypesEtude();
   const [referencesCadastrales, setReferencesCadastrales] = useState<string[]>(['']);
 
@@ -52,7 +52,7 @@ export default function NewRequest() {
         villeProjet: data.ville as string,
       });
 
-      await submit(payload, docFiles);
+      await submit(payload, documents);
     } catch (err: unknown) {
       setErrorDetails(err instanceof Error ? err.message : 'Une erreur est survenue.');
     }
@@ -163,12 +163,14 @@ export default function NewRequest() {
                 />
               </div>
 
-              <FileUploader
-                id="docFile-new-request"
-                docFiles={docFiles}
-                setDocFiles={setDocFiles}
-                labelClassName="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2"
-              />
+              {watch('type') && (
+                <TypedDocumentUploader
+                  id="docFile-new-request"
+                  typeEtude={watch('type') as import('../../types').TypeDemandeDevis}
+                  documents={documents}
+                  onChange={setDocuments}
+                />
+              )}
             </div>
           </CardContent>
           <CardFooter className="bg-slate-50 border-t border-slate-100 py-4 flex justify-end">

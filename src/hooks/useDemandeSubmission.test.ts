@@ -20,12 +20,15 @@ describe('useDemandeSubmission', () => {
 
     await result.current.submit(
       { clientId: 42, type: 'G0', adresseProjet: { rue: 'Rue', codePostal: '75001', ville: 'Paris' } } as any,
-      [new File(['a'], 'f.pdf')],
+      [{ key: '1', file: new File(['a'], 'f.pdf'), categorie: 'PLAN_SITUATION' }],
     );
 
     expect(documentApi.uploadDocuments).toHaveBeenCalledWith(expect.any(Array));
     expect(demandeDevisApi.createDemandeDevis).toHaveBeenCalledWith(
-      expect.objectContaining({ docsDevisIds: [10, 11] }),
+      expect.objectContaining({
+        docsDevisIds: [10, 11],
+        documentsDemande: [{ documentId: 10, categorie: 'PLAN_SITUATION', precision: undefined }],
+      }),
     );
     expect(onSuccess).toHaveBeenCalledOnce();
     expect(result.current.isSubmitting).toBe(false);
