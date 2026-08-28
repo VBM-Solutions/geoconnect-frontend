@@ -21,7 +21,7 @@ import { TypeEtudeSelect } from '../components/project/TypeEtudeSelect';
 import { TerrainAccessQuestions } from '../components/project/TerrainAccessQuestions';
 import { useTypesEtude } from '../hooks/useTypesEtude';
 import { buildDemandePayload, mapFormFieldsToPayloadBase } from '../lib/demandePayload';
-import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules } from '../lib/validators';
+import { codePostalRules, createConfirmPasswordRules, createMatchingFieldRules, emailRules, passwordRules, phoneRules } from '../lib/validators';
 import { getFieldMessage } from '../lib/formErrors';
 import { AddressSuggestionDTO } from '../types';
 import { getPublicApiError } from '../lib/utils';
@@ -388,8 +388,22 @@ function QuoteTunnel({
                 type="email"
                 label="Email (identifiant de connexion) *"
                 placeholder="votre@email.com"
-                {...formRegister('login', { required: true })}
-                error={errors.login ? 'Requis' : undefined}
+                {...formRegister('login', emailRules)}
+                error={getFieldMessage(errors.login)}
+              />
+              <Input
+                type="email"
+                label="Confirmation de l'email *"
+                placeholder="votre@email.com"
+                autoComplete="email"
+                {...formRegister(
+                  'confirmEmail',
+                  createMatchingFieldRules(
+                    () => String(getValues('login') ?? ''),
+                    'Les adresses e-mail ne correspondent pas',
+                  ),
+                )}
+                error={getFieldMessage(errors.confirmEmail)}
               />
               <div>
                 <Input

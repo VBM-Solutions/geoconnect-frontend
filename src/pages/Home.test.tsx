@@ -85,7 +85,7 @@ async function completeStep2(user: ReturnType<typeof userEvent.setup>) {
 
 async function fillStep3Required(
   user: ReturnType<typeof userEvent.setup>,
-  options?: { password?: string; confirmPassword?: string; acceptCgv?: boolean }
+  options?: { email?: string; confirmEmail?: string; password?: string; confirmPassword?: string; acceptCgv?: boolean }
 ) {
   await user.selectOptions(screen.getByLabelText('Civilité *'), 'MR');
   await user.type(screen.getByLabelText('Prénom *'), 'Jean');
@@ -94,7 +94,9 @@ async function fillStep3Required(
   await user.type(screen.getByPlaceholderText('12 rue de la République'), '12 Rue de la République');
   await user.type(screen.getByLabelText('Code Postal *'), '75001');
   await user.type(screen.getByLabelText('Ville *'), 'Paris');
-  await user.type(screen.getByPlaceholderText('votre@email.com'), 'jean.dupont@test.fr');
+  const email = options?.email ?? 'jean.dupont@test.fr';
+  await user.type(screen.getByLabelText('Email (identifiant de connexion) *'), email);
+  await user.type(screen.getByLabelText("Confirmation de l'email *"), options?.confirmEmail ?? email);
   const password = options?.password ?? VALID_PASSWORD;
   await user.type(screen.getByLabelText('Mot de passe *'), password);
   await user.type(
@@ -221,6 +223,19 @@ describe('Home — tunnel utilisateur', () => {
 
     expect(vi.mocked(authApi.registerClientCall)).not.toHaveBeenCalled();
     expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
+  }, 20000);
+
+  it('bloque la soumission si la confirmation de l’email est différente', async () => {
+    const user = userEvent.setup();
+    await startTunnel(user);
+    await completeStep1(user);
+    await completeStep2(user);
+    await fillStep3Required(user, { confirmEmail: 'autre.adresse@test.fr' });
+
+    await user.click(screen.getByRole('button', { name: /publier ma demande/i }));
+
+    expect(await screen.findByText('Les adresses e-mail ne correspondent pas')).toBeTruthy();
+    expect(vi.mocked(authApi.registerClientCall)).not.toHaveBeenCalled();
   }, 20000);
 
   it("désactive la publication jusqu'à l'acceptation des CGV", async () => {
