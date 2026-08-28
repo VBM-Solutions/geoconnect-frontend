@@ -14,15 +14,17 @@ import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/Card';
 import { CadastralReferencesField } from '../components/ui/CadastralReferencesField';
 import { PasswordRequirementsHint } from '../components/ui/PasswordRequirementsHint';
-import { FileUploader } from '../components/shared/FileUploader';
+import { TypedDocumentUploader } from '../components/project/TypedDocumentUploader';
 import { AddressAutocompleteField } from '../components/shared/AddressAutocompleteField';
 import { ProjectMetricsInputs } from '../components/shared/ProjectMetricsInputs';
 import { TypeEtudeSelect } from '../components/project/TypeEtudeSelect';
+import { TerrainAccessQuestions } from '../components/project/TerrainAccessQuestions';
 import { useTypesEtude } from '../hooks/useTypesEtude';
 import { buildDemandePayload, mapFormFieldsToPayloadBase } from '../lib/demandePayload';
-import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules } from '../lib/validators';
+import { codePostalRules, createConfirmPasswordRules, createMatchingFieldRules, emailRules, passwordRules, phoneRules } from '../lib/validators';
 import { getFieldMessage } from '../lib/formErrors';
-import { AddressSuggestionDTO } from '../types';
+import { AddressSuggestionDTO, TypeDemandeDevis } from '../types';
+import { TypedDocumentDraft } from '../constants/documentCategories';
 import { getPublicApiError } from '../lib/utils';
 import { PublicHomeSeo } from '../components/seo/PublicHomeSeo';
 import { LandingSections } from '../components/home/LandingSections';
@@ -85,7 +87,7 @@ function QuoteTunnel({
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [docFiles, setDocFiles] = useState<File[]>([]);
+  const [documents, setDocuments] = useState<TypedDocumentDraft[]>([]);
   const [referencesCadastrales, setReferencesCadastrales] = useState<string[]>(['']);
   const { typesEtude, loading: loadingTypes } = useTypesEtude();
   const navigate = useNavigate();
@@ -98,6 +100,7 @@ function QuoteTunnel({
   });
   const passwordValue = String(watch('password', '') ?? '');
   const cgvAcceptees = watch('cgvAcceptees') === true;
+  const selectedType = watch('type') as TypeDemandeDevis | undefined;
 
   useEffect(() => {
     if (initialType && typesEtude.some(({ code }) => code === initialType)) {
@@ -107,7 +110,7 @@ function QuoteTunnel({
 
   const handleNext = (data: Record<string, unknown>) => {
     setFormData({ ...formData, ...data });
-    if (step < 3) {
+    if (step < 4) {
       setStep(step + 1);
     } else {
       submitTunnel({ ...formData, ...data });
@@ -146,8 +149,14 @@ function QuoteTunnel({
           referencesCadastrales: pendingPayload.referencesCadastrales,
           superficie: pendingPayload.superficie,
           description: pendingPayload.description,
+          presenceReseaux: pendingPayload.presenceReseaux,
+          accessibiliteMachines: pendingPayload.accessibiliteMachines,
+          documentsDemande: documents.map(document => ({
+            categorie: document.categorie,
+            precision: document.precision,
+          })),
         },
-      }, docFiles);
+      }, documents.map(document => document.file));
 
       sessionStorage.setItem('geoconnect.verification-email', authRes.login);
       navigate('/verification-email-envoyee', { state: { email: authRes.login } });
@@ -161,13 +170,14 @@ function QuoteTunnel({
   const steps = [
     { number: 1, label: 'Projet' },
     { number: 2, label: 'Détails' },
-    { number: 3, label: 'Coordonnées' },
+    { number: 3, label: 'Documents' },
+    { number: 4, label: 'Coordonnées' },
   ];
 
   return (
     <div className="w-full">
       <div className="mb-4 rounded-lg border border-slate-200 bg-white/75 p-3 shadow-sm">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {steps.map(({ number, label }) => (
             <div
               key={number}
@@ -288,12 +298,8 @@ function QuoteTunnel({
                 min={1}
                 {...formRegister('delaiMaxSouhaite')}
               />
+              <TerrainAccessQuestions register={formRegister} errors={errors} />
 
-              <FileUploader
-                id="docFile-step2"
-                docFiles={docFiles}
-                setDocFiles={setDocFiles}
-              />
             </CardContent>
             <CardFooter className="flex justify-between bg-slate-50/80 px-5 py-4">
               <Button type="button" variant="outline" onClick={() => setStep(1)}>
@@ -308,6 +314,22 @@ function QuoteTunnel({
         )}
 
         {step === 3 && (
+          <form onSubmit={handleSubmit(handleNext)}>
+            <CardHeader className="gap-1 bg-white px-5 py-4">
+              <CardTitle className="flex items-center text-base"><Briefcase className="mr-2 h-5 w-5 text-blue-600" /> Documents disponibles</CardTitle>
+              <CardDescription className="text-xs">Cette étape est facultative, mais chaque document ajouté doit être qualifié.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-5">
+              <TypedDocumentUploader id="docFile-step3" typeEtude={selectedType} documents={documents} onChange={setDocuments} />
+            </CardContent>
+            <CardFooter className="flex justify-between bg-slate-50/80 px-5 py-4">
+              <Button type="button" variant="outline" onClick={() => setStep(2)}>Retour</Button>
+              <Button type="submit" className="gap-2">Suivant<ArrowRight className="h-4 w-4" /></Button>
+            </CardFooter>
+          </form>
+        )}
+
+        {step === 4 && (
           <form onSubmit={handleSubmit(handleNext)}>
             <CardHeader className="gap-1 bg-white px-5 py-4">
               <CardTitle className="flex items-center text-base">
@@ -384,8 +406,25 @@ function QuoteTunnel({
                 type="email"
                 label="Email (identifiant de connexion) *"
                 placeholder="votre@email.com"
-                {...formRegister('login', { required: true })}
-                error={errors.login ? 'Requis' : undefined}
+                {...formRegister('login', emailRules)}
+                error={getFieldMessage(errors.login)}
+              />
+              <Input
+                type="email"
+                label="Confirmation de l'email *"
+                placeholder="votre@email.com"
+                autoComplete="email"
+                {...formRegister(
+                  'confirmEmail',
+                  createMatchingFieldRules(
+                    () => {
+                      const login = getValues('login');
+                      return typeof login === 'string' ? login : '';
+                    },
+                    'Les adresses e-mail ne correspondent pas',
+                  ),
+                )}
+                error={getFieldMessage(errors.confirmEmail)}
               />
               <div>
                 <Input
@@ -438,7 +477,7 @@ function QuoteTunnel({
               </div>
             </CardContent>
             <CardFooter className="flex justify-between bg-slate-50/80 px-5 py-4">
-              <Button type="button" variant="outline" onClick={() => setStep(2)}>
+              <Button type="button" variant="outline" onClick={() => setStep(3)}>
                 Retour
               </Button>
               <Button type="submit" isLoading={isLoading} disabled={!cgvAcceptees}>

@@ -33,6 +33,8 @@ const MOCK_DEMANDE = {
   type: 'G0',
   description: 'Terrain en pente',
   adresseProjet: { rue: '10 Rue Test', codePostal: '75001', ville: 'Paris' },
+  presenceReseaux: 'OUI' as const,
+  accessibiliteMachines: 'NON' as const,
 };
 
 // ─── Helper de rendu ──────────────────────────────────────────────────────────
@@ -109,6 +111,15 @@ describe('BERequestDetail — rendu initial', () => {
 
     expect(await screen.findByText('DUPONT_JEAN-G1_ES_PGC-DOCS_CLIENT_1.pdf')).toBeTruthy();
     expect(screen.getByText('DUPONT_JEAN-G1_ES_PGC-DOCS_CLIENT_2.png')).toBeTruthy();
+  });
+
+  it('affiche les conditions d’intervention communiquées par le client', async () => {
+    renderRequestDetail();
+
+    expect(await screen.findByText('Présence de réseaux sur la parcelle')).toBeTruthy();
+    expect(screen.getByText('Oui')).toBeTruthy();
+    expect(screen.getByText('Accès du terrain pour des machines')).toBeTruthy();
+    expect(screen.getByText('Non')).toBeTruthy();
   });
 });
 

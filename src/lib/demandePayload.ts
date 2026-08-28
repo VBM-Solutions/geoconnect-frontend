@@ -1,4 +1,4 @@
-import { TypeDemandeDevis } from '../types';
+import { TerrainAnswer, TypeDemandeDevis } from '../types';
 import { normalizeReferencesCadastrales } from './cadastralReferences';
 
 export interface DemandePayloadInput {
@@ -6,6 +6,8 @@ export interface DemandePayloadInput {
   delaiMaxSouhaite?: unknown;
   type: TypeDemandeDevis;
   description?: string;
+  presenceReseaux: TerrainAnswer;
+  accessibiliteMachines: TerrainAnswer;
   nombreLot?: unknown;
   referencesCadastrales: string[];
   superficie?: unknown;
@@ -19,6 +21,8 @@ export function mapFormFieldsToPayloadBase(data: Record<string, unknown>) {
     delaiMaxSouhaite: data.delaiMaxSouhaite,
     type: data.type as TypeDemandeDevis,
     description: data.description as string,
+    presenceReseaux: data.presenceReseaux as TerrainAnswer,
+    accessibiliteMachines: data.accessibiliteMachines as TerrainAnswer,
     nombreLot: data.nombreLot,
     superficie: data.superficie,
   };
@@ -30,6 +34,8 @@ export function buildDemandePayload(input: DemandePayloadInput) {
     delaiMaxSouhaite: input.delaiMaxSouhaite ? Number(input.delaiMaxSouhaite) : undefined,
     type: input.type,
     description: input.description,
+    presenceReseaux: input.presenceReseaux,
+    accessibiliteMachines: input.accessibiliteMachines,
     nombreLot: input.nombreLot ? Number(input.nombreLot) : undefined,
     referencesCadastrales: normalizeReferencesCadastrales(input.referencesCadastrales),
     superficie: input.superficie ? Number(input.superficie) : undefined,

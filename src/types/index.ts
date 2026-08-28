@@ -116,10 +116,15 @@ export interface DemandeDevisDTO {
   referencesCadastrales?: string[];
   superficie?: number;
   description?: string;
+  presenceReseaux?: TerrainAnswer;
+  accessibiliteMachines?: TerrainAnswer;
   docsDevisIds?: number[];
+  documentsDemande?: DocumentDemandeInputDTO[];
   /** Documents joints avec leur nom de téléchargement calculé par le backend. */
   documentsDevis?: DocumentDTO[];
 }
+
+export type TerrainAnswer = 'OUI' | 'NON' | 'NE_SAIS_PAS';
 
 export type StatutProposition = 'EN_ATTENTE' | 'ACCEPTEE' | 'REFUSEE';
 
@@ -174,6 +179,7 @@ export interface EtudeDTO {
   dateIntervention?: string;
   periodeIntervention?: PeriodeIntervention;
   motifRefusDateIntervention?: string;
+  dateDerniereInterventionRefusee?: string;
   dateRendu?: string;
   dateRenduPrevue?: string;
 }
@@ -207,6 +213,12 @@ export interface PlanningDTO {
 
 export type StatutDocument = 'ORPHELIN' | 'ATTACHE';
 
+export interface DocumentDemandeInputDTO {
+  documentId?: number;
+  categorie: import('../constants/documentCategories').DocumentCategory;
+  precision?: string;
+}
+
 export interface DocumentDTO {
   id?: number;
   nomFichierOriginal?: string;
@@ -217,6 +229,8 @@ export interface DocumentDTO {
   bucketName?: string;
   statut?: StatutDocument;
   expireAt?: string;
+  categorieDemande?: import('../constants/documentCategories').DocumentCategory;
+  precisionCategorieDemande?: string;
 }
 
 export interface EtudeDocumentsDTO {
@@ -294,6 +308,8 @@ export interface DemandeDevisDetail {
   referencesCadastrales?: string[];
   superficie?: number;
   description?: string;
+  presenceReseaux?: TerrainAnswer;
+  accessibiliteMachines?: TerrainAnswer;
   docsDevisIds?: number[];
   documentsDevis?: DocumentDTO[];
   adresseProjet?: AdresseDTO;
@@ -326,6 +342,7 @@ export interface EtudeDetailDTO {
   dateIntervention?: string;
   periodeIntervention?: PeriodeIntervention;
   motifRefusDateIntervention?: string;
+  dateDerniereInterventionRefusee?: string;
   dateRendu?: string;
   dateRenduPrevue?: string;
   devisSigneId?: number;

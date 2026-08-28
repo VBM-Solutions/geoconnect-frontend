@@ -7,7 +7,7 @@ import {
   definirDateRenduPrevue,
 } from '../../api/etude';
 import { uploadDocument } from '../../api/document';
-import { EtatEtude, PeriodeIntervention } from '../../types';
+import { DemandeDevisDetail, EtatEtude, PeriodeIntervention, TerrainAnswer } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
@@ -177,6 +177,9 @@ export default function BureauEtudeDetail() {
           dateIntervention={etude.dateIntervention}
           periodeIntervention={etude.periodeIntervention}
           motifRefusDateIntervention={etude.motifRefusDateIntervention}
+          dateDerniereInterventionRefusee={etude.dateDerniereInterventionRefusee}
+          clientName={[client?.prenom, client?.nom].filter(Boolean).join(' ') || 'Le client'}
+          demande={demande}
           isLoading={interventionLoading}
           onProposerDate={(date, periode) => withAction(async () => {
             await proposerDateIntervention(etude.id, date, periode);
@@ -288,13 +291,16 @@ export interface BEStepActionsProps {
   dateIntervention?: string;
   periodeIntervention?: PeriodeIntervention;
   motifRefusDateIntervention?: string;
+  dateDerniereInterventionRefusee?: string;
+  clientName: string;
+  demande?: DemandeDevisDetail;
   isLoading: boolean;
   onProposerDate: (date: string, periode: PeriodeIntervention) => void;
   onInterventionEffectuee: () => void;
   onTerminerRapport: (rapportId: number) => void;
 }
 
-export function BEStepActions({ etat, dateIntervention, periodeIntervention, motifRefusDateIntervention, isLoading, onProposerDate, onInterventionEffectuee, onTerminerRapport }: Readonly<BEStepActionsProps>) {
+export function BEStepActions({ etat, dateIntervention, periodeIntervention, motifRefusDateIntervention, dateDerniereInterventionRefusee, clientName, demande, isLoading, onProposerDate, onInterventionEffectuee, onTerminerRapport }: Readonly<BEStepActionsProps>) {
   const [dateInput, setDateInput] = useState('');
   const [periodeInput, setPeriodeInput] = useState<PeriodeIntervention | ''>('');
   const [dateError, setDateError] = useState('');
@@ -350,6 +356,10 @@ export function BEStepActions({ etat, dateIntervention, periodeIntervention, mot
 
   const dateProposalForm = (
     <div className="space-y-3">
+      <div className="grid gap-2 rounded-lg border border-blue-100 bg-blue-50/60 p-3 sm:grid-cols-2">
+        <InterventionCondition label="Réseaux sur la parcelle" value={demande?.presenceReseaux} />
+        <InterventionCondition label="Accès pour les machines" value={demande?.accessibiliteMachines} />
+      </div>
       <div className="flex flex-wrap gap-3 items-end">
         <div>
           <label htmlFor="dateIntervention" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
@@ -425,7 +435,11 @@ export function BEStepActions({ etat, dateIntervention, periodeIntervention, mot
     case 'DEVIS_SIGNE':
       return <div className="space-y-3">
         {motifRefusDateIntervention && <InfoMsg color="orange" icon={<Clock className="w-4 h-4" />}>
-          <span className="block font-semibold">Le client a refusé la date proposée. Voici son message :</span>
+          <span className="block font-semibold">
+            {dateDerniereInterventionRefusee
+              ? `${clientName} n'est pas disponible le ${formatDateLong(dateDerniereInterventionRefusee)}.`
+              : `${clientName} n'est pas disponible à la date proposée.`}
+          </span>
           <span className="mt-2 block whitespace-pre-line rounded-md border border-orange-200 bg-white/70 px-3 py-2 font-medium italic text-slate-700">{motifRefusDateIntervention}</span>
         </InfoMsg>}
         {dateProposalForm}
@@ -505,5 +519,20 @@ export function BEStepActions({ etat, dateIntervention, periodeIntervention, mot
     default:
       return null;
   }
+}
+
+function InterventionCondition({
+  label,
+  value,
+}: Readonly<{ label: string; value?: TerrainAnswer }>) {
+  let displayValue = 'Ne sais pas';
+  if (value === 'OUI') displayValue = 'Oui';
+  if (value === 'NON') displayValue = 'Non';
+  return (
+    <div>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
+      <p className="mt-0.5 text-xs font-semibold text-slate-800">{displayValue}</p>
+    </div>
+  );
 }
 

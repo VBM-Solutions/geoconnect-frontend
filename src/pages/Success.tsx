@@ -10,13 +10,13 @@ export default function Success() {
         <CheckCircle className="w-16 h-16 text-green-600" />
       </div>
       <h1 className="text-3xl font-bold text-slate-900 mb-4">
-        Votre demande a bien été envoyée !
+        Votre demande de devis a bien été soumise
       </h1>
       <p className="text-lg text-slate-600 max-w-md mb-8">
-        Les Bureaux d'Études de notre réseau ont été notifiés et reviendront vers vous avec des propositions de devis.
+          Les bureaux d'étude du réseau mon etude de sol ont été notifiés, ils reviendront vers vous d’ici quelques jours.
       </p>
       <Link to="/client/dashboard">
-        <Button size="lg">Suivi des demandes de devis</Button>
+        <Button size="lg">Suivre ma demande</Button>
       </Link>
     </div>
   );

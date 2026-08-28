@@ -12,6 +12,7 @@ import * as addressAutocompleteApi from '../api/addressAutocomplete';
 import * as AuthContextModule from '../contexts/AuthContext';
 import { setupDefaultDemandeMocks } from '../test-utils/demandeTestSetup';
 import { getLastMockCallPayload } from '../test-utils/mockHelpers';
+import type { DocumentCategory } from '../constants/documentCategories';
 
 vi.mock('../api/auth');
 vi.mock('../api/client');
@@ -72,18 +73,39 @@ async function completeStep1(user: ReturnType<typeof userEvent.setup>) {
 }
 
 async function completeStep2(user: ReturnType<typeof userEvent.setup>) {
+  await openDocumentsStep(user);
+  await user.click(screen.getByRole('button', { name: /^suivant$/i }));
+  expect(await screen.findByText(/vos coordonnées/i)).toBeTruthy();
+}
+
+async function openDocumentsStep(user: ReturnType<typeof userEvent.setup>) {
   await user.type(
     screen.getByLabelText('Description du projet *'),
     'Maison individuelle avec accès étroit.'
   );
+  await user.click(screen.getByLabelText('Oui', { selector: 'input[name="presenceReseaux"]' }));
+  await user.click(screen.getByLabelText('Non', { selector: 'input[name="accessibiliteMachines"]' }));
   await user.click(screen.getByRole('button', { name: /^suivant$/i }));
+  expect(await screen.findByText(/documents disponibles/i)).toBeTruthy();
+}
 
-  expect(await screen.findByText(/vos coordonnées/i)).toBeTruthy();
+async function addTypedDocument(
+  user: ReturnType<typeof userEvent.setup>,
+  file: File,
+  category: DocumentCategory,
+  precision?: string,
+) {
+  await user.selectOptions(screen.getByLabelText('Type de document'), category);
+  if (category === 'AUTRE' && precision) {
+    await user.type(screen.getByLabelText(/Précisez le type de document/i), precision);
+  }
+  await user.click(screen.getByRole('button', { name: /ajouter un document/i }));
+  await user.upload(document.querySelector('input[type="file"]') as HTMLInputElement, file);
 }
 
 async function fillStep3Required(
   user: ReturnType<typeof userEvent.setup>,
-  options?: { password?: string; confirmPassword?: string; acceptCgv?: boolean }
+  options?: { email?: string; confirmEmail?: string; password?: string; confirmPassword?: string; acceptCgv?: boolean }
 ) {
   await user.selectOptions(screen.getByLabelText('Civilité *'), 'MR');
   await user.type(screen.getByLabelText('Prénom *'), 'Jean');
@@ -92,7 +114,9 @@ async function fillStep3Required(
   await user.type(screen.getByPlaceholderText('12 rue de la République'), '12 Rue de la République');
   await user.type(screen.getByLabelText('Code Postal *'), '75001');
   await user.type(screen.getByLabelText('Ville *'), 'Paris');
-  await user.type(screen.getByPlaceholderText('votre@email.com'), 'jean.dupont@test.fr');
+  const email = options?.email ?? 'jean.dupont@test.fr';
+  await user.type(screen.getByLabelText('Email (identifiant de connexion) *'), email);
+  await user.type(screen.getByLabelText("Confirmation de l'email *"), options?.confirmEmail ?? email);
   const password = options?.password ?? VALID_PASSWORD;
   await user.type(screen.getByLabelText('Mot de passe *'), password);
   await user.type(
@@ -196,13 +220,15 @@ describe('Home — tunnel utilisateur', () => {
         demande: expect.objectContaining({
           type: 'G0',
           referencesCadastrales: ['AB 0042', 'CD 0099'],
+          presenceReseaux: 'OUI',
+          accessibiliteMachines: 'NON',
         }),
       }), []);
       expect(mockNavigate).toHaveBeenCalledWith('/verification-email-envoyee', expect.anything());
     });
 
     expect(localStorage.getItem('geoconnect.pending-client-request')).toBeNull();
-  }, 10000);
+  }, 20000);
 
   it('bloque la soumission si la confirmation du mot de passe est différente', async () => {
     const user = userEvent.setup();
@@ -217,6 +243,19 @@ describe('Home — tunnel utilisateur', () => {
 
     expect(vi.mocked(authApi.registerClientCall)).not.toHaveBeenCalled();
     expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
+  }, 20000);
+
+  it('bloque la soumission si la confirmation de l’email est différente', async () => {
+    const user = userEvent.setup();
+    await startTunnel(user);
+    await completeStep1(user);
+    await completeStep2(user);
+    await fillStep3Required(user, { confirmEmail: 'autre.adresse@test.fr' });
+
+    await user.click(screen.getByRole('button', { name: /publier ma demande/i }));
+
+    expect(await screen.findByText('Les adresses e-mail ne correspondent pas')).toBeTruthy();
+    expect(vi.mocked(authApi.registerClientCall)).not.toHaveBeenCalled();
   }, 20000);
 
   it("désactive la publication jusqu'à l'acceptation des CGV", async () => {
@@ -236,7 +275,7 @@ describe('Home — tunnel utilisateur', () => {
     await user.click(screen.getByRole('checkbox', { name: /accepté les CGV/i }));
 
     expect(submitButton).toBeEnabled();
-  }, 10000);
+  }, 20000);
 
   it('bloque la soumission si le mot de passe ne respecte pas les critères de sécurité', async () => {
     const user = userEvent.setup();
@@ -254,69 +293,45 @@ describe('Home — tunnel utilisateur', () => {
 
     expect(vi.mocked(authApi.registerClientCall)).not.toHaveBeenCalled();
     expect(vi.mocked(demandeDevisApi.createDemandeDevis)).not.toHaveBeenCalled();
-  }, 10000);
+  }, 20000);
 
-  it('upload plusieurs documents et transmet docsDevisIds dans la demande', async () => {
+  it('transmet les fichiers et leurs métadonnées dans l’inscription', async () => {
     const user = userEvent.setup();
     const files = [
       new File(['plan'], 'plan.pdf', { type: 'application/pdf' }),
       new File(['photo'], 'photo.png', { type: 'image/png' }),
     ];
-    vi.mocked(documentApi.uploadDocuments).mockResolvedValue([99, 100]);
-
     await startTunnel(user);
     await completeStep1(user);
-
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(fileInput, files);
-
-    await completeStep2(user);
+    await openDocumentsStep(user);
+    await addTypedDocument(user, files[0], 'PLAN_SITUATION');
+    await addTypedDocument(user, files[1], 'AUTRE', 'Diagnostic pollution');
+    await user.click(screen.getByRole('button', { name: /^suivant$/i }));
     await fillStep3Required(user);
     await user.click(screen.getByRole('button', { name: /publier ma demande/i }));
 
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(
       '/verification-email-envoyee', expect.anything()));
-    expect(vi.mocked(authApi.registerClientCall)).toHaveBeenCalledWith(
-      expect.objectContaining({ demande: expect.any(Object) }), files);
+    expect(vi.mocked(authApi.registerClientCall)).toHaveBeenCalledWith(expect.objectContaining({
+      demande: expect.objectContaining({ documentsDemande: [
+        { categorie: 'PLAN_SITUATION', precision: undefined },
+        { categorie: 'AUTRE', precision: 'Diagnostic pollution' },
+      ] }),
+    }), files);
     expect(localStorage.getItem('geoconnect.pending-client-request')).toBeNull();
     expect(vi.mocked(documentApi.uploadDocuments)).not.toHaveBeenCalled();
-  }, 10000);
+  }, 20000);
 
-  it('affiche le bouton + pour ajouter des fichiers après sélection dans le tunnel', async () => {
+  it('exige une précision pour la catégorie Autre', async () => {
     const user = userEvent.setup();
     vi.mocked(documentApi.uploadDocuments).mockResolvedValue([]);
 
     await startTunnel(user);
     await completeStep1(user);
-
-    const file = new File(['content'], 'plan.pdf', { type: 'application/pdf' });
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(fileInput, file);
-
-    expect(await screen.findByText('plan.pdf')).toBeTruthy();
-    expect(screen.getByText(/Ajouter d'autres fichiers/i)).toBeTruthy();
-  });
-
-  it('ajoute des fichiers supplémentaires dans le tunnel via le bouton +', async () => {
-    const user = userEvent.setup();
-    vi.mocked(documentApi.uploadDocuments).mockResolvedValue([]);
-
-    await startTunnel(user);
-    await completeStep1(user);
-
-    const file1 = new File(['content1'], 'plan.pdf', { type: 'application/pdf' });
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(fileInput, file1);
-
-    expect(await screen.findByText('plan.pdf')).toBeTruthy();
-
-    const file2 = new File(['content2'], 'photo.png', { type: 'image/png' });
-    const addLink = screen.getByText(/Ajouter d'autres fichiers/i);
-    await user.click(addLink);
-    await user.upload(fileInput, file2);
-
-    expect(await screen.findByText('plan.pdf')).toBeTruthy();
-    expect(screen.getByText('photo.png')).toBeTruthy();
+    await openDocumentsStep(user);
+    await user.selectOptions(screen.getByLabelText('Type de document'), 'AUTRE');
+    await user.click(screen.getByRole('button', { name: /ajouter un document/i }));
+    expect(screen.getByRole('alert')).toHaveTextContent(/Précisez la nature/i);
   });
 
   it('supprime un fichier au clic sur le bouton ✕ individuel dans le tunnel', async () => {
@@ -325,17 +340,11 @@ describe('Home — tunnel utilisateur', () => {
 
     await startTunnel(user);
     await completeStep1(user);
-
+    await openDocumentsStep(user);
     const file1 = new File(['content1'], 'plan.pdf', { type: 'application/pdf' });
     const file2 = new File(['content2'], 'photo.png', { type: 'image/png' });
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(fileInput, file1);
-
-    expect(await screen.findByText('plan.pdf')).toBeTruthy();
-
-    const addLink = screen.getByText(/Ajouter d'autres fichiers/i);
-    await user.click(addLink);
-    await user.upload(fileInput, file2);
+    await addTypedDocument(user, file1, 'PLAN_SITUATION');
+    await addTypedDocument(user, file2, 'PHOTO_ACCES');
 
     expect(await screen.findByText('plan.pdf')).toBeTruthy();
     expect(screen.getByText('photo.png')).toBeTruthy();
@@ -349,30 +358,6 @@ describe('Home — tunnel utilisateur', () => {
     expect(screen.getByText('photo.png')).toBeTruthy();
   });
 
-  it('permet de re-ajouter un fichier après suppression dans le tunnel', async () => {
-    const user = userEvent.setup();
-    vi.mocked(documentApi.uploadDocuments).mockResolvedValue([]);
-
-    await startTunnel(user);
-    await completeStep1(user);
-
-    const file = new File(['content'], 'plan.pdf', { type: 'application/pdf' });
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-
-    await user.upload(fileInput, file);
-    expect(await screen.findByText('plan.pdf')).toBeTruthy();
-
-    const deleteButton = screen.getByLabelText('Supprimer plan.pdf');
-    await user.click(deleteButton);
-    await waitFor(() => expect(screen.queryByText('plan.pdf')).toBeNull());
-
-    const addFileDiv = screen.getByText(/Joindre un ou plusieurs fichiers/i);
-    await user.click(addFileDiv);
-    await user.upload(fileInput, file);
-
-    expect(await screen.findByText('plan.pdf')).toBeTruthy();
-  });
-
   it('bloque le tunnel si superficie négative', async () => {
     const user = userEvent.setup();
     await startTunnel(user);
@@ -381,6 +366,8 @@ describe('Home — tunnel utilisateur', () => {
       screen.getByLabelText('Description du projet *'),
       'Maison individuelle avec accès étroit.'
     );
+    await user.click(screen.getByLabelText('Oui', { selector: 'input[name="presenceReseaux"]' }));
+    await user.click(screen.getByLabelText('Oui', { selector: 'input[name="accessibiliteMachines"]' }));
 
     const superficieInput = screen.getByPlaceholderText('Ex : 500') as HTMLInputElement;
     await user.clear(superficieInput);
@@ -413,6 +400,8 @@ describe('Home — tunnel utilisateur', () => {
     await completeStep1(user);
 
     const descInput = screen.getByLabelText('Description du projet *') as HTMLTextAreaElement;
+    await user.click(screen.getByLabelText('Oui', { selector: 'input[name="presenceReseaux"]' }));
+    await user.click(screen.getByLabelText('Oui', { selector: 'input[name="accessibiliteMachines"]' }));
     const longDesc = 'A'.repeat(2001);
     await user.clear(descInput);
     descInput.value = longDesc;
@@ -420,6 +409,17 @@ describe('Home — tunnel utilisateur', () => {
     await user.click(screen.getByRole('button', { name: /^suivant$/i }));
 
     expect(await screen.findByText('La description ne doit pas dépasser 2000 caractères')).toBeTruthy();
+    expect(screen.queryByText(/vos coordonnées/i)).toBeNull();
+  });
+
+  it('bloque le passage à l’étape suivante tant que les deux conditions d’intervention ne sont pas renseignées', async () => {
+    const user = userEvent.setup();
+    await startTunnel(user);
+    await completeStep1(user);
+    await user.type(screen.getByLabelText('Description du projet *'), 'Maison individuelle.');
+    await user.click(screen.getByRole('button', { name: /^suivant$/i }));
+
+    expect(await screen.findAllByText('Veuillez sélectionner une réponse')).toHaveLength(2);
     expect(screen.queryByText(/vos coordonnées/i)).toBeNull();
   });
 });
