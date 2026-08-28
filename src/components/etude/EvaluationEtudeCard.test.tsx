@@ -38,8 +38,8 @@ describe('EvaluationEtudeCard', () => {
 
     const { container } = render(<EvaluationEtudeCard etudeId={42} />);
 
-    await waitFor(() => expect(getStatutEvaluation).toHaveBeenCalled());
-    expect(container).toBeEmptyDOMElement();
+    await waitFor(() => expect(container).toBeEmptyDOMElement());
+    expect(getStatutEvaluation).toHaveBeenCalledWith(42);
   });
 
   it('envoie une note complète une seule fois et affiche la confirmation', async () => {
