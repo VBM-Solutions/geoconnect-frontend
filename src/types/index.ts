@@ -116,10 +116,14 @@ export interface DemandeDevisDTO {
   referencesCadastrales?: string[];
   superficie?: number;
   description?: string;
+  presenceReseaux?: TerrainAnswer;
+  accessibiliteMachines?: TerrainAnswer;
   docsDevisIds?: number[];
   /** Documents joints avec leur nom de téléchargement calculé par le backend. */
   documentsDevis?: DocumentDTO[];
 }
+
+export type TerrainAnswer = 'OUI' | 'NON' | 'NE_SAIS_PAS';
 
 export type StatutProposition = 'EN_ATTENTE' | 'ACCEPTEE' | 'REFUSEE';
 
@@ -174,6 +178,7 @@ export interface EtudeDTO {
   dateIntervention?: string;
   periodeIntervention?: PeriodeIntervention;
   motifRefusDateIntervention?: string;
+  dateDerniereInterventionRefusee?: string;
   dateRendu?: string;
   dateRenduPrevue?: string;
 }
@@ -294,6 +299,8 @@ export interface DemandeDevisDetail {
   referencesCadastrales?: string[];
   superficie?: number;
   description?: string;
+  presenceReseaux?: TerrainAnswer;
+  accessibiliteMachines?: TerrainAnswer;
   docsDevisIds?: number[];
   documentsDevis?: DocumentDTO[];
   adresseProjet?: AdresseDTO;
@@ -326,6 +333,7 @@ export interface EtudeDetailDTO {
   dateIntervention?: string;
   periodeIntervention?: PeriodeIntervention;
   motifRefusDateIntervention?: string;
+  dateDerniereInterventionRefusee?: string;
   dateRendu?: string;
   dateRenduPrevue?: string;
   devisSigneId?: number;

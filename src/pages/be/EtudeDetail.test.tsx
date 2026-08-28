@@ -26,6 +26,7 @@ function dateInDays(n: number): string {
 
 const defaultProps = {
   isLoading: false,
+  clientName: 'Jean Dupont',
   onProposerDate: vi.fn(),
   onInterventionEffectuee: vi.fn(),
   onTerminerRapport: vi.fn(),
@@ -34,6 +35,43 @@ const defaultProps = {
 function renderActions(overrides: Partial<React.ComponentProps<typeof BEStepActions>> = {}) {
   return render(<BEStepActions {...defaultProps} {...overrides} />);
 }
+
+describe('BEStepActions — préparation de la date d’intervention', () => {
+  it('rappelle les conditions d’intervention uniquement avec le formulaire de proposition de date', () => {
+    renderActions({
+      etat: 'DEVIS_SIGNE',
+      demande: { presenceReseaux: 'NON', accessibiliteMachines: 'NE_SAIS_PAS' },
+    });
+
+    expect(screen.getByText('Réseaux sur la parcelle')).toBeTruthy();
+    expect(screen.getByText('Non')).toBeTruthy();
+    expect(screen.getByText('Accès pour les machines')).toBeTruthy();
+    expect(screen.getByText('Ne sais pas')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /envoyer la date/i })).toBeTruthy();
+  });
+
+  it('ne les affiche pas hors de l’étape de proposition de date', () => {
+    renderActions({
+      etat: 'DATE_INTERVENTION_FIXEE',
+      demande: { presenceReseaux: 'NON', accessibiliteMachines: 'NE_SAIS_PAS' },
+    });
+
+    expect(screen.queryByText('Réseaux sur la parcelle')).toBeNull();
+  });
+});
+
+describe('BEStepActions — refus de date', () => {
+  it('identifie le client et la date refusée avant une nouvelle proposition', () => {
+    renderActions({
+      etat: 'DEVIS_SIGNE',
+      motifRefusDateIntervention: 'Indisponible le matin',
+      dateDerniereInterventionRefusee: '2026-08-27',
+      clientName: 'Marie Martin',
+    });
+
+    expect(screen.getByText("Marie Martin n'est pas disponible le 27 août 2026.")).toBeTruthy();
+  });
+});
 
 // ─── État DATE_INTERVENTION_FIXEE — bouton principal ─────────────────────────
 

@@ -10,6 +10,8 @@ describe('demandePayload', () => {
         description: 'Test',
         nombreLot: '2',
         superficie: '500',
+        presenceReseaux: 'OUI',
+        accessibiliteMachines: 'NON',
       };
 
       const base = mapFormFieldsToPayloadBase(data);
@@ -20,6 +22,8 @@ describe('demandePayload', () => {
         description: 'Test',
         nombreLot: '2',
         superficie: '500',
+        presenceReseaux: 'OUI',
+        accessibiliteMachines: 'NON',
       });
     });
 
@@ -47,6 +51,8 @@ describe('demandePayload', () => {
         nombreLot: '2',
         referencesCadastrales: ['AB 0042'],
         superficie: '500',
+        presenceReseaux: 'OUI',
+        accessibiliteMachines: 'NON',
         rueProjet: '12 rue de la Paix',
         codePostalProjet: '75001',
         villeProjet: 'Paris',
@@ -60,6 +66,8 @@ describe('demandePayload', () => {
         nombreLot: 2,
         referencesCadastrales: ['AB 0042'],
         superficie: 500,
+        presenceReseaux: 'OUI',
+        accessibiliteMachines: 'NON',
         adresseProjet: {
           rue: '12 rue de la Paix',
           codePostal: '75001',
@@ -76,6 +84,8 @@ describe('demandePayload', () => {
         rueProjet: 'Rue A',
         codePostalProjet: '01000',
         villeProjet: 'Bourg',
+        presenceReseaux: 'OUI',
+        accessibiliteMachines: 'NON',
       });
 
       expect(payload.delaiMaxSouhaite).toBeUndefined();
@@ -91,6 +101,8 @@ describe('demandePayload', () => {
         rueProjet: 'Rue A',
         codePostalProjet: '01000',
         villeProjet: 'Bourg',
+        presenceReseaux: 'OUI',
+        accessibiliteMachines: 'NON',
       });
 
       expect(payload.referencesCadastrales).toStrictEqual(['AB 0042', 'CD 0099']);

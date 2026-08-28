@@ -147,7 +147,12 @@ describe('NewRequest — soumission du formulaire', () => {
 
     await waitFor(() => {
       expect(vi.mocked(demandeDevisApi.createDemandeDevis)).toHaveBeenCalledWith(
-        expect.objectContaining({ clientId: 10, type: 'G2_PRO' })
+        expect.objectContaining({
+          clientId: 10,
+          type: 'G2_PRO',
+          presenceReseaux: 'OUI',
+          accessibiliteMachines: 'OUI',
+        })
       );
     });
   });

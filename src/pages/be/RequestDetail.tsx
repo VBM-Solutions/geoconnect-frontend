@@ -18,6 +18,12 @@ import { DocumentList } from '../../components/etude/DocumentList';
 import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 import { DetailPageShell } from '../../components/ui/DetailPageShell';
 
+function formatTerrainAnswer(answer?: DemandeDevisDTO['presenceReseaux']) {
+  if (answer === 'OUI') return 'Oui';
+  if (answer === 'NON') return 'Non';
+  return 'Ne sais pas';
+}
+
 // ─── Sous-composants ──────────────────────────────────────────────────────────
 
 interface ActivePropositionCardProps {
@@ -361,6 +367,21 @@ export default function BERequestDetail() {
                     <span className="text-xs font-semibold text-slate-700">{demande.referenceCadastrale}</span>
                   </div>
                 )}
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="rounded border border-slate-100 bg-slate-50 p-3">
+                  <span className="block text-[10px] font-bold uppercase text-slate-400">Présence de réseaux sur la parcelle</span>
+                  <span className="mt-1 block text-xs font-semibold text-slate-700">
+                    {formatTerrainAnswer(demande.presenceReseaux)}
+                  </span>
+                </div>
+                <div className="rounded border border-slate-100 bg-slate-50 p-3">
+                  <span className="block text-[10px] font-bold uppercase text-slate-400">Accès du terrain pour des machines</span>
+                  <span className="mt-1 block text-xs font-semibold text-slate-700">
+                    {formatTerrainAnswer(demande.accessibiliteMachines)}
+                  </span>
+                </div>
               </div>
 
               <div>

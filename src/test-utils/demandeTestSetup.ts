@@ -51,4 +51,6 @@ export async function fillRequiredProjectFields(
   await user.type(screen.getByPlaceholderText(/15 Avenue des Champs/i), rue);
   await user.type(screen.getByPlaceholderText('Ex : 75001'), cp);
   await user.type(screen.getByPlaceholderText('Ex : Paris'), ville);
+  await user.click(screen.getByLabelText('Oui', { selector: 'input[name="presenceReseaux"]' }));
+  await user.click(screen.getByLabelText('Oui', { selector: 'input[name="accessibiliteMachines"]' }));
 }

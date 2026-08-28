@@ -18,6 +18,7 @@ import { FileUploader } from '../components/shared/FileUploader';
 import { AddressAutocompleteField } from '../components/shared/AddressAutocompleteField';
 import { ProjectMetricsInputs } from '../components/shared/ProjectMetricsInputs';
 import { TypeEtudeSelect } from '../components/project/TypeEtudeSelect';
+import { TerrainAccessQuestions } from '../components/project/TerrainAccessQuestions';
 import { useTypesEtude } from '../hooks/useTypesEtude';
 import { buildDemandePayload, mapFormFieldsToPayloadBase } from '../lib/demandePayload';
 import { codePostalRules, createConfirmPasswordRules, passwordRules, phoneRules } from '../lib/validators';
@@ -146,6 +147,8 @@ function QuoteTunnel({
           referencesCadastrales: pendingPayload.referencesCadastrales,
           superficie: pendingPayload.superficie,
           description: pendingPayload.description,
+          presenceReseaux: pendingPayload.presenceReseaux,
+          accessibiliteMachines: pendingPayload.accessibiliteMachines,
         },
       }, docFiles);
 
@@ -288,6 +291,7 @@ function QuoteTunnel({
                 min={1}
                 {...formRegister('delaiMaxSouhaite')}
               />
+              <TerrainAccessQuestions register={formRegister} errors={errors} />
 
               <FileUploader
                 id="docFile-step2"

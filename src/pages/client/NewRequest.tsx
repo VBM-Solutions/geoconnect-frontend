@@ -14,6 +14,7 @@ import { FileUploader } from '../../components/shared/FileUploader';
 import { AddressAutocompleteField } from '../../components/shared/AddressAutocompleteField';
 import { ProjectMetricsInputs } from '../../components/shared/ProjectMetricsInputs';
 import { TypeEtudeSelect } from '../../components/project/TypeEtudeSelect';
+import { TerrainAccessQuestions } from '../../components/project/TerrainAccessQuestions';
 import { buildDemandePayload, mapFormFieldsToPayloadBase } from '../../lib/demandePayload';
 import { codePostalRules } from '../../lib/validators';
 import { getFieldMessage } from '../../lib/formErrors';
@@ -21,7 +22,7 @@ import { getFieldMessage } from '../../lib/formErrors';
 export default function NewRequest() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { register: formRegister, handleSubmit, setValue, formState: { errors } } = useForm();
+  const { register: formRegister, handleSubmit, setValue, formState: { errors } } = useForm<Record<string, unknown>>();
   const [errorDetails, setErrorDetails] = useState('');
   const [docFiles, setDocFiles] = useState<File[]>([]);
   const { typesEtude, loading: loadingTypes } = useTypesEtude();
@@ -124,6 +125,8 @@ export default function NewRequest() {
 
                 <ProjectMetricsInputs register={formRegister} errors={errors} />
               </div>
+
+              <TerrainAccessQuestions register={formRegister} errors={errors} />
 
               <AddressAutocompleteField
                 id="adresse-projet-autocomplete"

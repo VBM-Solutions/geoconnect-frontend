@@ -76,6 +76,8 @@ async function completeStep2(user: ReturnType<typeof userEvent.setup>) {
     screen.getByLabelText('Description du projet *'),
     'Maison individuelle avec accès étroit.'
   );
+  await user.click(screen.getByLabelText('Oui', { selector: 'input[name="presenceReseaux"]' }));
+  await user.click(screen.getByLabelText('Non', { selector: 'input[name="accessibiliteMachines"]' }));
   await user.click(screen.getByRole('button', { name: /^suivant$/i }));
 
   expect(await screen.findByText(/vos coordonnées/i)).toBeTruthy();
@@ -196,6 +198,8 @@ describe('Home — tunnel utilisateur', () => {
         demande: expect.objectContaining({
           type: 'G0',
           referencesCadastrales: ['AB 0042', 'CD 0099'],
+          presenceReseaux: 'OUI',
+          accessibiliteMachines: 'NON',
         }),
       }), []);
       expect(mockNavigate).toHaveBeenCalledWith('/verification-email-envoyee', expect.anything());
@@ -381,6 +385,8 @@ describe('Home — tunnel utilisateur', () => {
       screen.getByLabelText('Description du projet *'),
       'Maison individuelle avec accès étroit.'
     );
+    await user.click(screen.getByLabelText('Oui', { selector: 'input[name="presenceReseaux"]' }));
+    await user.click(screen.getByLabelText('Oui', { selector: 'input[name="accessibiliteMachines"]' }));
 
     const superficieInput = screen.getByPlaceholderText('Ex : 500') as HTMLInputElement;
     await user.clear(superficieInput);
@@ -413,6 +419,8 @@ describe('Home — tunnel utilisateur', () => {
     await completeStep1(user);
 
     const descInput = screen.getByLabelText('Description du projet *') as HTMLTextAreaElement;
+    await user.click(screen.getByLabelText('Oui', { selector: 'input[name="presenceReseaux"]' }));
+    await user.click(screen.getByLabelText('Oui', { selector: 'input[name="accessibiliteMachines"]' }));
     const longDesc = 'A'.repeat(2001);
     await user.clear(descInput);
     descInput.value = longDesc;
@@ -420,6 +428,17 @@ describe('Home — tunnel utilisateur', () => {
     await user.click(screen.getByRole('button', { name: /^suivant$/i }));
 
     expect(await screen.findByText('La description ne doit pas dépasser 2000 caractères')).toBeTruthy();
+    expect(screen.queryByText(/vos coordonnées/i)).toBeNull();
+  });
+
+  it('bloque le passage à l’étape suivante tant que les deux conditions d’intervention ne sont pas renseignées', async () => {
+    const user = userEvent.setup();
+    await startTunnel(user);
+    await completeStep1(user);
+    await user.type(screen.getByLabelText('Description du projet *'), 'Maison individuelle.');
+    await user.click(screen.getByRole('button', { name: /^suivant$/i }));
+
+    expect(await screen.findAllByText('Veuillez sélectionner une réponse')).toHaveLength(2);
     expect(screen.queryByText(/vos coordonnées/i)).toBeNull();
   });
 });

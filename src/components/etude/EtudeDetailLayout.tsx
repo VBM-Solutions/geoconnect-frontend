@@ -28,10 +28,20 @@ import { EtudeStepper } from './EtudeStepper';
 export type EtudeSectionId = 'synthese' | 'progression' | 'documents' | 'dates' | 'paiement' | 'technique' | 'intervenants' | 'description';
 
 export function resolveEtudeSection(section: string | null): EtudeSectionId {
-  if (section === 'calendrier') return 'dates';
-  if (section === 'documents') return 'documents';
-  if (section === 'paiement') return 'paiement';
-  return 'synthese';
+  switch (section) {
+    case 'calendrier': return 'dates';
+    case 'synthese':
+    case 'progression':
+    case 'documents':
+    case 'dates':
+    case 'paiement':
+    case 'technique':
+    case 'intervenants':
+    case 'description':
+      return section;
+    default:
+      return 'synthese';
+  }
 }
 
 interface EtudeDetailLayoutProps {
@@ -77,6 +87,8 @@ export function EtudeDetailLayout({
     demande?.superficie != null ||
     demande?.nombreLot != null ||
     demande?.delaiMaxSouhaite != null ||
+    demande?.presenceReseaux != null ||
+    demande?.accessibiliteMachines != null ||
     parcelles.length > 0;
   const projectTitle = demande?.adresseProjet?.rue || demande?.adresseProjet?.ville || 'Projet geotechnique';
   const projectPlace = [demande?.adresseProjet?.ville, demande?.adresseProjet?.codePostal].filter(Boolean).join(' ');
@@ -91,9 +103,14 @@ export function EtudeDetailLayout({
       { id: 'paiement' as const, label: 'Paiement', icon: Landmark },
       { id: 'technique' as const, label: 'Technique', icon: Mountain, disabled: !hasTechnicalData },
       { id: 'intervenants' as const, label: etatRole === 'BE' ? 'Client' : 'Bureau', icon: UserRound },
-      { id: 'description' as const, label: 'Description', icon: FileText, disabled: !demande?.description },
+      {
+        id: 'description' as const,
+        label: 'Description',
+        icon: FileText,
+        disabled: !demande?.description && demande?.presenceReseaux == null && demande?.accessibiliteMachines == null,
+      },
     ],
-    [demande?.description, documentCount, etatRole, hasTechnicalData],
+    [demande?.accessibiliteMachines, demande?.description, demande?.presenceReseaux, documentCount, etatRole, hasTechnicalData],
   );
 
   useEffect(() => {
@@ -257,6 +274,8 @@ export function EtudeDetailLayout({
                 nombreLot={demande?.nombreLot}
                 delaiMaxSouhaite={demande?.delaiMaxSouhaite}
                 parcelles={parcelles}
+                presenceReseaux={demande?.presenceReseaux}
+                accessibiliteMachines={demande?.accessibiliteMachines}
               />
             </SectionPanel>
           )}
@@ -269,7 +288,15 @@ export function EtudeDetailLayout({
 
           {activeSection === 'description' && (
             <SectionPanel title="Description">
-              <p className="max-w-3xl whitespace-pre-wrap text-sm leading-6 text-slate-700">{demande?.description}</p>
+              <div className="max-w-3xl space-y-4">
+                {demande?.description && (
+                  <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{demande.description}</p>
+                )}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <InfoTile label="Réseaux sur la parcelle" value={formatTerrainAnswer(demande?.presenceReseaux)} icon={<Mountain />} />
+                  <InfoTile label="Accès pour les machines" value={formatTerrainAnswer(demande?.accessibiliteMachines)} icon={<Mountain />} />
+                </div>
+              </div>
             </SectionPanel>
           )}
         </main>
@@ -330,17 +357,23 @@ function TechniqueSection({
   nombreLot,
   delaiMaxSouhaite,
   parcelles,
+  presenceReseaux,
+  accessibiliteMachines,
 }: Readonly<{
   superficie?: number;
   nombreLot?: number;
   delaiMaxSouhaite?: number;
   parcelles: string[];
+  presenceReseaux?: 'OUI' | 'NON' | 'NE_SAIS_PAS';
+  accessibiliteMachines?: 'OUI' | 'NON' | 'NE_SAIS_PAS';
 }>) {
   return (
     <div className="grid gap-3 md:grid-cols-3">
       {superficie != null && <InfoTile label="Superficie" value={`${superficie} m2`} icon={<Ruler />} />}
       {nombreLot != null && <InfoTile label="Nombre de lots" value={nombreLot} icon={<LayoutList />} />}
       {delaiMaxSouhaite != null && <InfoTile label="Delai souhaite" value={`${delaiMaxSouhaite} sem`} icon={<Clock />} />}
+      {presenceReseaux != null && <InfoTile label="Réseaux sur la parcelle" value={formatTerrainAnswer(presenceReseaux)} icon={<Mountain />} />}
+      {accessibiliteMachines != null && <InfoTile label="Accès pour les machines" value={formatTerrainAnswer(accessibiliteMachines)} icon={<Mountain />} />}
       {parcelles.length > 0 && (
         <div className="rounded-lg border border-slate-200 bg-white p-3 md:col-span-3">
           <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
@@ -358,6 +391,10 @@ function TechniqueSection({
       )}
     </div>
   );
+}
+
+function formatTerrainAnswer(answer?: 'OUI' | 'NON' | 'NE_SAIS_PAS') {
+  return answer === 'NE_SAIS_PAS' ? 'Ne sais pas' : answer === 'OUI' ? 'Oui' : 'Non';
 }
 
 function DocumentsSection({ documents }: Readonly<{ documents?: EtudeDocumentsDTO }>) {
