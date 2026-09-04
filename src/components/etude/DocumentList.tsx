@@ -10,6 +10,8 @@ interface DocumentListProps {
   readonly documents: (DocumentRef | DocumentDTO)[];
   /** Affiche le titre de la carte. Défaut : true */
   readonly showCard?: boolean;
+  /** Autorise le téléchargement direct. Défaut : true. */
+  readonly allowDownload?: boolean;
 }
 
 function getDocId(doc: DocumentRef | DocumentDTO): number | undefined {
@@ -26,7 +28,7 @@ function getDocLabel(doc: DocumentRef | DocumentDTO): string {
   return 'Document';
 }
 
-export function DocumentList({ documents, showCard = true }: DocumentListProps) {
+export function DocumentList({ documents, showCard = true, allowDownload = true }: DocumentListProps) {
   const { toastError } = useToast();
   const [loadingId, setLoadingId] = useState<number | null>(null);
 
@@ -80,13 +82,15 @@ export function DocumentList({ documents, showCard = true }: DocumentListProps) 
                   >
                     <Eye className="w-3.5 h-3.5" />
                   </button>
-                  <button
-                    title="Télécharger"
-                    onClick={() => handle(() => downloadDocument(doc.id, label), doc.id)}
-                    className="p-1 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                  </button>
+                  {allowDownload && (
+                    <button
+                      title="Télécharger"
+                      onClick={() => handle(() => downloadDocument(doc.id, label), doc.id)}
+                      className="p-1 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </>
               )}
             </span>

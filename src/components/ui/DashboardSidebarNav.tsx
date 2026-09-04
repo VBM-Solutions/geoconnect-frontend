@@ -20,12 +20,13 @@ interface DashboardSidebarNavProps {
   sections: DashboardNavSection[];
   activeItemId: string;
   onItemChange: (id: string) => void;
+  fullHeight?: boolean;
 }
 
 /**
  * Sidebar de navigation dashboard (desktop) + panneau mobile.
  */
-export function DashboardSidebarNav({ sections, activeItemId, onItemChange }: Readonly<DashboardSidebarNavProps>) {
+export function DashboardSidebarNav({ sections, activeItemId, onItemChange, fullHeight = false }: Readonly<DashboardSidebarNavProps>) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const visibleSections = useMemo(
@@ -57,6 +58,45 @@ export function DashboardSidebarNav({ sections, activeItemId, onItemChange }: Re
   const renderSection = (section: DashboardNavSection) => {
     const expanded = expandedSections[section.id] ?? true;
 
+    const items = (
+      <nav
+        id={`dashboard-section-${section.id}`}
+        className={fullHeight ? 'space-y-2 px-2 pt-5 lg:pt-20' : 'space-y-1 p-2'}
+        aria-label={section.title}
+      >
+        {section.items.map((item) => {
+          const isActive = activeItemId === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => handleItemClick(item.id)}
+              aria-current={isActive ? 'page' : undefined}
+              className={`gc-motion-fast flex w-full items-center rounded-lg border py-2.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 ${fullHeight ? 'gap-3 px-3' : 'gap-2 px-2.5 text-left'} ${
+                isActive
+                  ? 'border-[#b8cf83] bg-[#f3f7e9] text-[#58742d] shadow-sm'
+                  : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-white/80'
+              }`}
+            >
+              <span className={`shrink-0 ${isActive ? 'text-[#688239]' : 'text-slate-400'}`}>{item.icon}</span>
+              <span className={`min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left text-sm font-medium ${fullHeight ? 'transition-[max-width,opacity] duration-200 lg:max-w-0 lg:opacity-0 lg:group-hover/sidebar:max-w-48 lg:group-hover/sidebar:opacity-100' : ''}`}>
+                {item.label}
+              </span>
+              <span className={`inline-flex shrink-0 justify-center overflow-hidden rounded-full py-0.5 text-[11px] font-bold ${fullHeight ? 'min-w-6 px-1.5 transition-[max-width,opacity,padding] duration-200 lg:max-w-0 lg:min-w-0 lg:px-0 lg:opacity-0 lg:group-hover/sidebar:max-w-12 lg:group-hover/sidebar:min-w-6 lg:group-hover/sidebar:px-1.5 lg:group-hover/sidebar:opacity-100' : 'min-w-6 px-1.5'} ${
+                isActive ? 'bg-[#e4edcf] text-[#58742d]' : 'bg-slate-100 text-slate-500'
+              }`}>
+                {item.count}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+    );
+
+    if (fullHeight) {
+      return <React.Fragment key={section.id}>{items}</React.Fragment>;
+    }
+
     return (
       <section key={section.id} className="gc-surface-panel rounded-xl border border-slate-200/90 bg-white/90 shadow-sm backdrop-blur">
         <button
@@ -70,36 +110,7 @@ export function DashboardSidebarNav({ sections, activeItemId, onItemChange }: Re
           <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expanded ? '' : '-rotate-90'}`} />
         </button>
 
-        {expanded && (
-          <nav id={`dashboard-section-${section.id}`} className="p-2 space-y-1" aria-label={section.title}>
-            {section.items.map((item) => {
-              const isActive = activeItemId === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => handleItemClick(item.id)}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`gc-motion-fast w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 ${
-                    isActive
-                      ? 'bg-linear-to-r from-blue-50 to-cyan-50 text-blue-700 border border-blue-200 shadow-sm'
-                      : 'text-slate-600 border border-transparent hover:bg-slate-50 hover:border-slate-200'
-                  }`}
-                >
-                  <span className={`${isActive ? 'text-blue-600' : 'text-slate-400'}`}>{item.icon}</span>
-                  <span className="text-sm font-medium flex-1">{item.label}</span>
-                  <span
-                    className={`inline-flex min-w-6 justify-center rounded-full px-1.5 py-0.5 text-[11px] font-bold ${
-                      isActive ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
-                    }`}
-                  >
-                    {item.count}
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
-        )}
+        {expanded && items}
       </section>
     );
   };
@@ -129,11 +140,11 @@ export function DashboardSidebarNav({ sections, activeItemId, onItemChange }: Re
 
       <aside
         id="dashboard-mobile-sidebar"
-        className={`gc-motion-base fixed left-0 top-14 bottom-0 z-50 w-[86vw] max-w-xs overflow-y-auto bg-slate-50/95 p-3 transition-transform lg:sticky lg:top-20 lg:z-auto lg:h-fit lg:w-72 lg:max-w-none lg:rounded-xl lg:border lg:border-slate-200 lg:bg-slate-50/80 lg:shadow-sm ${
+        className={`group/sidebar fixed bottom-0 left-0 top-14 z-50 w-[86vw] max-w-xs overflow-x-hidden overflow-y-auto bg-[#f7f4ed]/98 p-3 shadow-xl transition-[width,transform] duration-300 ease-out lg:z-30 lg:max-w-none ${fullHeight ? 'lg:top-0 lg:bottom-0 lg:w-16 lg:border-r lg:border-stone-200 lg:p-1 lg:shadow-sm lg:hover:w-72' : 'lg:sticky lg:top-20 lg:h-fit lg:w-72 lg:rounded-xl lg:border lg:border-slate-200 lg:bg-slate-50/80 lg:shadow-sm'} ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        <div className="space-y-3">{visibleSections.map(renderSection)}</div>
+        <div className={fullHeight ? 'h-full' : 'space-y-3'}>{visibleSections.map(renderSection)}</div>
       </aside>
     </>
   );

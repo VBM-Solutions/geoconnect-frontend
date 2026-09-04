@@ -9,7 +9,7 @@ import { extractErrorMessage } from '../lib/utils';
 
 export type DemandeWithPropositions = DemandeDevisDTO & { propositions: PropositionDevisDTO[] };
 
-interface ClientDashboardData {
+export interface ClientDashboardData {
   client: ClientDTO | null;
   demandes: DemandeWithPropositions[];
   etudes: EtudeDetailDTO[];

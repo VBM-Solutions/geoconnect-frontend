@@ -87,7 +87,7 @@ const STEP_INDEX: Record<EtatEtude, number> = {
  * - DEVIS_SIGNE       → active = 2 (attente de la proposition de date)
  * - états suivants    → l'état lui-même est l'étape active
  */
-function getActiveStepIndex(etat: EtatEtude): number {
+export function getActiveStepIndex(etat: EtatEtude): number {
   switch (etat) {
     case 'DEVIS_VALIDE':
       return 1;

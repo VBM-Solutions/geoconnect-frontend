@@ -106,6 +106,7 @@ export interface EnumValueDTO {
 
 export interface DemandeDevisDTO {
   id?: number;
+  createdAt?: string;
   delaiMaxSouhaite?: number;
   adresseProjet?: AdresseDTO;
   clientId?: number;
@@ -138,6 +139,7 @@ export interface DelaiProjectionDTO {
 
 export interface PropositionDevisDTO {
   id?: number;
+  createdAt?: string;
   bureauEtudeId?: number;
   demandeDevisId?: number;
   delaiMaxIntervention?: number;
@@ -221,6 +223,7 @@ export interface DocumentDemandeInputDTO {
 
 export interface DocumentDTO {
   id?: number;
+  createdAt?: string;
   nomFichierOriginal?: string;
   /** Nom lisible à afficher à l'utilisateur et à utiliser pour le téléchargement. */
   nomTelechargement?: string;
@@ -300,6 +303,7 @@ export interface BureauEtudesDetail {
 
 export interface DemandeDevisDetail {
   id?: number;
+  createdAt?: string;
   delaiMaxSouhaite?: number;
   type?: TypeDemandeDevis;
   nombreLot?: number;
@@ -318,6 +322,7 @@ export interface DemandeDevisDetail {
 
 export interface PropositionDevisDetail {
   id?: number;
+  createdAt?: string;
   statut?: StatutProposition;
   prix?: number;
   delaiMaxIntervention?: number;
@@ -337,6 +342,7 @@ export interface DocumentRef {
 
 export interface EtudeDetailDTO {
   id?: number;
+  createdAt?: string;
   etat?: EtatEtude;
   chargeAffaire?: string;
   dateIntervention?: string;

@@ -119,9 +119,9 @@ export default function BureauEtudeDetail() {
         {client ? (
           <>
             <p className="font-bold text-slate-800">
-              {[client.prenom, client.nom].filter(Boolean).join(' ') || '—'}
+              {[client.civilite, client.prenom, client.nom].filter(Boolean).join(' ') || '—'}
             </p>
-            {client.tel && <p className="text-slate-500">{client.tel}</p>}
+            {client.tel && <p className="text-slate-500"><a href={`tel:${client.tel}`} className="hover:underline">{client.tel}</a></p>}
             {client.emailContact && (
               <a
                 href={`mailto:${client.emailContact}`}
@@ -131,10 +131,10 @@ export default function BureauEtudeDetail() {
                 {client.emailContact}
               </a>
             )}
-            {client.adresseFacturation?.ville && (
+            {client.adresseFacturation && (
               <p className="text-slate-500 flex items-center gap-1">
                 <MapPin className="w-3 h-3" />
-                {client.adresseFacturation.ville}
+                {[client.adresseFacturation.rue, client.adresseFacturation.codePostal, client.adresseFacturation.ville].filter(Boolean).join(', ') || 'Adresse non renseignée'}
               </p>
             )}
           </>

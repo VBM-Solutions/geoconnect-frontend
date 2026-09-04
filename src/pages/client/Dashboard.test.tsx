@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ClientDashboard from './Dashboard';
+import { ClientSpaceLayout } from '../../components/layout/ClientSpaceLayout';
 
 const mockUseClientDashboardData = vi.fn();
 const mockToastError = vi.fn();
@@ -23,7 +24,9 @@ function renderDashboard(initialPath = '/client/dashboard') {
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
       <Routes>
-        <Route path="/client/dashboard" element={<ClientDashboard />} />
+        <Route element={<ClientSpaceLayout />}>
+          <Route path="/client/dashboard" element={<ClientDashboard />} />
+        </Route>
       </Routes>
     </MemoryRouter>,
   );
@@ -40,7 +43,13 @@ describe('ClientDashboard', () => {
           description: 'Maison individuelle',
           adresseProjet: { ville: 'Nantes', codePostal: '44000' },
           delaiMaxSouhaite: 6,
-          propositions: [{ id: 100, statut: 'EN_ATTENTE' }],
+          propositions: [{
+            id: 100,
+            statut: 'EN_ATTENTE',
+            prix: 1250,
+            delaiMaxRendu: 4,
+            bureauEtude: { id: 3, raisonSociale: 'Geo Devis' },
+          }],
         },
       ],
       etudes: [
@@ -100,27 +109,23 @@ describe('ClientDashboard', () => {
     });
   });
 
-  it('affiche le hero client et les cartes KPI', () => {
-    renderDashboard();
+  it('affiche un bandeau client épuré sans KPI ni fil d activité', () => {
+    renderDashboard('/client/dashboard?tab=DEMANDES');
 
-    expect(screen.getByRole('heading', { name: /mon espace projet/i })).toBeTruthy();
-    expect(screen.getByText(/tableau de bord client/i)).toBeTruthy();
-    expect(screen.getByText(/études totales/i)).toBeTruthy();
-    expect(screen.getByText(/demandes ouvertes/i)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /^mon espace$/i })).toBeTruthy();
+    expect(screen.queryByText(/tableau de bord client/i)).toBeNull();
+    expect(screen.queryByText(/études totales/i)).toBeNull();
+    expect(screen.queryByText(/vos études avancent/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: /voir mes études/i })).toBeNull();
   });
 
-  it('affiche un fil d activité derive des donnees et permet de naviguer vers les archives', async () => {
-    const user = userEvent.setup();
-    renderDashboard();
+  it('affiche les propositions à largeur fixe et transmet la proposition sélectionnée au détail', () => {
+    renderDashboard('/client/dashboard?tab=DEMANDES');
 
-    expect(screen.getByText(/de nouvelles offres sont arrivées/i)).toBeTruthy();
-    expect(screen.getByText(/des livrables sont disponibles/i)).toBeTruthy();
-    expect(screen.getByText(/votre avis compte/i)).toBeTruthy();
-
-    await user.click(screen.getByRole('button', { name: /consulter les archives/i }));
-
-    expect(screen.getByRole('heading', { name: /études archivées/i })).toBeTruthy();
-    expect(screen.getByText(/consulter et noter/i)).toBeTruthy();
+    const proposition = screen.getByRole('link', { name: /geo devis/i });
+    expect(proposition.className).toContain('w-64');
+    expect(proposition.className).toContain('shrink-0');
+    expect(proposition.getAttribute('href')).toBe('/client/demande/10?proposition=100');
   });
 
   it('prend en compte l onglet actif transmis dans l URL', () => {
@@ -134,15 +139,12 @@ describe('ClientDashboard', () => {
       .toBe('/bureaux-etudes/geo-archive?retour=%2Fclient%2Fdashboard');
   });
 
-  it('centre la vue sur le panneau des études via le CTA hero', async () => {
+  it('permet de naviguer entre les trois affichages avec la sidebar', async () => {
     const user = userEvent.setup();
-    const scrollSpy = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {});
-
     renderDashboard('/client/dashboard?tab=DEMANDES');
 
-    await user.click(screen.getByRole('button', { name: /voir mes études/i }));
+    await user.click(screen.getByRole('button', { name: /mes études/i }));
 
-    expect(scrollSpy).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
     expect(screen.getByRole('heading', { name: /études en cours/i })).toBeTruthy();
   });
 });

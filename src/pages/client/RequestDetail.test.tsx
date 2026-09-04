@@ -1,12 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ClientRequestDetail from './RequestDetail';
-import { getDemandeDetail } from '../../api/demandeDevis';
+import { getDemandeDetail, updateDemandeDevis } from '../../api/demandeDevis';
+import { uploadDocuments } from '../../api/document';
 
 vi.mock('../../api/demandeDevis', () => ({
   getDemandeDetail: vi.fn(),
+  updateDemandeDevis: vi.fn(),
 }));
+
+vi.mock('../../api/document', () => ({ uploadDocuments: vi.fn() }));
 
 vi.mock('../../api/propositionDevis', () => ({
   getPropositionDevisByDemandeId: vi.fn(),
@@ -95,7 +100,41 @@ describe('ClientRequestDetail — identité du bureau', () => {
 
     renderPage('/client/demande/12?section=propositions&proposition=43');
 
-    const bureau = await screen.findByText('Sols & Structures');
-    expect(bureau.closest('tr')?.getAttribute('aria-current')).toBe('true');
+    expect(await screen.findByText('Sols & Structures')).toBeTruthy();
+    expect(screen.getByText('Proposition 1 sur 1')).toBeTruthy();
+  });
+
+  it('affiche les caractéristiques cadastrales du projet', async () => {
+    vi.mocked(getDemandeDetail).mockResolvedValue({ demande: {
+      id: 12,
+      superficie: 450,
+      nombreLot: 2,
+      referencesCadastrales: ['AB 42', 'AC 7'],
+      adresseProjet: { ville: 'Nantes', codePostal: '44000' },
+    }, propositions: [], bureauEtudeId: null });
+
+    renderPage();
+
+    expect(await screen.findByText('450 m²')).toBeTruthy();
+    expect(screen.getByText('2')).toBeTruthy();
+    expect(screen.getByText('AB 42, AC 7')).toBeTruthy();
+  });
+
+  it('ajoute des documents sans proposer leur téléchargement', async () => {
+    const user = userEvent.setup();
+    vi.mocked(uploadDocuments).mockResolvedValue([91]);
+    vi.mocked(updateDemandeDevis).mockResolvedValue(undefined);
+    vi.mocked(getDemandeDetail)
+      .mockResolvedValueOnce({ demande: { id: 12, clientId: 4, type: 'G2_AVP', adresseProjet: { rue: '1 rue Test', ville: 'Nantes', codePostal: '44000' }, docsDevisIds: [] }, propositions: [], bureauEtudeId: null })
+      .mockResolvedValueOnce({ demande: { id: 12, clientId: 4, type: 'G2_AVP', adresseProjet: { rue: '1 rue Test', ville: 'Nantes', codePostal: '44000' }, docsDevisIds: [91], documentsDevis: [{ id: 91, nomTelechargement: 'plan.pdf' }] }, propositions: [], bureauEtudeId: null });
+    renderPage();
+
+    const input = await screen.findByLabelText(/attacher des documents/i);
+    await user.upload(input, new File(['plan'], 'plan.pdf', { type: 'application/pdf' }));
+
+    await waitFor(() => expect(uploadDocuments).toHaveBeenCalledTimes(1));
+    expect(updateDemandeDevis).toHaveBeenCalledWith(expect.objectContaining({ docsDevisIds: [91] }));
+    expect(await screen.findByText('plan.pdf')).toBeTruthy();
+    expect(screen.queryByTitle('Télécharger')).toBeNull();
   });
 });
