@@ -1,24 +1,39 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentList } from './DocumentList';
+import { downloadDocument, openDocument } from '../../api/document';
 
-vi.mock('../../contexts/ToastContext', () => ({ useToast: () => ({ toastError: vi.fn() }) }));
-vi.mock('../../api/document', () => ({ openDocument: vi.fn(), downloadDocument: vi.fn() }));
+vi.mock('../../api/document', () => ({
+  downloadDocument: vi.fn(),
+  openDocument: vi.fn(),
+}));
+
+vi.mock('../../contexts/ToastContext', () => ({
+  useToast: () => ({ toastError: vi.fn() }),
+}));
 
 describe('DocumentList', () => {
-  it('affiche la catégorie en principal et le fichier en secondaire', () => {
-    render(<DocumentList showCard={false} documents={[{
-      id: 1,
-      nomTelechargement: 'DUPONT_JEAN-G2_AVP-AUTRE-DIAGNOSTIC.pdf',
-      categorieDemande: 'AUTRE',
-      precisionCategorieDemande: 'Diagnostic pollution',
-    }]} />);
-    expect(screen.getByTitle('Autre — Diagnostic pollution')).toHaveTextContent('Autre — Diagnostic pollution');
-    expect(screen.getByTitle('DUPONT_JEAN-G2_AVP-AUTRE-DIAGNOSTIC.pdf')).toHaveClass('text-[10px]');
+  beforeEach(() => vi.clearAllMocks());
+
+  it('ne rend rien sans document valide', () => {
+    const { container } = render(<DocumentList documents={[]} />);
+    expect(container).toBeEmptyDOMElement();
   });
 
-  it('conserve le libellé historique quand la catégorie est absente', () => {
-    render(<DocumentList showCard={false} documents={[{ id: 2, label: 'Document historique' }]} />);
-    expect(screen.getByTitle('Document historique')).toBeVisible();
+  it('autorise par défaut l’ouverture et le téléchargement', async () => {
+    render(<DocumentList documents={[{ id: 7, label: 'Plan.pdf' }]} />);
+
+    fireEvent.click(screen.getByTitle('Télécharger'));
+    await waitFor(() => expect(downloadDocument).toHaveBeenCalledWith(7, 'Plan.pdf'));
+    await waitFor(() => expect(screen.getByTitle('Ouvrir')).toBeTruthy());
+    fireEvent.click(screen.getByTitle('Ouvrir'));
+    await waitFor(() => expect(openDocument).toHaveBeenCalledWith(7, 'Plan.pdf'));
+  });
+
+  it('peut masquer le téléchargement tout en conservant la consultation', () => {
+    render(<DocumentList documents={[{ id: 7, label: 'Plan.pdf' }]} allowDownload={false} />);
+
+    expect(screen.getByTitle('Ouvrir')).toBeTruthy();
+    expect(screen.queryByTitle('Télécharger')).toBeNull();
   });
 });

@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { getDemandeDetail } from '../../api/demandeDevis';
+import { getDemandeDetail, updateDemandeDevis } from '../../api/demandeDevis';
 import { accepterPropositionDevis, refuserPropositionDevis } from '../../api/propositionDevis';
 import { DemandeDevisDTO, PropositionDevisDTO } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
-import { MapPin, Clock, Building2, CheckCircle2, FileText } from 'lucide-react';
+import { MapPin, Clock, FileText } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { buildDemandeDocuments } from '../../lib/formatters';
 import { DocumentList } from '../../components/etude/DocumentList';
-import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 import { DetailPageShell } from '../../components/ui/DetailPageShell';
-import { BureauEtudeProfileLink } from '../../components/profil-be/BureauEtudeProfileLink';
+import { ProposalCarousel } from '../../components/client/ProposalCarousel';
+import { TYPE_LABELS } from '../../constants/labels';
+import { uploadDocuments } from '../../api/document';
 
 export default function ClientRequestDetail() {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +26,7 @@ export default function ClientRequestDetail() {
   const [isProcessing, setIsProcessing] = useState<number | null>(null);
   const [confirmAcceptId, setConfirmAcceptId] = useState<number | null>(null);
   const [confirmRefuseId, setConfirmRefuseId] = useState<number | null>(null);
+  const [isAttachingDocuments, setIsAttachingDocuments] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -77,6 +78,25 @@ export default function ClientRequestDetail() {
     }
   };
 
+  const handleAttachDocuments = async (files: FileList | null) => {
+    if (!demande || !files?.length) return;
+    setIsAttachingDocuments(true);
+    try {
+      const uploadedIds = await uploadDocuments(Array.from(files));
+      await updateDemandeDevis({
+        ...demande,
+        docsDevisIds: [...(demande.docsDevisIds ?? []), ...uploadedIds],
+      });
+      const refreshed = await getDemandeDetail(demande.id!);
+      setDemande(refreshed.demande);
+      toastSuccess('Documents ajoutés à la demande.');
+    } catch (err: any) {
+      toastError(err?.response?.data?.message ?? err?.message ?? 'Impossible d’ajouter les documents.');
+    } finally {
+      setIsAttachingDocuments(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center p-12">
@@ -89,25 +109,22 @@ export default function ClientRequestDetail() {
     return <div>Contenu indisponible.</div>;
   }
 
-  const acceptedProp = propositions.find(p => p.statut === 'ACCEPTEE');
   const demandeDocuments = buildDemandeDocuments(demande);
-
   return (
     <DetailPageShell
       tone="client"
       backTo="/client/dashboard?tab=DEMANDES"
       backLabel="Retour aux demandes"
       eyebrow={`Demande #MES-${demande.id}`}
-      title={demande.adresseProjet?.ville || 'Projet géotechnique'}
+      title={buildRequestTitle(demande)}
       description={(
         <span>
-          {demande.type || 'Projet'}
-          {demande.adresseProjet?.codePostal ? ` - ${demande.adresseProjet.codePostal}` : ''}
+          {[demande.adresseProjet?.rue, demande.adresseProjet?.codePostal, demande.adresseProjet?.ville, 'France'].filter(Boolean).join(', ')} · Réf. #MES-{demande.id}
         </span>
       )}
     >
 
-      <div className="flex flex-col md:flex-row gap-4">
+      <div className="flex min-w-0 flex-col gap-4 md:flex-row">
         
         {/* Colonne Demande */}
         <div className="w-full md:w-[320px] space-y-4">
@@ -141,13 +158,39 @@ export default function ClientRequestDetail() {
                   </div>
                 )}
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Surface</span>
+                  <span className="font-semibold text-slate-800">{demande.superficie == null ? 'Non précisée' : `${demande.superficie} m²`}</span>
+                </div>
+                <div>
+                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Nombre de lots</span>
+                  <span className="font-semibold text-slate-800">{demande.nombreLot ?? 'Non précisé'}</span>
+                </div>
+              </div>
+              <div>
+                <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Références cadastrales</span>
+                <span className="font-semibold text-slate-800">
+                  {demande.referencesCadastrales?.length ? demande.referencesCadastrales.join(', ') : demande.referenceCadastrale || 'Non précisées'}
+                </span>
+              </div>
               <div>
                 <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Description</span>
                 <p className="text-slate-600 bg-white p-2.5 rounded border border-slate-200 shadow-sm whitespace-pre-wrap leading-relaxed">
                   {demande.description || '...'}
                 </p>
               </div>
-              <DocumentList documents={demandeDocuments} />
+              <DocumentList documents={demandeDocuments} allowDownload={false} />
+              <label className="inline-flex cursor-pointer items-center rounded border border-blue-200 bg-blue-50 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-blue-700 hover:bg-blue-100">
+                {isAttachingDocuments ? 'Ajout en cours…' : 'Attacher des documents'}
+                <input
+                  type="file"
+                  multiple
+                  className="sr-only"
+                  disabled={isAttachingDocuments}
+                  onChange={event => handleAttachDocuments(event.target.files)}
+                />
+              </label>
             </CardContent>
           </Card>
         </div>
@@ -165,83 +208,15 @@ export default function ClientRequestDetail() {
                 <p className="text-xs text-slate-500 font-medium">En attente des retours géotechniques.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="text-[10px] uppercase text-slate-400 bg-slate-50 border-b border-slate-100">
-                      <th className="px-4 py-2 font-bold whitespace-nowrap">Bureau d'Études</th>
-                      <th className="px-4 py-2 font-bold whitespace-nowrap text-right">Devis Est.</th>
-                      <th className="px-4 py-2 font-bold whitespace-nowrap">Délai Rendu</th>
-                      <th className="px-4 py-2 font-bold whitespace-nowrap text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-xs">
-                    {propositions.map(prop => {
-                      const isAccepted = prop.statut === 'ACCEPTEE';
-                      const isRefused  = prop.statut === 'REFUSEE';
-                      const isSelected = prop.id === selectedPropositionId;
-                      let rowClassName = 'hover:bg-slate-50';
-                      if (isAccepted) {
-                        rowClassName = 'bg-green-50/50';
-                      } else if (isRefused) {
-                        rowClassName = 'opacity-50';
-                      }
-                      if (isSelected) rowClassName += ' ring-2 ring-inset ring-blue-400 bg-blue-50';
-                      return (
-                        <tr key={prop.id} aria-current={isSelected ? 'true' : undefined} className={`border-b border-slate-50 ${rowClassName}`}>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center">
-                              <Building2 className="w-3 h-3 mr-1.5 text-slate-400"/>
-                              <BureauEtudeProfileLink
-                                raisonSociale={prop.bureauEtude?.raisonSociale}
-                                slug={prop.bureauEtude?.profilPublicSlug}
-                                returnTo={`/client/demande/${id}`}
-                              />
-                            </div>
-                            <div className="text-[10px] text-slate-500 mt-0.5 ml-4.5">
-                              {prop.bureauEtude?.ville || 'France'}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-right font-mono font-bold text-slate-900">
-                            {prop.prix} €
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">
-                            {formatDelaiWithProjection(prop.delaiMaxRendu, prop.delaiProjectionRendu)}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            {isAccepted && (
-                              <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded font-bold text-[10px] uppercase tracking-wider">
-                                <CheckCircle2 className="w-3 h-3 mr-1" /> Validée
-                              </span>
-                            )}
-                            {isRefused && (
-                              <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Refusée</span>
-                            )}
-                            {!isAccepted && !isRefused && !acceptedProp && (
-                                <div className="flex justify-center gap-2">
-                                  <Button
-                                      size="sm"
-                                      onClick={() => setConfirmAcceptId(prop.id)}
-                                      isLoading={isProcessing === prop.id}
-                                  >
-                                    Accepter
-                                  </Button>
-                                  <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      onClick={() => setConfirmRefuseId(prop.id)}
-                                      isLoading={isProcessing === prop.id}
-                                  >
-                                    Refuser
-                                  </Button>
-                                </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="p-4">
+                <ProposalCarousel
+                  proposals={propositions}
+                  initialProposalId={selectedPropositionId}
+                  returnTo={`/client/demande/${id}`}
+                  processingId={isProcessing}
+                  onAccept={setConfirmAcceptId}
+                  onRefuse={setConfirmRefuseId}
+                />
               </div>
             )}
           </div>
@@ -280,4 +255,11 @@ export default function ClientRequestDetail() {
       )}
     </DetailPageShell>
   );
+}
+
+function buildRequestTitle(demande: DemandeDevisDTO): string {
+  const type = demande.type ? (TYPE_LABELS[demande.type] ?? demande.type) : 'Étude';
+  const ville = demande.adresseProjet?.ville || 'Ville non spécifiée';
+  const codePostal = demande.adresseProjet?.codePostal;
+  return [type, ville, codePostal].filter(Boolean).join(' – ');
 }

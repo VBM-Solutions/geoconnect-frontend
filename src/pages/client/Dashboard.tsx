@@ -1,20 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useToast } from '../../contexts/ToastContext';
-import { useClientDashboardData } from '../../hooks/useClientDashboardData';
-import { STATUT_LABELS } from '../../constants/labels';
+import type { ClientDashboardData } from '../../hooks/useClientDashboardData';
+import { STATUT_LABELS, TYPE_LABELS } from '../../constants/labels';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { DashboardSidebarNav, type DashboardNavSection } from '../../components/ui/DashboardSidebarNav';
 import { DashboardEmptyState } from '../../components/ui/DashboardEmptyState';
-import { DashboardMetricCard } from '../../components/ui/DashboardMetricCard';
-import { DashboardActivityFeed, type DashboardActivityItem } from '../../components/ui/DashboardActivityFeed';
-import { MapPin, Calendar, Clock, FileText, ChevronRight, FlaskConical, Building2, AlertCircle, Archive, Plus, Layers3, CheckCircle2, MessageSquareHeart, Sparkles } from 'lucide-react';
+import { MapPin, Clock, FileText, ChevronRight, FlaskConical, Building2, AlertCircle, Archive, Plus, MessageSquareHeart } from 'lucide-react';
 import { clientMustAct } from '../../components/etude/EtudeStatusBadge';
 import { EtudeCardHeader } from '../../components/etude/EtudeCardHeader';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { CompactEtudeStepper } from '../../components/etude/CompactEtudeStepper';
+import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 import { EtudeDetailDTO } from '../../types';
 import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 import { BureauEtudeProfileLink } from '../../components/profil-be/BureauEtudeProfileLink';
+import { formatDateLong } from '../../lib/formatters';
 
 type TabType = 'DEMANDES' | 'ETUDES' | 'ARCHIVES';
 
@@ -25,122 +24,6 @@ interface EtudeCardProps {
   /** true = onglet Archives (paiement effectué) */
   readonly archived?: boolean;
   readonly evaluationPending?: boolean;
-}
-
-function createPropositionsActivity(
-  count: number,
-  onNavigate: (tab: TabType) => void,
-): DashboardActivityItem | null {
-  if (count === 0) return null;
-  return {
-    id: 'propositions',
-    title: 'De nouvelles offres sont arrivées',
-    description: `${count} demande${count > 1 ? 's ont' : ' a'} déjà reçu une ou plusieurs propositions à comparer.`,
-    icon: <FileText className="h-4 w-4" />,
-    toneClassName: 'bg-blue-50 text-blue-700 border-blue-200',
-    actionLabel: 'Voir les demandes',
-    onAction: () => onNavigate('DEMANDES'),
-  };
-}
-
-function createActionsActivity(
-  count: number,
-  onNavigate: (tab: TabType) => void,
-): DashboardActivityItem | null {
-  if (count === 0) return null;
-  return {
-    id: 'actions',
-    title: 'Une action de votre part est attendue',
-    description: `${count} étude${count > 1 ? 's nécessitent' : ' nécessite'} votre validation ou votre suivi.`,
-    icon: <AlertCircle className="h-4 w-4" />,
-    toneClassName: 'bg-amber-50 text-amber-700 border-amber-200',
-    actionLabel: 'Reprendre le suivi',
-    onAction: () => onNavigate('ETUDES'),
-  };
-}
-
-function createProgressActivity(
-  count: number,
-  onNavigate: (tab: TabType) => void,
-): DashboardActivityItem | null {
-  if (count === 0) return null;
-  return {
-    id: 'progression',
-    title: 'Vos études avancent',
-    description: `${count} étude${count > 1 ? 's sont' : ' est'} actuellement en cours avec un bureau d études.`,
-    icon: <FlaskConical className="h-4 w-4" />,
-    toneClassName: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-    actionLabel: 'Voir la progression',
-    onAction: () => onNavigate('ETUDES'),
-  };
-}
-
-function createEvaluationActivity(
-  etudeIds: number[],
-  onOpenEvaluation: (etudeId: number) => void,
-): DashboardActivityItem | null {
-  if (etudeIds.length === 0) return null;
-  const count = etudeIds.length;
-  return {
-    id: 'evaluations',
-    title: 'Votre avis compte',
-    description: `${count} étude${count > 1 ? 's peuvent' : ' peut'} encore être évaluée${count > 1 ? 's' : ''}. Cette étape reste facultative.`,
-    icon: <MessageSquareHeart className="h-4 w-4" />,
-    toneClassName: 'bg-violet-50 text-violet-700 border-violet-200',
-    actionLabel: 'Donner mon avis',
-    onAction: () => onOpenEvaluation(etudeIds[0]),
-  };
-}
-
-function createArchivesActivity(
-  count: number,
-  onNavigate: (tab: TabType) => void,
-): DashboardActivityItem | null {
-  if (count === 0) return null;
-  return {
-    id: 'archives',
-    title: 'Des livrables sont disponibles',
-    description: `${count} étude${count > 1 ? 's archivées sont' : ' archivée est'} accessible${count > 1 ? 's' : ''} à tout moment.`,
-    icon: <Archive className="h-4 w-4" />,
-    toneClassName: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    actionLabel: 'Consulter les archives',
-    onAction: () => onNavigate('ARCHIVES'),
-  };
-}
-
-function createWelcomeActivity(onNavigate: (tab: TabType) => void): DashboardActivityItem {
-  return {
-    id: 'welcome',
-    title: 'Votre espace est prêt',
-    description: 'Commencez par créer une première demande pour recevoir des propositions adaptées à votre projet.',
-    icon: <Sparkles className="h-4 w-4" />,
-    toneClassName: 'bg-violet-50 text-violet-700 border-violet-200',
-    actionLabel: 'Voir mes demandes',
-    onAction: () => onNavigate('DEMANDES'),
-  };
-}
-
-function buildActivityFeed(
-  demandesEnCours: Array<{ propositions?: Array<{ statut?: string }> }>,
-  etudesEnCours: EtudeDetailDTO[],
-  etudesArchivees: EtudeDetailDTO[],
-  etudeIdsAEvaluer: number[],
-  onNavigate: (tab: TabType) => void,
-  onOpenEvaluation: (etudeId: number) => void,
-): DashboardActivityItem[] {
-  const demandesAvecPropositions = demandesEnCours.filter(
-    demande => (demande.propositions?.length ?? 0) > 0,
-  ).length;
-  const etudesAvecAction = etudesEnCours.filter(etude => clientMustAct(etude.etat)).length;
-  const activities = [
-    createPropositionsActivity(demandesAvecPropositions, onNavigate),
-    createActionsActivity(etudesAvecAction, onNavigate),
-    createProgressActivity(etudesEnCours.length, onNavigate),
-    createEvaluationActivity(etudeIdsAEvaluer, onOpenEvaluation),
-    createArchivesActivity(etudesArchivees.length, onNavigate),
-  ].filter((activity): activity is DashboardActivityItem => activity !== null);
-
-  return (activities.length > 0 ? activities : [createWelcomeActivity(onNavigate)]).slice(0, 5);
 }
 
 function EtudeCard(props: Readonly<EtudeCardProps>) {
@@ -164,14 +47,17 @@ function EtudeCard(props: Readonly<EtudeCardProps>) {
         <p className="text-xs text-slate-600 line-clamp-2">{demande?.description || 'Aucune description.'}</p>
 
         {bureau && (
-          <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded border border-slate-100 text-[11px]">
-            <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
-            <span className="text-slate-500 font-bold uppercase tracking-wider mr-1">Bureau :</span>
-            <BureauEtudeProfileLink
-              raisonSociale={bureau.raisonSociale || '—'}
-              slug={bureau.profilPublicSlug}
-              returnTo="/client/dashboard"
-            />
+          <div className="rounded border border-slate-100 bg-slate-50 p-2 text-[11px]">
+            <div className="flex items-center gap-1.5">
+              <Building2 className="h-3 w-3 shrink-0 text-slate-400" />
+              <span className="mr-1 font-bold uppercase tracking-wider text-slate-500">Bureau :</span>
+              <BureauEtudeProfileLink raisonSociale={bureau.raisonSociale || '—'} slug={bureau.profilPublicSlug} returnTo="/client/dashboard" />
+            </div>
+            {(bureau.telContact || bureau.adresse) && (
+              <p className="mt-1 text-slate-600">
+                {[bureau.telContact, bureau.adresse?.rue, bureau.adresse?.codePostal, bureau.adresse?.ville].filter(Boolean).join(' · ')}
+              </p>
+            )}
           </div>
         )}
 
@@ -202,11 +88,24 @@ function EtudeCard(props: Readonly<EtudeCardProps>) {
             <p>Rendu : <span className="font-semibold">{formatDelaiWithProjection(prop?.delaiMaxRendu, prop?.delaiProjectionRendu)}</span></p>
           </div>
         </div>
+
+        <div className="grid grid-cols-2 gap-2 text-[11px]">
+          <div className="rounded border border-slate-100 bg-slate-50 p-2">
+            <p className="font-bold uppercase tracking-wider text-slate-400">Intervention prévue</p>
+            <p className="font-semibold text-slate-700">{formatDateLong(etude.dateIntervention) ?? '—'}</p>
+          </div>
+          <div className="rounded border border-slate-100 bg-slate-50 p-2">
+            <p className="font-bold uppercase tracking-wider text-slate-400">Rendu prévu</p>
+            <p className="font-semibold text-slate-700">{formatDateLong(etude.dateRenduPrevue ?? etude.dateRendu) ?? '—'}</p>
+          </div>
+        </div>
+
+        {!archived && <CompactEtudeStepper etat={etude.etat} />}
       </CardContent>
 
       {!!(etude.id) && (
         <CardFooter>
-          <Link to={`/client/etude/${etude.id}`} className="w-full">
+          <Link to={`/client/etude/${etude.id}${archived ? '?source=ARCHIVES' : ''}`} className="w-full">
             {archived ? (
               <Button variant="outline" size="sm" className="w-full group border-green-300 text-green-700 hover:border-green-400 hover:bg-green-50">
                 {evaluationPending ? (
@@ -258,15 +157,13 @@ export default function ClientDashboard() {
   const {
     demandes, etudes, etudeIdsAEvaluer = [], isLoading, error,
     demandePage, activeEtudePage, archivedEtudePage,
-    demandeTotal, activeEtudeTotal, archivedEtudeTotal, completedEtudeTotal,
+    demandeTotal, activeEtudeTotal, archivedEtudeTotal,
     demandeTotalPages, activeEtudeTotalPages, archivedEtudeTotalPages,
     setDemandePage, setActiveEtudePage, setArchivedEtudePage,
-  } = useClientDashboardData();
-  const navigate = useNavigate();
+  } = useOutletContext<ClientDashboardData>();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as TabType | null;
   const [activeTab, setActiveTab] = useState<TabType>(tabParam ?? 'DEMANDES');
-  const contentPanelRef = useRef<HTMLDivElement | null>(null);
 
   // Synchronise l'onglet si le param URL change (ex : retour arrière)
   useEffect(() => {
@@ -285,17 +182,6 @@ export default function ClientDashboard() {
     }
   }, [isLoading, etudes.length, tabParam]);
 
-  const scrollToContentPanel = () => {
-    contentPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  };
-
-  const handleTabChange = (tab: TabType, options?: Readonly<{ scrollToContent?: boolean }>) => {
-    setActiveTab(tab);
-    setSearchParams({ tab }, { replace: true });
-    if (options?.scrollToContent) {
-      scrollToContentPanel();
-    }
-  };
 
   if (isLoading) {
     return (
@@ -309,22 +195,8 @@ export default function ClientDashboard() {
   }
 
   const demandesEnCours = demandes.filter(d => !d.propositions?.some(p => p.statut === 'ACCEPTEE'));
-  const etudesTotales   = activeEtudeTotal + archivedEtudeTotal;
   const etudesArchivees = etudes.filter(e => e.etat === 'PAIEMENT_EFFECTUE');
   const etudesEnCours   = etudes.filter(e => e.etat !== 'PAIEMENT_EFFECTUE');
-  const etudesTerminees = completedEtudeTotal;
-  const navSections: DashboardNavSection[] = [
-    {
-      id: 'pilotage',
-      title: 'Pilotage',
-      defaultExpanded: true,
-      items: [
-        { id: 'DEMANDES', label: 'Mes demandes', count: demandeTotal, icon: <FileText className="w-4 h-4" />, hidden: demandeTotal === 0 },
-        { id: 'ETUDES', label: 'Études en cours', count: activeEtudeTotal, icon: <FlaskConical className="w-4 h-4" /> },
-        { id: 'ARCHIVES', label: 'Études archivées', count: archivedEtudeTotal, icon: <Archive className="w-4 h-4" />, hidden: archivedEtudeTotal === 0 },
-      ],
-    },
-  ];
   const sectionMeta: Record<TabType, { title: string; description: string }> = {
     DEMANDES: {
       title: 'Demandes de devis',
@@ -339,85 +211,23 @@ export default function ClientDashboard() {
       description: 'Retrouvez l historique des missions finalisées et payées.',
     },
   };
-  const activityFeed = buildActivityFeed(
-    demandesEnCours,
-    etudesEnCours,
-    etudesArchivees,
-    etudeIdsAEvaluer,
-    handleTabChange,
-    etudeId => navigate(`/client/etude/${etudeId}`),
-  );
-
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="rounded-2xl border border-blue-100 bg-linear-to-r from-blue-600 via-blue-600 to-cyan-500 p-5 text-white shadow-lg shadow-blue-200/70">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
-              <Sparkles className="h-3.5 w-3.5" />
-              Tableau de bord client
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight">Mon espace projet</h1>
-            <p className="text-sm text-blue-50/95">Pilotez vos demandes, suivez vos études et gardez un oeil sur vos livrables en temps réel.</p>
+            <h1 className="text-2xl font-bold tracking-tight">Mon espace</h1>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Link to="/client/demande/new">
-              <Button size="sm" className="h-9 border border-white/60 bg-white text-blue-700 hover:bg-blue-50">
-                <Plus className="mr-1.5 h-4 w-4" />
-                Nouvelle demande
-              </Button>
-            </Link>
-            {activeTab !== 'ETUDES' && (
-              <button
-                type="button"
-                onClick={() => handleTabChange('ETUDES', { scrollToContent: true })}
-                className="inline-flex h-9 items-center rounded-md border border-white/40 px-3 text-xs font-semibold uppercase tracking-wider text-white transition-colors hover:bg-white/10"
-              >
-                Voir mes études
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <DashboardMetricCard
-            label="Études totales"
-            value={etudesTotales}
-            icon={<Layers3 className="h-4 w-4" />}
-            valueClassName="text-cyan-700"
-          />
-          <DashboardMetricCard
-            label="Études en cours"
-            value={activeEtudeTotal}
-            icon={<FlaskConical className="h-4 w-4" />}
-            valueClassName="text-orange-600"
-          />
-          <DashboardMetricCard
-            label="Études terminées"
-            value={etudesTerminees}
-            icon={<CheckCircle2 className="h-4 w-4" />}
-            valueClassName="text-green-600"
-          />
-          <DashboardMetricCard
-            label="Demandes ouvertes"
-            value={demandeTotal}
-            icon={<FileText className="h-4 w-4" />}
-            valueClassName="text-blue-700"
-          />
+          <Link to="/client/demande/new">
+            <Button size="sm" className="h-9 border border-white/60 bg-white text-blue-700 hover:bg-blue-50">
+              <Plus className="mr-1.5 h-4 w-4" />
+              Nouvelle demande
+            </Button>
+          </Link>
         </div>
       </div>
 
-      <DashboardActivityFeed items={activityFeed} />
-
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-        <DashboardSidebarNav
-          activeItemId={activeTab}
-          onItemChange={(id) => handleTabChange(id as TabType)}
-          sections={navSections}
-        />
-
-        <div ref={contentPanelRef} className="gc-surface-panel min-w-0 flex-1 rounded-2xl p-4 md:p-5">
+      <div className="gc-surface-panel min-w-0 rounded-2xl p-4 md:p-5">
           <div className="mb-4 border-b border-slate-200 pb-3">
             <h2 className="text-base font-semibold text-slate-900">{sectionMeta[activeTab].title}</h2>
             <p className="mt-1 text-sm text-slate-500">{sectionMeta[activeTab].description}</p>
@@ -433,40 +243,51 @@ export default function ClientDashboard() {
               />
             ) : (
               <div className="space-y-4">
-              <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-6 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 {demandesEnCours.map(demande => {
                   const propsCount = demande.propositions?.length || 0;
                   return (
-                    <Card key={demande.id} className="flex flex-col border-slate-200/90 transition-all hover:-translate-y-0.5 hover:shadow-md">
+                    <Card key={demande.id} className="flex flex-col border-slate-200/90">
                       <CardHeader>
                         <div className="flex justify-between items-start">
                           <div className="space-y-1">
-                            <CardTitle className="flex items-center">
+                            <CardTitle className="flex flex-wrap items-center gap-x-1">
                               <MapPin className="w-3.5 h-3.5 mr-1 text-slate-400"/>
-                              {demande.adresseProjet?.ville || 'Ville non spécifiée'}
-                              <span className="text-slate-400 font-normal ml-2 text-xs">({demande.adresseProjet?.codePostal || ''})</span>
+                              {TYPE_LABELS[demande.type ?? 'G0'] ?? demande.type ?? 'Mission'} – {demande.adresseProjet?.ville || 'Ville non spécifiée'}
                             </CardTitle>
-                            <CardDescription className="flex items-center">
-                              <Calendar className="w-3 h-3 mr-1"/>
-                              Réf. #MES-{demande.id}
+                            <CardDescription>
+                              {[demande.adresseProjet?.rue, demande.adresseProjet?.codePostal, demande.adresseProjet?.ville, 'France'].filter(Boolean).join(', ')}
                             </CardDescription>
                           </div>
-                          <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-700">
-                            {demande.type || 'Projet'}
-                          </span>
+                          <span className="shrink-0 text-xs font-semibold text-slate-500">Réf. #MES-{demande.id}</span>
                         </div>
                       </CardHeader>
-                      <CardContent className="pt-3">
-                        <p className="text-xs text-slate-600 line-clamp-2 mb-3">
-                          {demande.description || 'Projet de construction/rénovation sans description détaillée.'}
-                        </p>
-                        <div className="flex items-center text-xs text-slate-500 mb-2">
-                          <Clock className="w-3 h-3 mr-1.5" />
-                          Délai max: {demande.delaiMaxSouhaite ? `${demande.delaiMaxSouhaite} sem` : 'Non précisé'}
+                      <CardContent className="space-y-3 pt-3">
+                        <div className="flex items-center text-xs text-slate-500">
+                          <Clock className="mr-1.5 h-3 w-3" />
+                          Délai souhaité : {demande.delaiMaxSouhaite ? `${demande.delaiMaxSouhaite} sem` : 'Non précisé'}
                         </div>
-                        <div className="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100 mt-3">
-                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Propositions reçues</span>
-                          <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-blue-600 text-white text-[10px] font-bold">{propsCount}</span>
+                        <div>
+                          <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">Propositions reçues ({propsCount})</p>
+                          {propsCount === 0 ? (
+                            <p className="rounded-lg border border-dashed border-slate-300 p-4 text-xs text-slate-500">Aucune proposition reçue.</p>
+                          ) : (
+                            <div className="flex gap-3 overflow-x-auto pb-2" aria-label={`Propositions pour la demande ${demande.id}`}>
+                              {demande.propositions.map((proposition) => (
+                                <Link
+                                  key={proposition.id}
+                                  to={`/client/demande/${demande.id}?proposition=${proposition.id}`}
+                                  className="w-64 shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-3 transition-colors hover:border-blue-300 hover:bg-blue-50"
+                                >
+                                  <p className="truncate text-sm font-semibold text-slate-800">{proposition.bureauEtude?.raisonSociale ?? 'Bureau d’études'}</p>
+                                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-600">
+                                    <span>{proposition.prix == null ? 'Prix non renseigné' : `${proposition.prix} €`}</span>
+                                    <span>{proposition.delaiMaxRendu == null ? 'Délai non renseigné' : `${proposition.delaiMaxRendu} sem`}</span>
+                                  </div>
+                                </Link>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                       <CardFooter>
@@ -495,7 +316,7 @@ export default function ClientDashboard() {
               />
             ) : (
               <div className="space-y-4">
-              <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-6 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 {etudesEnCours.map((etude, index) => (
                   <React.Fragment key={etude.id ?? `etude-${index}`}>
                     <EtudeCard etude={etude} />
@@ -517,7 +338,7 @@ export default function ClientDashboard() {
               />
             ) : (
               <div className="space-y-4">
-              <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-6 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 {etudesArchivees.map((etude, index) => (
                   <React.Fragment key={etude.id ?? `archive-${index}`}>
                     <EtudeCard
@@ -532,7 +353,6 @@ export default function ClientDashboard() {
               </div>
             )
           )}
-        </div>
       </div>
     </div>
   );

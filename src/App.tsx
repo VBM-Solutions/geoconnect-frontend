@@ -8,6 +8,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import MainLayout from './components/layout/MainLayout';
+import { ClientSpaceLayout } from './components/layout/ClientSpaceLayout';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import { ApiInterceptorSetup } from './components/layout/ApiInterceptorSetup';
 import { SessionTimeoutGuard } from './components/layout/SessionTimeoutGuard';
@@ -91,11 +92,13 @@ export default function App() {
 
             {/* Client Routes */}
             <Route element={<ProtectedRoute allowedRoles={['CLIENT']} />}>
-              <Route path="/client/dashboard" element={<ClientDashboard />} />
-              <Route path="/client/demande/new" element={<NewRequest />} />
-              <Route path="/client/demande/:id" element={<ClientRequestDetail />} />
-              <Route path="/client/etude/:id" element={<ClientEtudeDetail />} />
-              <Route path="/client/parametres" element={<ClientParametresPage />} />
+              <Route element={<ClientSpaceLayout />}>
+                <Route path="/client/dashboard" element={<ClientDashboard />} />
+                <Route path="/client/demande/new" element={<NewRequest />} />
+                <Route path="/client/demande/:id" element={<ClientRequestDetail />} />
+                <Route path="/client/etude/:id" element={<ClientEtudeDetail />} />
+                <Route path="/client/parametres" element={<ClientParametresPage />} />
+              </Route>
             </Route>
 
             {/* BE Routes */}

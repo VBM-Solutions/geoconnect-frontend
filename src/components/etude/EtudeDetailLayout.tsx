@@ -8,9 +8,7 @@ import {
   FolderOpen,
   Landmark,
   LayoutList,
-  ListChecks,
   MapPin,
-  Mountain,
   Ruler,
   UserRound,
   XCircle,
@@ -25,23 +23,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { EtudeStatusBadge } from './EtudeStatusBadge';
 import { EtudeStepper } from './EtudeStepper';
 
-export type EtudeSectionId = 'synthese' | 'progression' | 'documents' | 'dates' | 'paiement' | 'technique' | 'intervenants' | 'description';
+export type EtudeSectionId = 'synthese' | 'informations' | 'bureau' | 'progression' | 'documents' | 'dates' | 'paiement' | 'technique' | 'intervenants' | 'description';
 
 export function resolveEtudeSection(section: string | null): EtudeSectionId {
-  switch (section) {
-    case 'calendrier': return 'dates';
-    case 'synthese':
-    case 'progression':
-    case 'documents':
-    case 'dates':
-    case 'paiement':
-    case 'technique':
-    case 'intervenants':
-    case 'description':
-      return section;
-    default:
-      return 'synthese';
+  if (section === 'bureau' || section === 'intervenants') return 'bureau';
+  if (section === 'documents') return 'documents';
+  if (section === 'progression' || section === 'paiement') return 'synthese';
+  if (section === 'informations' || section === 'calendrier' || section === 'dates' || section === 'technique' || section === 'description') return 'description';
+  return 'synthese';
+}
+
+export function resolveEtudeSectionForRole(section: string | null, role: 'CLIENT' | 'BE'): EtudeSectionId {
+  if (role === 'CLIENT') {
+    if (section === 'documents') return 'documents';
+    return resolveEtudeSection(section);
   }
+  return resolveEtudeSection(section);
 }
 
 interface EtudeDetailLayoutProps {
@@ -77,51 +74,35 @@ export function EtudeDetailLayout({
   dateRenduPrevueEditor,
 }: Readonly<EtudeDetailLayoutProps>) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeSection, setActiveSection] = useState<EtudeSectionId>(() => resolveEtudeSection(searchParams.get('section')));
+  const [activeSection, setActiveSection] = useState<EtudeSectionId>(() => resolveEtudeSectionForRole(searchParams.get('section'), etatRole));
   const prop = etude.propositionDevis;
   const demande = prop?.demandeDevis;
   const etat = etude.etat;
   const parcelles = demande?.referencesCadastrales?.length ? demande.referencesCadastrales : [];
   const documentCount = countDocuments(documents);
-  const hasTechnicalData =
-    demande?.superficie != null ||
-    demande?.nombreLot != null ||
-    demande?.delaiMaxSouhaite != null ||
-    demande?.presenceReseaux != null ||
-    demande?.accessibiliteMachines != null ||
-    parcelles.length > 0;
-  const projectTitle = demande?.adresseProjet?.rue || demande?.adresseProjet?.ville || 'Projet geotechnique';
-  const projectPlace = [demande?.adresseProjet?.ville, demande?.adresseProjet?.codePostal].filter(Boolean).join(' ');
   const studyType = demande?.type ? TYPE_LABELS[demande.type] ?? demande.type : 'Etude geotechnique';
+  const projectTitle = `${studyType} – ${demande?.adresseProjet?.ville || 'Ville non spécifiée'}${demande?.adresseProjet?.codePostal ? ` – ${demande.adresseProjet.codePostal}` : ''}`;
+  const projectAddress = [demande?.adresseProjet?.rue, demande?.adresseProjet?.codePostal, demande?.adresseProjet?.ville, 'France'].filter(Boolean).join(', ');
 
   const sections = useMemo(
     () => [
-      { id: 'synthese' as const, label: 'Synthese', icon: ClipboardList },
-      { id: 'progression' as const, label: 'Progression', icon: ListChecks },
+      { id: 'synthese' as const, label: 'Synthèse', icon: ClipboardList },
+      { id: 'description' as const, label: 'Description', icon: FileText },
+      { id: 'bureau' as const, label: etatRole === 'BE' ? 'Client' : 'Bureau d’étude', icon: UserRound },
       { id: 'documents' as const, label: 'Documents', icon: FolderOpen, count: documentCount },
-      { id: 'dates' as const, label: 'Dates', icon: CalendarDays },
-      { id: 'paiement' as const, label: 'Paiement', icon: Landmark },
-      { id: 'technique' as const, label: 'Technique', icon: Mountain, disabled: !hasTechnicalData },
-      { id: 'intervenants' as const, label: etatRole === 'BE' ? 'Client' : 'Bureau', icon: UserRound },
-      {
-        id: 'description' as const,
-        label: 'Description',
-        icon: FileText,
-        disabled: !demande?.description && demande?.presenceReseaux == null && demande?.accessibiliteMachines == null,
-      },
     ],
-    [demande?.accessibiliteMachines, demande?.description, demande?.presenceReseaux, documentCount, etatRole, hasTechnicalData],
+    [documentCount, etatRole],
   );
 
   useEffect(() => {
-    setActiveSection(resolveEtudeSection(searchParams.get('section')));
-  }, [searchParams]);
+    setActiveSection(resolveEtudeSectionForRole(searchParams.get('section'), etatRole));
+  }, [searchParams, etatRole]);
 
   const selectSection = (section: EtudeSectionId) => {
     setActiveSection(section);
     setSearchParams(current => {
       const next = new URLSearchParams(current);
-      const target = section === 'dates' ? 'calendrier' : section;
+      const target = section;
       if (section === 'synthese') next.delete('section');
       else next.set('section', target);
       return next;
@@ -148,9 +129,8 @@ export function EtudeDetailLayout({
             <h1 className="flex flex-wrap items-center gap-x-2 text-2xl font-bold tracking-tight">
               <MapPin className="h-4 w-4 shrink-0 text-white/70" />
               <span>{projectTitle}</span>
-              {projectPlace && <span className="text-sm font-normal text-white/70">{projectPlace}</span>}
             </h1>
-            <p className="mt-1 text-sm text-white/90">{studyType}</p>
+            <p className="mt-1 text-sm text-white/90">{projectAddress} · Réf. #MES-{demande?.id ?? etude.id}</p>
             {parcelles.length > 0 && (
               <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-white/70">
                 <Landmark className="h-2.5 w-2.5 shrink-0" />
@@ -213,9 +193,9 @@ export function EtudeDetailLayout({
             <SectionPanel title="Synthese du dossier">
               <div className="space-y-4">
                 {actionBanner}
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <SummaryMetric label="Statut" value={<EtudeStatusBadge etat={etat} />} />
-                  <SummaryMetric label="Montant" value={prop?.prix == null ? '-' : `${prop.prix} EUR`} />
+                <div className={`grid gap-3 md:grid-cols-2 ${etatRole === 'CLIENT' ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
+                  <SummaryMetric label="Statut" value={<EtudeStatusBadge etat={etat} />} tone={etatRole === 'CLIENT' ? 'status' : undefined} />
+                  {etatRole === 'BE' && <SummaryMetric label="Montant" value={prop?.prix == null ? '-' : `${prop.prix} EUR`} />}
                   <SummaryMetric label="Intervention" value={formatCreneauIntervention(etude.dateIntervention, etude.periodeIntervention) ?? '-'} />
                   <SummaryMetric label="Rendu prevu" value={formatDateLong(etude.dateRenduPrevue) ?? '-'} />
                 </div>
@@ -230,6 +210,36 @@ export function EtudeDetailLayout({
             </SectionPanel>
           )}
 
+          {activeSection === 'description' && (
+            <SectionPanel title="Description">
+              <div className="space-y-5">
+                {demande?.description && (
+                  <div>
+                    <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Description du projet</h3>
+                    <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{demande.description}</p>
+                  </div>
+                )}
+                <TechniqueSection superficie={demande?.superficie} nombreLot={demande?.nombreLot} delaiMaxSouhaite={demande?.delaiMaxSouhaite} parcelles={parcelles} presenceReseaux={demande?.presenceReseaux} accessibiliteMachines={demande?.accessibiliteMachines} />
+                <div>
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Dates</h3>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <InfoTile label="Création de la demande" value={formatDateLong(demande?.createdAt) ?? '-'} icon={<CalendarDays />} />
+                    <InfoTile label="Devis signé" value={formatDateLong(documents?.devisSigne?.createdAt) ?? '-'} icon={<FileText />} />
+                    <InfoTile label="Intervention" value={formatCreneauIntervention(etude.dateIntervention, etude.periodeIntervention) ?? '-'} icon={<CalendarDays />} />
+                    <InfoTile label="Rendu prévu" value={dateRenduPrevueEditor ?? formatDateLong(etude.dateRenduPrevue) ?? '-'} icon={<Clock />} />
+                    <InfoTile label="Rendu du rapport" value={formatDateLong(etude.dateRendu) ?? '-'} icon={<Clock />} />
+                  </div>
+                </div>
+              </div>
+            </SectionPanel>
+          )}
+
+          {activeSection === 'bureau' && (
+            <SectionPanel title={etatRole === 'BE' ? 'Client' : 'Bureau d’étude'}>
+              <div className="max-w-xl">{infoCard}</div>
+            </SectionPanel>
+          )}
+
           {activeSection === 'progression' && (
             <SectionPanel title="Progression du dossier">
               <EtudeStepper etat={etat} datesEtapes={etude.datesEtapes} role={etatRole} renderActions={renderActions} />
@@ -238,7 +248,7 @@ export function EtudeDetailLayout({
 
           {activeSection === 'documents' && (
             <SectionPanel title="Documents">
-              <DocumentsSection documents={documents} />
+              <DocumentsSection documents={documents} clientView={etatRole === 'CLIENT'} />
             </SectionPanel>
           )}
 
@@ -274,31 +284,11 @@ export function EtudeDetailLayout({
                 nombreLot={demande?.nombreLot}
                 delaiMaxSouhaite={demande?.delaiMaxSouhaite}
                 parcelles={parcelles}
-                presenceReseaux={demande?.presenceReseaux}
-                accessibiliteMachines={demande?.accessibiliteMachines}
               />
             </SectionPanel>
           )}
 
-          {activeSection === 'intervenants' && (
-            <SectionPanel title={etatRole === 'BE' ? 'Client commanditaire' : 'Bureau d\'etudes'}>
-              <div className="max-w-xl">{infoCard}</div>
-            </SectionPanel>
-          )}
 
-          {activeSection === 'description' && (
-            <SectionPanel title="Description">
-              <div className="max-w-3xl space-y-4">
-                {demande?.description && (
-                  <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{demande.description}</p>
-                )}
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <InfoTile label="Réseaux sur la parcelle" value={formatTerrainAnswer(demande?.presenceReseaux)} icon={<Mountain />} />
-                  <InfoTile label="Accès pour les machines" value={formatTerrainAnswer(demande?.accessibiliteMachines)} icon={<Mountain />} />
-                </div>
-              </div>
-            </SectionPanel>
-          )}
         </main>
       </div>
     </div>
@@ -314,9 +304,9 @@ function HeaderMetric({ label, value }: Readonly<{ label: string; value: React.R
   );
 }
 
-function SummaryMetric({ label, value }: Readonly<{ label: string; value: React.ReactNode }>) {
+function SummaryMetric({ label, value, tone }: Readonly<{ label: string; value: React.ReactNode; tone?: 'status' }>) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3">
+    <div className={cn('rounded-lg border p-3', tone === 'status' ? 'border-blue-200 bg-blue-50' : 'border-slate-200 bg-white')}>
       <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{label}</p>
       <div className="mt-1 text-sm font-semibold text-slate-800">{value}</div>
     </div>
@@ -372,8 +362,8 @@ function TechniqueSection({
       {superficie != null && <InfoTile label="Superficie" value={`${superficie} m2`} icon={<Ruler />} />}
       {nombreLot != null && <InfoTile label="Nombre de lots" value={nombreLot} icon={<LayoutList />} />}
       {delaiMaxSouhaite != null && <InfoTile label="Delai souhaite" value={`${delaiMaxSouhaite} sem`} icon={<Clock />} />}
-      {presenceReseaux != null && <InfoTile label="Réseaux sur la parcelle" value={formatTerrainAnswer(presenceReseaux)} icon={<Mountain />} />}
-      {accessibiliteMachines != null && <InfoTile label="Accès pour les machines" value={formatTerrainAnswer(accessibiliteMachines)} icon={<Mountain />} />}
+      {presenceReseaux != null && <InfoTile label="Présence de réseaux" value={formatTerrainAnswer(presenceReseaux)} icon={<Landmark />} />}
+      {accessibiliteMachines != null && <InfoTile label="Accès du terrain aux machines" value={formatTerrainAnswer(accessibiliteMachines)} icon={<MapPin />} />}
       {parcelles.length > 0 && (
         <div className="rounded-lg border border-slate-200 bg-white p-3 md:col-span-3">
           <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
@@ -393,12 +383,13 @@ function TechniqueSection({
   );
 }
 
-function formatTerrainAnswer(answer?: TerrainAnswer) {
-  if (answer === 'NE_SAIS_PAS') return 'Ne sais pas';
-  return answer === 'OUI' ? 'Oui' : 'Non';
+function formatTerrainAnswer(answer: TerrainAnswer): string {
+  if (answer === 'OUI') return 'Oui';
+  if (answer === 'NON') return 'Non';
+  return 'Ne sait pas';
 }
 
-function DocumentsSection({ documents }: Readonly<{ documents?: EtudeDocumentsDTO }>) {
+function DocumentsSection({ documents, clientView = false }: Readonly<{ documents?: EtudeDocumentsDTO; clientView?: boolean }>) {
   if (!documents || countDocuments(documents) === 0) {
     return (
       <div className="rounded-lg border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
@@ -409,17 +400,22 @@ function DocumentsSection({ documents }: Readonly<{ documents?: EtudeDocumentsDT
 
   return (
     <div className="space-y-4">
+      {clientView && documents.devisSigne && (
+        <DocumentGroup title="Devis signé">
+          <DocumentList documents={[documents.devisSigne]} showCard={false} />
+        </DocumentGroup>
+      )}
       {documents.documentsDemandeDevis.length > 0 && (
         <DocumentGroup title="Documents de la demande">
           <DocumentList documents={documents.documentsDemandeDevis} showCard={false} />
         </DocumentGroup>
       )}
-      {documents.devisPdf && (
+      {!clientView && documents.devisPdf && (
         <DocumentGroup title="Devis (proposition)">
           <DocumentList documents={[documents.devisPdf]} showCard={false} />
         </DocumentGroup>
       )}
-      {documents.devisSigne && (
+      {!clientView && documents.devisSigne && (
         <DocumentGroup title="Devis signe">
           <DocumentList documents={[documents.devisSigne]} showCard={false} />
         </DocumentGroup>
