@@ -17,6 +17,7 @@ interface DetailPageShellProps {
   readonly children: React.ReactNode;
   readonly className?: string;
   readonly contentClassName?: string;
+  readonly unframedContent?: boolean;
 }
 
 const toneClasses: Record<DetailPageShellTone, string> = {
@@ -36,6 +37,7 @@ export function DetailPageShell({
   children,
   className,
   contentClassName,
+  unframedContent = false,
 }: DetailPageShellProps) {
   return (
     <div className={cn('space-y-6', className)}>
@@ -66,7 +68,11 @@ export function DetailPageShell({
         </div>
       </div>
 
-      <div className={cn('gc-surface-panel min-w-0 rounded-2xl p-4 md:p-5', contentClassName)}>
+      <div className={cn(
+        'min-w-0',
+        !unframedContent && 'gc-surface-panel rounded-2xl p-4 md:p-5',
+        contentClassName,
+      )}>
         {children}
       </div>
     </div>

@@ -18,10 +18,13 @@ import { EvaluationEtudeCard } from '../../components/etude/EvaluationEtudeCard'
 import { BureauEtudeProfileLink } from '../../components/profil-be/BureauEtudeProfileLink';
 import { DevisVersionsCard } from '../../components/etude/DevisVersionsCard';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { enrichirDemande } from '../../api/demandeDevis';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function ClientEtudeDetail() {
   const { id } = useParams<{ id: string }>();
-  const { etude, documents, isLoading, actionLoading, actionKey, error, withAction } = useEtudeDetail(id);
+  const { etude, documents, isLoading, actionLoading, actionKey, error, withAction, refresh } = useEtudeDetail(id);
+  const { toastSuccess } = useToast();
 
   if (isLoading) return <EtudeDetailLoadingSpinner />;
   if (!etude) return <div className="text-center text-slate-500 py-12">Contenu indisponible.</div>;
@@ -110,6 +113,13 @@ export default function ClientEtudeDetail() {
       actionBanner={actionBanner}
       infoCard={infoCard}
       etatRole="CLIENT"
+      onEnrichissement={async payload => {
+        const demandeId = etude.propositionDevis?.demandeDevis?.id;
+        if (demandeId == null) return;
+        await enrichirDemande(demandeId, payload);
+        await refresh();
+        toastSuccess('Les informations de l’étude ont été mises à jour.');
+      }}
       renderActions={() => (
         <ClientStepActions
           etat={etat}

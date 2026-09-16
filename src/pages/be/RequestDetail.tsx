@@ -1,37 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { getDemandeDetail } from '../../api/demandeDevis';
-import { createPropositionDevis } from '../../api/propositionDevis';
+import { createPropositionDevis, modifierPropositionDevis } from '../../api/propositionDevis';
 import { uploadDocument } from '../../api/document';
 import { DemandeDevisDTO, PropositionDevisDTO, BureauEtudesDTO } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { MapPin, Clock, FileCheck, Paperclip, History, X } from 'lucide-react';
+import { ClipboardList, FileCheck, FileText, FolderOpen, History, MapPin, Paperclip, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { useForm } from 'react-hook-form';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { TYPE_LABELS } from '../../constants/labels';
-import { buildDemandeDocuments } from '../../lib/formatters';
-import { DocumentList } from '../../components/etude/DocumentList';
 import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 import { DetailPageShell } from '../../components/ui/DetailPageShell';
+import { DemandeInformationEditor } from '../../components/demande/DemandeInformationEditor';
+import { DemandeDocumentSlots } from '../../components/demande/DemandeDocumentSlots';
+import { DetailSectionPanel } from '../../components/ui/DetailSectionPanel';
+import { cn } from '../../lib/utils';
 
-function formatTerrainAnswer(answer?: DemandeDevisDTO['presenceReseaux']) {
-  if (answer === 'OUI') return 'Oui';
-  if (answer === 'NON') return 'Non';
-  return 'Ne sais pas';
-}
+type RequestSection = 'offre' | 'description' | 'documents';
 
 // ─── Sous-composants ──────────────────────────────────────────────────────────
 
 interface ActivePropositionCardProps {
   prop: PropositionDevisDTO;
   statusConfig: Record<string, { border: string; bg: string; text: string; title: string }>;
+  onEdit?: () => void;
 }
 
-function ActivePropositionCard({ prop, statusConfig }: Readonly<ActivePropositionCardProps>) {
+function ActivePropositionCard({ prop, statusConfig, onEdit }: Readonly<ActivePropositionCardProps>) {
   const config = statusConfig[prop.statut as keyof typeof statusConfig] ?? statusConfig.EN_ATTENTE;
   let statutLabel = 'En attente';
   if (prop.statut === 'ACCEPTEE') statutLabel = 'Acceptée';
@@ -45,6 +44,7 @@ function ActivePropositionCard({ prop, statusConfig }: Readonly<ActivePropositio
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4 text-current space-y-4">
+        {prop.statut === 'EN_ATTENTE' && onEdit && <div className="flex justify-end"><Button variant="outline" onClick={onEdit}>Modifier l’offre</Button></div>}
         <div>
           <span className="block text-[10px] font-bold uppercase mb-1">Montant Estimé</span>
           <span className="font-bold text-2xl font-mono">
@@ -76,6 +76,7 @@ function ActivePropositionCard({ prop, statusConfig }: Readonly<ActivePropositio
 
 interface OfferFormProps {
   isResubmit: boolean;
+  isEditing?: boolean;
   isSubmitting: boolean;
   register: ReturnType<typeof import('react-hook-form').useForm>['register'];
   errors: Record<string, unknown>;
@@ -84,16 +85,29 @@ interface OfferFormProps {
   getFieldValue: (name: string) => unknown;
   onFileChange: (f: File | null) => void;
   onSubmitClick: () => void;
+  onCancel?: () => void;
 }
 
-function OfferForm({ isResubmit, isSubmitting, register, errors, pdfFile, pdfRequiredError, getFieldValue, onFileChange, onSubmitClick }: Readonly<OfferFormProps>) {
+export function getOfferFormTitle(isEditing: boolean, isResubmit: boolean): string {
+  if (isEditing) return 'Modifier l’offre';
+  if (isResubmit) return 'Resoumettre une offre';
+  return 'Formuler une offre';
+}
+
+export function getOfferSubmitLabel(isEditing: boolean, isResubmit: boolean): string {
+  if (isEditing) return 'ENREGISTRER';
+  if (isResubmit) return 'RESOUMETTRE MON OFFRE';
+  return 'SOUMETTRE MON OFFRE';
+}
+
+function OfferForm({ isResubmit, isEditing = false, isSubmitting, register, errors, pdfFile, pdfRequiredError, getFieldValue, onFileChange, onSubmitClick, onCancel }: Readonly<OfferFormProps>) {
   const pdfInputRef = React.useRef<HTMLInputElement>(null);
 
   return (
     <Card className="border-slate-200">
       <CardHeader className="bg-slate-50/50 pb-3 border-b border-slate-100">
         <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-          {isResubmit ? 'Resoumettre une offre' : 'Formuler une offre'}
+          {getOfferFormTitle(isEditing, isResubmit)}
         </CardTitle>
         <CardDescription className="text-[10px]">Déposez votre estimation pour ce projet</CardDescription>
       </CardHeader>
@@ -137,7 +151,7 @@ function OfferForm({ isResubmit, isSubmitting, register, errors, pdfFile, pdfReq
           />
           <div>
             <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-              DEVIS PDF *
+              DEVIS PDF {isEditing ? '(facultatif)' : '*'}
             </span>
             <div className="flex items-center gap-2">
               <label
@@ -169,7 +183,7 @@ function OfferForm({ isResubmit, isSubmitting, register, errors, pdfFile, pdfReq
               ref={pdfInputRef}
               type="file"
               accept="application/pdf"
-              aria-label="Devis PDF obligatoire"
+              aria-label={isEditing ? 'Nouveau devis PDF facultatif' : 'Devis PDF obligatoire'}
               className="hidden"
               onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
             />
@@ -180,9 +194,10 @@ function OfferForm({ isResubmit, isSubmitting, register, errors, pdfFile, pdfReq
             )}
           </div>
         </CardContent>
-        <CardFooter className="bg-slate-50 border-t border-slate-100 py-3">
+        <CardFooter className="gap-2 bg-slate-50 border-t border-slate-100 py-3">
+          {onCancel && <Button type="button" variant="outline" disabled={isSubmitting} className="w-full text-[10px]" onClick={onCancel}>ANNULER</Button>}
           <Button type="button" isLoading={isSubmitting} className="w-full text-[10px]" onClick={onSubmitClick}>
-            {isResubmit ? 'RESOUMETTRE MON OFFRE' : 'SOUMETTRE MON OFFRE'}
+            {getOfferSubmitLabel(isEditing, isResubmit)}
           </Button>
         </CardFooter>
       </form>
@@ -197,6 +212,9 @@ export default function BERequestDetail() {
   const { user } = useAuth();
   const { toastError, toastSuccess } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sectionParam = searchParams.get('section');
+  const activeSection: RequestSection = sectionParam === 'description' || sectionParam === 'documents' ? sectionParam : 'offre';
   const [demande, setDemande] = useState<DemandeDevisDTO | null>(null);
   const [myProposition, setMyProposition] = useState<PropositionDevisDTO | null>(null);
   const [myRefusedPropositions, setMyRefusedPropositions] = useState<PropositionDevisDTO[]>([]);
@@ -207,7 +225,8 @@ export default function BERequestDetail() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfRequiredError, setPdfRequiredError] = useState(false);
-  const { register, handleSubmit, getValues, formState: { errors } } = useForm();
+  const [isEditingProposition, setIsEditingProposition] = useState(false);
+  const { register, handleSubmit, getValues, setValue, formState: { errors } } = useForm();
 
   useEffect(() => {
     async function fetchData() {
@@ -265,6 +284,24 @@ export default function BERequestDetail() {
     }
   };
 
+  const onUpdateProposition = async (data: any) => {
+    if (myProposition?.id == null) return;
+    setIsSubmitting(true);
+    try {
+      const document = pdfFile ? await uploadDocument(pdfFile) : undefined;
+      const updated = await modifierPropositionDevis(myProposition.id, {
+        prix: Number(data.prix), delaiMaxIntervention: Number(data.delaiMaxIntervention),
+        delaiMaxRendu: Number(data.delaiMaxRendu), documentId: document?.id,
+      });
+      setMyProposition(updated);
+      setAllPropositions(items => items.map(item => item.id === updated.id ? updated : item));
+      setIsEditingProposition(false); setPdfFile(null);
+      toastSuccess('Votre proposition a été mise à jour.');
+    } catch (err: any) {
+      toastError(err?.response?.data?.message ?? err?.message ?? 'Impossible de modifier la proposition.');
+    } finally { setIsSubmitting(false); }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center p-12">
@@ -284,7 +321,6 @@ export default function BERequestDetail() {
   const hasAccepted = allPropositions.some(p => p.statut === 'ACCEPTEE');
   // Le formulaire est accessible si aucune prop n'est ACCEPTEE et qu'on n'a pas de prop active (EN_ATTENTE)
   const canSubmit = !hasAccepted && !myProposition;
-  const demandeDocuments = buildDemandeDocuments(demande);
 
   // Onglet de retour : EN_ATTENTE si on a déjà soumis/resoumis, OUVERT sinon
   const backFallback =
@@ -292,9 +328,19 @@ export default function BERequestDetail() {
       ? '/be/dashboard?tab=EN_ATTENTE'
       : '/be/dashboard?tab=OUVERT';
 
+  const selectSection = (section: RequestSection) => {
+    setSearchParams(current => {
+      const next = new URLSearchParams(current);
+      if (section === 'offre') next.delete('section');
+      else next.set('section', section);
+      return next;
+    }, { replace: true });
+  };
+
   return (
     <DetailPageShell
       tone="be"
+      unframedContent
       backTo={backFallback}
       backLabel="Retour aux missions"
       eyebrow={`Mission #MES-${demande.id}`}
@@ -307,21 +353,31 @@ export default function BERequestDetail() {
       )}
     >
 
-      <div className="flex flex-col lg:flex-row gap-4">
-        {/* Colonne Principale */}
-        <div className="flex-1 space-y-4">
-          <Card className="bg-white">
-            <CardHeader className="border-b border-slate-100 pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm flex items-center bg-blue-100 text-blue-800 px-2 py-0.5 rounded uppercase tracking-wider">
-                  RÉF: #MES-{demande.id}
-                </CardTitle>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 uppercase border border-slate-200">
-                  {demande.type ? TYPE_LABELS[demande.type] ?? demande.type : 'Projet Standard'}
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[230px_minmax(0,1fr)]">
+        <aside className="xl:sticky xl:top-4 xl:self-start">
+          <nav className="flex gap-2 overflow-x-auto pb-1 xl:flex-col xl:overflow-visible xl:pb-0">
+            {([
+              { id: 'offre' as const, label: 'Offre', icon: ClipboardList },
+              { id: 'description' as const, label: 'Description', icon: FileText },
+              { id: 'documents' as const, label: 'Documents', icon: FolderOpen },
+            ]).map(section => {
+              const Icon = section.icon;
+              return (
+                <button key={section.id} type="button" onClick={() => selectSection(section.id)} className={cn(
+                  'flex min-h-10 shrink-0 items-center gap-2 rounded-md border px-3 text-left text-xs font-semibold transition-colors xl:w-full',
+                  activeSection === section.id ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-transparent bg-white text-slate-600 hover:border-slate-200 hover:bg-slate-50',
+                )}>
+                  <Icon className="h-4 w-4" />{section.label}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        <main className="min-w-0">
+          {activeSection === 'description' && (
+            <DetailSectionPanel title="Description de la demande">
+              <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 bg-slate-50 rounded border border-slate-100">
                   <h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center">
@@ -335,69 +391,21 @@ export default function BERequestDetail() {
                     <p className="text-xs text-slate-500 mt-0.5">{demande.adresseProjet.rue}</p>
                   )}
                 </div>
-                <div className="p-3 bg-slate-50 rounded border border-slate-100">
-                  <h4 className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center">
-                    <Clock className="w-3 h-3 mr-1" /> Échéance
-                  </h4>
-                  <p className="text-xs font-semibold text-slate-700">
-                    {demande.delaiMaxSouhaite == null
-                        ? 'Flexible'
-                        : `${demande.delaiMaxSouhaite} sem`}
-                  </p>
-                </div>
               </div>
-
-              {/* Infos complémentaires */}
-              <div className="grid grid-cols-3 gap-2">
-                {demande.superficie && (
-                  <div className="p-2 bg-slate-50 rounded border border-slate-100 text-center">
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Superficie</span>
-                    <span className="text-xs font-semibold text-slate-700">{demande.superficie} m²</span>
-                  </div>
-                )}
-                {demande.nombreLot && (
-                  <div className="p-2 bg-slate-50 rounded border border-slate-100 text-center">
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Lots</span>
-                    <span className="text-xs font-semibold text-slate-700">{demande.nombreLot}</span>
-                  </div>
-                )}
-                {demande.referenceCadastrale && (
-                  <div className="p-2 bg-slate-50 rounded border border-slate-100 text-center">
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Cadastre</span>
-                    <span className="text-xs font-semibold text-slate-700">{demande.referenceCadastrale}</span>
-                  </div>
-                )}
+              <DemandeInformationEditor demande={demande} editable={false} onSave={async () => undefined} />
               </div>
+            </DetailSectionPanel>
+          )}
 
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="rounded border border-slate-100 bg-slate-50 p-3">
-                  <span className="block text-[10px] font-bold uppercase text-slate-400">Présence de réseaux sur la parcelle</span>
-                  <span className="mt-1 block text-xs font-semibold text-slate-700">
-                    {formatTerrainAnswer(demande.presenceReseaux)}
-                  </span>
-                </div>
-                <div className="rounded border border-slate-100 bg-slate-50 p-3">
-                  <span className="block text-[10px] font-bold uppercase text-slate-400">Accès du terrain pour des machines</span>
-                  <span className="mt-1 block text-xs font-semibold text-slate-700">
-                    {formatTerrainAnswer(demande.accessibiliteMachines)}
-                  </span>
-                </div>
-              </div>
+          {activeSection === 'documents' && (
+            <DetailSectionPanel title="Documents du projet">
+              <DemandeDocumentSlots demande={demande} editable={false} onSave={async () => undefined} />
+            </DetailSectionPanel>
+          )}
 
-              <div>
-                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Description du besoin</h4>
-                <p className="text-xs text-slate-600 leading-relaxed bg-white p-3 rounded border border-slate-200 shadow-sm whitespace-pre-wrap">
-                  {demande.description || 'Description non fournie par le client.'}
-                </p>
-              </div>
-
-              <DocumentList documents={demandeDocuments} />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Colonne Latérale: Actions / Proposition */}
-        <div className="w-full lg:w-80 space-y-4">
+          {activeSection === 'offre' && (
+            <DetailSectionPanel title="Mon offre">
+              <div className="space-y-4">
           {/* Historique des offres refusées */}
           {myRefusedPropositions.length > 0 && (
             <Card className="border-slate-200 shadow-sm">
@@ -432,9 +440,15 @@ export default function BERequestDetail() {
               </CardContent>
             </Card>
           )}
-          {myProposition && (
-            <ActivePropositionCard prop={myProposition} statusConfig={statusConfig} />
+          {myProposition && !isEditingProposition && (
+            <ActivePropositionCard prop={myProposition} statusConfig={statusConfig} onEdit={() => {
+              setValue('prix', myProposition.prix);
+              setValue('delaiMaxIntervention', myProposition.delaiMaxIntervention);
+              setValue('delaiMaxRendu', myProposition.delaiMaxRendu);
+              setIsEditingProposition(true);
+            }} />
           )}
+          {myProposition?.statut === 'EN_ATTENTE' && isEditingProposition && <OfferForm isResubmit={false} isEditing isSubmitting={isSubmitting} register={register} errors={errors} pdfFile={pdfFile} pdfRequiredError={false} getFieldValue={getValues} onFileChange={setPdfFile} onSubmitClick={() => handleSubmit(onUpdateProposition)()} onCancel={() => { setIsEditingProposition(false); setPdfFile(null); }} />}
           {canSubmit && (
             <OfferForm
               isResubmit={myRefusedPropositions.length > 0}
@@ -456,7 +470,10 @@ export default function BERequestDetail() {
               }}
             />
           )}
-        </div>
+              </div>
+            </DetailSectionPanel>
+          )}
+        </main>
       </div>
 
       {showConfirmModal && (

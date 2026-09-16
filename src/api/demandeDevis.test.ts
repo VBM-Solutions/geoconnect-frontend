@@ -8,13 +8,16 @@ import {
   getOpenDemandesClientPaginated,
   getDemandeDetail,
   getBureauEtudeWorkItemsPaginated,
+  enrichirDemande,
 } from './demandeDevis';
+import type { EnrichissementDemandeDTO } from '../types';
 
 vi.mock('./index', () => ({
   default: {
     get:    vi.fn(),
     post:   vi.fn(),
     put:    vi.fn(),
+    patch:  vi.fn(),
     delete: vi.fn(),
   },
 }));
@@ -83,6 +86,15 @@ describe('updateDemandeDevis', () => {
     (api.put as any).mockRejectedValueOnce(new Error('Serveur KO'));
 
     await expect(updateDemandeDevis(fakeDemande as any)).rejects.toThrow('Serveur KO');
+  });
+});
+
+describe('enrichirDemande', () => {
+  it('appelle le PATCH ciblé et retourne la demande enrichie', async () => {
+    const payload = { referencesCadastrales: [], presenceReseaux: 'OUI', accessibiliteMachines: 'NON' } satisfies EnrichissementDemandeDTO;
+    (api.patch as any).mockResolvedValueOnce({ data: fakeDemande });
+    await expect(enrichirDemande(7, payload)).resolves.toEqual(fakeDemande);
+    expect(api.patch).toHaveBeenCalledWith('/demandeDevis/7/informations', payload);
   });
 });
 

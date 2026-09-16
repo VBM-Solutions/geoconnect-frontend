@@ -99,7 +99,7 @@ export function ProposalCarousel({
             <iframe
               title={`Prévisualisation du devis de ${proposal.bureauEtude?.raisonSociale ?? 'bureau d’études'}`}
               src={previewUrl}
-              className="h-80 w-full"
+              className="h-[clamp(42rem,85vh,70rem)] w-full"
             />
           ) : proposal.documentId && previewError ? (
             <p className="p-8 text-center text-sm text-red-700" role="alert">Prévisualisation du devis indisponible.</p>

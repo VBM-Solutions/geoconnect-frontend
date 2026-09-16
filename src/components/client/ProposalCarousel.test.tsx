@@ -1,7 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProposalCarousel } from './ProposalCarousel';
+import api from '../../api';
+
+vi.mock('../../api', () => ({ default: { get: vi.fn() } }));
 
 const proposals = [
   { id: 1, statut: 'EN_ATTENTE' as const, prix: 1200, delaiMaxIntervention: 2, delaiMaxRendu: 3, documentId: 11, bureauEtude: { id: 1, raisonSociale: 'Premier bureau', profilPublicSlug: 'premier-bureau' } },
@@ -20,6 +23,10 @@ function renderCarousel(initialProposalId?: number) {
 }
 
 describe('ProposalCarousel', () => {
+  beforeEach(() => {
+    vi.mocked(api.get).mockReset().mockRejectedValue(new Error('Aperçu indisponible'));
+  });
+
   it('ne rend rien sans proposition', () => {
     const { container } = render(<ProposalCarousel proposals={[]} returnTo="/" onAccept={vi.fn()} onRefuse={vi.fn()} />);
     expect(container).toBeEmptyDOMElement();
@@ -48,6 +55,16 @@ describe('ProposalCarousel', () => {
     expect(screen.getByText(/2 sem/)).toBeTruthy();
     expect(screen.getByText(/3 sem/)).toBeTruthy();
     expect(screen.getByRole('link', { name: /consulter la fiche de premier bureau/i })).toHaveAttribute('href', '/bureaux-etudes/premier-bureau?retour=%2Fclient%2Fdemande%2F12');
+  });
+
+  it('dimensionne l’aperçu pour afficher une page complète', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: new Blob(['pdf']) });
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:devis');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+
+    renderCarousel();
+
+    expect(await screen.findByTitle('Prévisualisation du devis de Premier bureau')).toHaveClass('h-[clamp(42rem,85vh,70rem)]');
   });
 
   it('affiche les états terminaux sans actions', () => {

@@ -8,7 +8,7 @@ import {
   getPropositionDevisByBureauId,
   accepterPropositionDevis,
   refuserPropositionDevis,
-  deletePropositionDevis,
+  deletePropositionDevis, modifierPropositionDevis,
 } from './propositionDevis';
 
 vi.mock('./index', () => ({
@@ -125,6 +125,15 @@ describe('deletePropositionDevis', () => {
     (api.delete as any).mockResolvedValueOnce({});
     await deletePropositionDevis(5);
     expect(api.delete).toHaveBeenCalledWith('/propositionDevis/5');
+  });
+});
+
+describe('modifierPropositionDevis', () => {
+  it('appelle le PATCH de modification', async () => {
+    const payload = { prix: 1200, delaiMaxIntervention: 2, delaiMaxRendu: 4 };
+    (api.patch as any).mockResolvedValueOnce({ data: fakeProposition });
+    await expect(modifierPropositionDevis(5, payload)).resolves.toEqual(fakeProposition);
+    expect(api.patch).toHaveBeenCalledWith('/propositionDevis/5', payload);
   });
 });
 

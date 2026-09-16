@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import BERequestDetail from './RequestDetail';
+import BERequestDetail, { getOfferFormTitle, getOfferSubmitLabel } from './RequestDetail';
 import * as demandeDevisApi from '../../api/demandeDevis';
 import * as propositionDevisApi from '../../api/propositionDevis';
 import * as bureauEtudeApi from '../../api/bureauEtude';
@@ -62,6 +62,17 @@ function renderRequestDetail(demandeId = '1') {
   );
 }
 
+describe('libellés du formulaire d’offre', () => {
+  it.each([
+    [true, false, 'Modifier l’offre', 'ENREGISTRER'],
+    [false, true, 'Resoumettre une offre', 'RESOUMETTRE MON OFFRE'],
+    [false, false, 'Formuler une offre', 'SOUMETTRE MON OFFRE'],
+  ])('calcule les libellés selon édition=%s et resoumission=%s', (isEditing, isResubmit, title, submitLabel) => {
+    expect(getOfferFormTitle(isEditing, isResubmit)).toBe(title);
+    expect(getOfferSubmitLabel(isEditing, isResubmit)).toBe(submitLabel);
+  });
+});
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('BERequestDetail — rendu initial', () => {
@@ -100,6 +111,7 @@ describe('BERequestDetail — rendu initial', () => {
   });
 
   it('affiche les noms de téléchargement calculés par le backend', async () => {
+    const user = userEvent.setup();
     (demandeDevisApi.getDemandeDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
       demande: { ...MOCK_DEMANDE, documentsDevis: [
         { id: 12, nomTelechargement: 'DUPONT_JEAN-G1_ES_PGC-DOCS_CLIENT_1.pdf' },
@@ -109,17 +121,33 @@ describe('BERequestDetail — rendu initial', () => {
 
     renderRequestDetail();
 
+    await user.click(await screen.findByRole('button', { name: 'Documents' }));
     expect(await screen.findByText('DUPONT_JEAN-G1_ES_PGC-DOCS_CLIENT_1.pdf')).toBeTruthy();
     expect(screen.getByText('DUPONT_JEAN-G1_ES_PGC-DOCS_CLIENT_2.png')).toBeTruthy();
   });
 
   it('affiche les conditions d’intervention communiquées par le client', async () => {
+    const user = userEvent.setup();
     renderRequestDetail();
 
+    await user.click(await screen.findByRole('button', { name: 'Description' }));
     expect(await screen.findByText('Présence de réseaux sur la parcelle')).toBeTruthy();
     expect(screen.getByText('Oui')).toBeTruthy();
     expect(screen.getByText('Accès du terrain pour des machines')).toBeTruthy();
     expect(screen.getByText('Non')).toBeTruthy();
+  });
+
+  it('répartit l’offre, la description et les documents dans trois onglets homogènes', async () => {
+    const user = userEvent.setup();
+    renderRequestDetail();
+
+    expect(await screen.findByRole('heading', { name: 'Mon offre' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Offre' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Description' }));
+    expect(screen.getByRole('heading', { name: 'Description de la demande' }).parentElement?.parentElement)
+      .toHaveClass('rounded-lg', 'border', 'bg-white');
+    await user.click(screen.getByRole('button', { name: 'Documents' }));
+    expect(screen.getByRole('heading', { name: 'Documents du projet' })).toBeTruthy();
   });
 });
 

@@ -1,24 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { getDemandeDetail, updateDemandeDevis } from '../../api/demandeDevis';
+import { enrichirDemande, getDemandeDetail } from '../../api/demandeDevis';
 import { accepterPropositionDevis, refuserPropositionDevis } from '../../api/propositionDevis';
-import { DemandeDevisDTO, PropositionDevisDTO } from '../../types';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
+import { DemandeDevisDTO, EnrichissementDemandeDTO, PropositionDevisDTO } from '../../types';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
-import { MapPin, Clock, FileText } from 'lucide-react';
+import { ClipboardList, Clock, FileText, FolderOpen } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
-import { buildDemandeDocuments } from '../../lib/formatters';
-import { DocumentList } from '../../components/etude/DocumentList';
 import { DetailPageShell } from '../../components/ui/DetailPageShell';
 import { ProposalCarousel } from '../../components/client/ProposalCarousel';
 import { TYPE_LABELS } from '../../constants/labels';
-import { uploadDocuments } from '../../api/document';
+import { DemandeInformationEditor } from '../../components/demande/DemandeInformationEditor';
+import { DemandeDocumentSlots } from '../../components/demande/DemandeDocumentSlots';
+import { cn } from '../../lib/utils';
+import { DetailSectionPanel } from '../../components/ui/DetailSectionPanel';
+
+type RequestSection = 'offres' | 'description' | 'documents';
 
 export default function ClientRequestDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const selectedPropositionId = Number(searchParams.get('proposition')) || null;
+  const sectionParam = searchParams.get('section');
+  const activeSection: RequestSection = sectionParam === 'description' || sectionParam === 'documents' ? sectionParam : 'offres';
   const { toastError, toastSuccess } = useToast();
   const [demande, setDemande] = useState<DemandeDevisDTO | null>(null);
   const [propositions, setPropositions] = useState<PropositionDevisDTO[]>([]);
@@ -27,7 +31,6 @@ export default function ClientRequestDetail() {
   const [confirmAcceptId, setConfirmAcceptId] = useState<number | null>(null);
   const [confirmRefuseId, setConfirmRefuseId] = useState<number | null>(null);
   const [acceptedEtudeId, setAcceptedEtudeId] = useState<number | null>(null);
-  const [isAttachingDocuments, setIsAttachingDocuments] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -79,23 +82,25 @@ export default function ClientRequestDetail() {
     }
   };
 
-  const handleAttachDocuments = async (files: FileList | null) => {
-    if (!demande || !files?.length) return;
-    setIsAttachingDocuments(true);
+  const handleEnrichment = async (payload: EnrichissementDemandeDTO) => {
+    if (demande?.id == null) return;
     try {
-      const uploadedIds = await uploadDocuments(Array.from(files));
-      await updateDemandeDevis({
-        ...demande,
-        docsDevisIds: [...(demande.docsDevisIds ?? []), ...uploadedIds],
-      });
-      const refreshed = await getDemandeDetail(demande.id!);
-      setDemande(refreshed.demande);
-      toastSuccess('Documents ajoutés à la demande.');
+      const updated = await enrichirDemande(demande.id, payload);
+      setDemande(updated);
+      toastSuccess('Les informations de la demande ont été mises à jour.');
     } catch (err: any) {
-      toastError(err?.response?.data?.message ?? err?.message ?? 'Impossible d’ajouter les documents.');
-    } finally {
-      setIsAttachingDocuments(false);
+      toastError(err?.response?.data?.message ?? err?.message ?? 'Impossible de mettre à jour la demande.');
+      throw err;
     }
+  };
+
+  const selectSection = (section: RequestSection) => {
+    setSearchParams(current => {
+      const next = new URLSearchParams(current);
+      if (section === 'offres') next.delete('section');
+      else next.set('section', section);
+      return next;
+    }, { replace: true });
   };
 
   if (isLoading) {
@@ -110,10 +115,10 @@ export default function ClientRequestDetail() {
     return <div>Contenu indisponible.</div>;
   }
 
-  const demandeDocuments = buildDemandeDocuments(demande);
   return (
     <DetailPageShell
       tone="client"
+      unframedContent
       backTo="/client/dashboard?tab=DEMANDES"
       backLabel="Retour aux demandes"
       eyebrow={`Demande #MES-${demande.id}`}
@@ -125,103 +130,42 @@ export default function ClientRequestDetail() {
       )}
     >
 
-      <div className="flex min-w-0 flex-col gap-4 md:flex-row">
-        
-        {/* Colonne Demande */}
-        <div className="w-full md:w-[320px] space-y-4">
-          <Card className="bg-slate-50 border-slate-200">
-            <CardHeader className="pb-2 border-b border-slate-200">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center">
-                <FileText className="w-3 h-3 mr-1.5" /> Fiche Projet
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-xs pt-4">
-              <div>
-                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Localisation</span>
-                <span className="font-semibold text-slate-800 flex items-center">
-                  <MapPin className="w-3 h-3 mr-1 text-slate-400"/>
-                  {demande.adresseProjet?.ville} ({demande.adresseProjet?.codePostal})
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Type</span>
-                  <span className="font-semibold bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-sm text-[10px]">
-                    {demande.type || 'Standard'}
-                  </span>
-                </div>
-                {demande.delaiMaxSouhaite && (
-                  <div>
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Délai Max Souhaité</span>
-                    <span className="font-semibold text-slate-800">
-                      {demande.delaiMaxSouhaite} sem
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Surface</span>
-                  <span className="font-semibold text-slate-800">{demande.superficie == null ? 'Non précisée' : `${demande.superficie} m²`}</span>
-                </div>
-                <div>
-                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Nombre de lots</span>
-                  <span className="font-semibold text-slate-800">{demande.nombreLot ?? 'Non précisé'}</span>
-                </div>
-              </div>
-              <div>
-                <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Références cadastrales</span>
-                <span className="font-semibold text-slate-800">
-                  {demande.referencesCadastrales?.length ? demande.referencesCadastrales.join(', ') : demande.referenceCadastrale || 'Non précisées'}
-                </span>
-              </div>
-              <div>
-                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Description</span>
-                <p className="text-slate-600 bg-white p-2.5 rounded border border-slate-200 shadow-sm whitespace-pre-wrap leading-relaxed">
-                  {demande.description || '...'}
-                </p>
-              </div>
-              <DocumentList documents={demandeDocuments} allowDownload={false} />
-              <label className="inline-flex cursor-pointer items-center rounded border border-blue-200 bg-blue-50 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-blue-700 hover:bg-blue-100">
-                {isAttachingDocuments ? 'Ajout en cours…' : 'Attacher des documents'}
-                <input
-                  type="file"
-                  multiple
-                  className="sr-only"
-                  disabled={isAttachingDocuments}
-                  onChange={event => handleAttachDocuments(event.target.files)}
-                />
-              </label>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Colonne Propositions */}
-        <div className="flex-1 space-y-4">
-          <div className="bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h2 className="font-bold text-slate-800 text-sm">Offres Reçues ({propositions.length})</h2>
-            </div>
-            
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[230px_minmax(0,1fr)]">
+        <aside className="xl:sticky xl:top-4 xl:self-start">
+          <nav className="flex gap-2 overflow-x-auto pb-1 xl:flex-col xl:overflow-visible xl:pb-0">
+            {([
+              { id: 'offres' as const, label: 'Offres reçues', icon: ClipboardList },
+              { id: 'description' as const, label: 'Description', icon: FileText },
+              { id: 'documents' as const, label: 'Documents', icon: FolderOpen },
+            ]).map(section => {
+              const Icon = section.icon;
+              return <button key={section.id} type="button" onClick={() => selectSection(section.id)} className={cn('flex min-h-10 shrink-0 items-center gap-2 rounded-md border px-3 text-left text-xs font-semibold transition-colors xl:w-full', activeSection === section.id ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-transparent bg-white text-slate-600 hover:border-slate-200 hover:bg-slate-50')}><Icon className="h-4 w-4" />{section.label}</button>;
+            })}
+          </nav>
+        </aside>
+        <main className="min-w-0">
+          {activeSection === 'offres' && (
+          <DetailSectionPanel title={`Offres Reçues (${propositions.length})`}>
             {propositions.length === 0 ? (
-              <div className="text-center p-12 bg-white">
+              <div className="bg-white p-8 text-center">
                 <Clock className="w-8 h-8 text-slate-300 mx-auto mb-3" />
                 <p className="text-xs text-slate-500 font-medium">En attente des retours géotechniques.</p>
               </div>
             ) : (
-              <div className="p-4">
-                <ProposalCarousel
-                  proposals={propositions}
-                  initialProposalId={selectedPropositionId}
-                  returnTo={`/client/demande/${id}`}
-                  processingId={isProcessing}
-                  onAccept={setConfirmAcceptId}
-                  onRefuse={setConfirmRefuseId}
-                />
-              </div>
+              <ProposalCarousel
+                proposals={propositions}
+                initialProposalId={selectedPropositionId}
+                returnTo={`/client/demande/${id}`}
+                processingId={isProcessing}
+                onAccept={setConfirmAcceptId}
+                onRefuse={setConfirmRefuseId}
+              />
             )}
-          </div>
-        </div>
+          </DetailSectionPanel>
+          )}
+          {activeSection === 'description' && <DetailSectionPanel title="Description de la demande"><DemandeInformationEditor demande={demande} editable onSave={handleEnrichment} /></DetailSectionPanel>}
+          {activeSection === 'documents' && <DetailSectionPanel title="Documents du projet"><DemandeDocumentSlots demande={demande} editable onSave={handleEnrichment} /></DetailSectionPanel>}
+        </main>
       </div>
 
       {confirmAcceptId !== null && (

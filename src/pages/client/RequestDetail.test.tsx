@@ -1,18 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import ClientRequestDetail from './RequestDetail';
-import { getDemandeDetail, updateDemandeDevis } from '../../api/demandeDevis';
-import { uploadDocuments } from '../../api/document';
+import { enrichirDemande, getDemandeDetail } from '../../api/demandeDevis';
+import { uploadDocument } from '../../api/document';
 import { accepterPropositionDevis } from '../../api/propositionDevis';
 
 vi.mock('../../api/demandeDevis', () => ({
   getDemandeDetail: vi.fn(),
-  updateDemandeDevis: vi.fn(),
+  enrichirDemande: vi.fn(),
 }));
 
-vi.mock('../../api/document', () => ({ uploadDocuments: vi.fn() }));
+vi.mock('../../api/document', () => ({ uploadDocument: vi.fn(), openDocument: vi.fn() }));
 
 vi.mock('../../api/propositionDevis', () => ({
   getPropositionDevisByDemandeId: vi.fn(),
@@ -135,6 +135,7 @@ describe('ClientRequestDetail — identité du bureau', () => {
   });
 
   it('affiche les caractéristiques cadastrales du projet', async () => {
+    const user = userEvent.setup();
     vi.mocked(getDemandeDetail).mockResolvedValue({ demande: {
       id: 12,
       superficie: 450,
@@ -145,6 +146,9 @@ describe('ClientRequestDetail — identité du bureau', () => {
 
     renderPage();
 
+    expect(await screen.findByRole('button', { name: 'Offres reçues' })).toBeInTheDocument();
+    expect(screen.queryByText('450 m²')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Description' }));
     expect(await screen.findByText('450 m²')).toBeTruthy();
     expect(screen.getByText('2')).toBeTruthy();
     expect(screen.getByText('AB 42, AC 7')).toBeTruthy();
@@ -152,19 +156,34 @@ describe('ClientRequestDetail — identité du bureau', () => {
 
   it('ajoute des documents sans proposer leur téléchargement', async () => {
     const user = userEvent.setup();
-    vi.mocked(uploadDocuments).mockResolvedValue([91]);
-    vi.mocked(updateDemandeDevis).mockResolvedValue(undefined);
-    vi.mocked(getDemandeDetail)
-      .mockResolvedValueOnce({ demande: { id: 12, clientId: 4, type: 'G2_AVP', adresseProjet: { rue: '1 rue Test', ville: 'Nantes', codePostal: '44000' }, docsDevisIds: [] }, propositions: [], bureauEtudeId: null })
-      .mockResolvedValueOnce({ demande: { id: 12, clientId: 4, type: 'G2_AVP', adresseProjet: { rue: '1 rue Test', ville: 'Nantes', codePostal: '44000' }, docsDevisIds: [91], documentsDevis: [{ id: 91, nomTelechargement: 'plan.pdf' }] }, propositions: [], bureauEtudeId: null });
+    vi.mocked(uploadDocument).mockResolvedValue({ id: 91, nomFichierOriginal: 'plan.pdf' });
+    const initial = { id: 12, clientId: 4, type: 'G2_AVP' as const, adresseProjet: { rue: '1 rue Test', ville: 'Nantes', codePostal: '44000' }, docsDevisIds: [], presenceReseaux: 'NE_SAIS_PAS' as const, accessibiliteMachines: 'NE_SAIS_PAS' as const };
+    vi.mocked(getDemandeDetail).mockResolvedValue({ demande: initial, propositions: [], bureauEtudeId: null });
+    vi.mocked(enrichirDemande).mockResolvedValue({ ...initial, docsDevisIds: [91], documentsDevis: [{ id: 91, nomFichierOriginal: 'plan.pdf', categorieDemande: 'PLAN_SITUATION' }] });
     renderPage();
 
-    const input = await screen.findByLabelText(/attacher des documents/i);
+    await user.click(await screen.findByRole('button', { name: 'Documents' }));
+    await user.click(await screen.findByRole('button', { name: 'Ajouter — Plan de situation' }));
+    const input = screen.getByLabelText('Fichier document');
     await user.upload(input, new File(['plan'], 'plan.pdf', { type: 'application/pdf' }));
 
-    await waitFor(() => expect(uploadDocuments).toHaveBeenCalledTimes(1));
-    expect(updateDemandeDevis).toHaveBeenCalledWith(expect.objectContaining({ docsDevisIds: [91] }));
+    await waitFor(() => expect(uploadDocument).toHaveBeenCalledTimes(1));
+    expect(enrichirDemande).toHaveBeenCalledWith(12, expect.objectContaining({ documentsDemande: [expect.objectContaining({ documentId: 91, categorie: 'PLAN_SITUATION' })] }));
     expect(await screen.findByText('plan.pdf')).toBeTruthy();
     expect(screen.queryByTitle('Télécharger')).toBeNull();
+  });
+
+  it('n’affiche l’édition que dans l’onglet Description', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getDemandeDetail).mockResolvedValue({ demande: { id: 12, adresseProjet: { ville: 'Nantes' } }, propositions: [], bureauEtudeId: null });
+    renderPage();
+    expect(await screen.findByRole('button', { name: 'Offres reçues' })).toBeInTheDocument();
+    expect(screen.getByText('Offres Reçues (0)')).toBeInTheDocument();
+    expect(screen.queryByText('Description de la demande')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Modifier' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Description' }));
+    expect(screen.getByRole('heading', { name: 'Description de la demande' }).parentElement?.parentElement)
+      .toHaveClass('rounded-lg', 'border', 'bg-white');
+    expect(screen.getByRole('button', { name: 'Modifier' })).toBeInTheDocument();
   });
 });
