@@ -13,7 +13,7 @@ import {
   UserRound,
   XCircle,
 } from 'lucide-react';
-import { EtudeDetailDTO, EtudeDocumentsDTO, TerrainAnswer } from '../../types';
+import { DemandeDevisDTO, EnrichissementDemandeDTO, EtudeDetailDTO, EtudeDocumentsDTO, TerrainAnswer } from '../../types';
 import { TYPE_LABELS } from '../../constants/labels';
 import { formatCreneauIntervention, formatDateLong } from '../../lib/formatters';
 import { cn } from '../../lib/utils';
@@ -22,6 +22,9 @@ import { BackButton } from '../ui/BackButton';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { EtudeStatusBadge } from './EtudeStatusBadge';
 import { EtudeStepper } from './EtudeStepper';
+import { DemandeInformationEditor } from '../demande/DemandeInformationEditor';
+import { DemandeDocumentSlots } from '../demande/DemandeDocumentSlots';
+import { DetailSectionPanel } from '../ui/DetailSectionPanel';
 
 export type EtudeSectionId = 'synthese' | 'informations' | 'bureau' | 'progression' | 'documents' | 'dates' | 'paiement' | 'technique' | 'intervenants' | 'description';
 
@@ -59,6 +62,7 @@ interface EtudeDetailLayoutProps {
   renderActions: () => React.ReactNode;
   /** Editeur de la date de rendu prevue a afficher dans la section Dates (optionnel, BE uniquement) */
   dateRenduPrevueEditor?: React.ReactNode;
+  onEnrichissement?: (payload: EnrichissementDemandeDTO) => Promise<void>;
 }
 
 export function EtudeDetailLayout({
@@ -72,6 +76,7 @@ export function EtudeDetailLayout({
   etatRole,
   renderActions,
   dateRenduPrevueEditor,
+  onEnrichissement,
 }: Readonly<EtudeDetailLayoutProps>) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState<EtudeSectionId>(() => resolveEtudeSectionForRole(searchParams.get('section'), etatRole));
@@ -154,7 +159,7 @@ export function EtudeDetailLayout({
         </div>
       )}
 
-      <div className="gc-surface-panel grid grid-cols-1 gap-4 rounded-2xl p-4 md:p-5 xl:grid-cols-[230px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[230px_minmax(0,1fr)]">
         <aside className="xl:sticky xl:top-4 xl:self-start">
           <nav className="flex gap-2 overflow-x-auto pb-1 xl:flex-col xl:overflow-visible xl:pb-0">
             {sections.map((section) => {
@@ -213,13 +218,7 @@ export function EtudeDetailLayout({
           {activeSection === 'description' && (
             <SectionPanel title="Description">
               <div className="space-y-5">
-                {demande?.description && (
-                  <div>
-                    <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Description du projet</h3>
-                    <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{demande.description}</p>
-                  </div>
-                )}
-                <TechniqueSection superficie={demande?.superficie} nombreLot={demande?.nombreLot} delaiMaxSouhaite={demande?.delaiMaxSouhaite} parcelles={parcelles} presenceReseaux={demande?.presenceReseaux} accessibiliteMachines={demande?.accessibiliteMachines} />
+                {demande && <DemandeInformationEditor demande={demande as DemandeDevisDTO} editable={Boolean(onEnrichissement) && isBeforeIntervention(etat)} onSave={onEnrichissement ?? (async () => undefined)} />}
                 <div>
                   <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Dates</h3>
                   <div className="grid gap-3 md:grid-cols-2">
@@ -248,7 +247,8 @@ export function EtudeDetailLayout({
 
           {activeSection === 'documents' && (
             <SectionPanel title="Documents">
-              <DocumentsSection documents={documents} clientView={etatRole === 'CLIENT'} />
+              {demande && <DemandeDocumentSlots demande={demande as DemandeDevisDTO} documents={documents?.documentsDemandeDevis} editable={Boolean(onEnrichissement) && isBeforeIntervention(etat)} onSave={onEnrichissement ?? (async () => undefined)} />}
+              <div className="mt-4"><DocumentsSection documents={documents} clientView={etatRole === 'CLIENT'} includeProjectDocuments={false} /></div>
             </SectionPanel>
           )}
 
@@ -314,12 +314,7 @@ function SummaryMetric({ label, value, tone }: Readonly<{ label: string; value: 
 }
 
 function SectionPanel({ title, children }: Readonly<{ title: string; children: React.ReactNode }>) {
-  return (
-    <section className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/50 p-4 md:p-5">
-      <h2 className="mb-4 text-base font-bold text-slate-900">{title}</h2>
-      {children}
-    </section>
-  );
+  return <DetailSectionPanel title={title}>{children}</DetailSectionPanel>;
 }
 
 function InfoTile({
@@ -393,44 +388,42 @@ function formatTerrainAnswer(answer: TerrainAnswer): string {
   return 'Ne sait pas';
 }
 
-function DocumentsSection({ documents, clientView = false }: Readonly<{ documents?: EtudeDocumentsDTO; clientView?: boolean }>) {
-  if (!documents || countDocuments(documents) === 0) {
-    return (
-      <div className="rounded-lg border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
-        Aucun document disponible pour cette etude.
-      </div>
-    );
-  }
-
+function DocumentsSection({ documents, clientView = false, includeProjectDocuments = true }: Readonly<{ documents?: EtudeDocumentsDTO; clientView?: boolean; includeProjectDocuments?: boolean }>) {
   return (
     <div className="space-y-4">
-      {clientView && documents.devisSigne && (
+      {clientView && (
         <DocumentGroup title="Devis signé">
-          <DocumentList documents={[documents.devisSigne]} showCard={false} />
+          <StudyDocument document={documents?.devisSigne} />
         </DocumentGroup>
       )}
-      {documents.documentsDemandeDevis.length > 0 && (
+      {includeProjectDocuments && Boolean(documents?.documentsDemandeDevis.length) && (
         <DocumentGroup title="Documents de la demande">
-          <DocumentList documents={documents.documentsDemandeDevis} showCard={false} />
+          <DocumentList documents={documents!.documentsDemandeDevis} showCard={false} />
         </DocumentGroup>
       )}
-      {documents.devisPdf && (
-        <DocumentGroup title="Devis (proposition)">
-          <DocumentList documents={[documents.devisPdf]} showCard={false} />
-        </DocumentGroup>
-      )}
-      {!clientView && documents.devisSigne && (
+      <DocumentGroup title="Devis (proposition)">
+        <StudyDocument document={documents?.devisPdf} />
+      </DocumentGroup>
+      {!clientView && (
         <DocumentGroup title="Devis signe">
-          <DocumentList documents={[documents.devisSigne]} showCard={false} />
+          <StudyDocument document={documents?.devisSigne} />
         </DocumentGroup>
       )}
-      {documents.rapport && (
-        <DocumentGroup title="Rapport final">
-          <DocumentList documents={[documents.rapport]} showCard={false} />
-        </DocumentGroup>
-      )}
+      <DocumentGroup title="Rapport final">
+        <StudyDocument document={documents?.rapport} />
+      </DocumentGroup>
     </div>
   );
+}
+
+function StudyDocument({ document }: Readonly<{ document?: EtudeDocumentsDTO['rapport'] }>) {
+  return document
+    ? <DocumentList documents={[document]} showCard={false} />
+    : <p className="text-sm italic text-slate-400">Document non fourni</p>;
+}
+
+function isBeforeIntervention(etat?: string) {
+  return etat !== 'INTERVENTION_EFFECTUEE' && etat !== 'RAPPORT_TERMINE' && etat !== 'PAIEMENT_EFFECTUE';
 }
 
 function DocumentGroup({ title, children }: Readonly<{ title: string; children: React.ReactNode }>) {

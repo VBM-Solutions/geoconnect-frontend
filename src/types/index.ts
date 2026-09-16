@@ -55,6 +55,17 @@ export interface DemandeDetailDTO {
   bureauEtudeId: number | null;
 }
 
+export interface EnrichissementDemandeDTO {
+  delaiMaxSouhaite?: number;
+  nombreLot?: number;
+  referencesCadastrales: string[];
+  superficie?: number;
+  description?: string;
+  presenceReseaux: TerrainAnswer;
+  accessibiliteMachines: TerrainAnswer;
+  documentsDemande?: DocumentDemandeInputDTO[];
+}
+
 export interface AddressSuggestionDTO {
   label: string;
   rue?: string;
@@ -545,6 +556,7 @@ export type NotificationType =
   | 'DATE_INTERVENTION_VALIDEE'
   | 'DATE_INTERVENTION_REFUSEE'
   | 'PAIEMENT_CONFIRME'
+  | 'DEMANDE_ENRICHIE'
   | 'NOUVELLE_PROPOSITION_DEVIS'
   | 'DATE_INTERVENTION_PROPOSEE'
   | 'RAPPORT_DISPONIBLE';

@@ -51,6 +51,18 @@ describe('useEtudeDetail', () => {
     expect(result.current.error).toBeNull();
   });
 
+  it('mutualise le chargement rejoué par StrictMode', async () => {
+    (getEtudeDetailById as any).mockResolvedValue({ ...fakeEtude, id: 43 });
+    const strictWrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(React.StrictMode, null, React.createElement(ToastProvider, null, children));
+
+    const { result } = renderHook(() => useEtudeDetail('43'), { wrapper: strictWrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(getEtudeDetailById).toHaveBeenCalledTimes(1);
+    expect(getEtudeDocuments).toHaveBeenCalledTimes(1);
+  });
+
   it('positionne error si getEtudeDetailById échoue', async () => {
     (getEtudeDetailById as any).mockRejectedValue(new Error('Not found'));
 

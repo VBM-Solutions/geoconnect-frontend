@@ -6,6 +6,18 @@ export const createPropositionDevis = async (proposition: PropositionDevisDTO) =
   return data;
 };
 
+export interface ModificationPropositionPayload {
+  prix: number;
+  delaiMaxIntervention: number;
+  delaiMaxRendu: number;
+  documentId?: number;
+}
+
+export const modifierPropositionDevis = async (id: number, payload: ModificationPropositionPayload): Promise<PropositionDevisDTO> => {
+  const { data } = await api.patch<PropositionDevisDTO>(`/propositionDevis/${id}`, payload);
+  return data;
+};
+
 export const getAllPropositionDevis = async (): Promise<PropositionDevisDTO[]> => {
   const { data } = await api.get('/propositionDevis');
   return data;

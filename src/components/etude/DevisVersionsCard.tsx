@@ -4,11 +4,31 @@ import { DevisVersionDTO } from '../../types';
 import { getDevisVersions } from '../../api/devisVersion';
 import { downloadDocument } from '../../api/document';
 
+const CACHE_DURATION_MS = 30_000;
+const versionCache = new Map<string, { versions: DevisVersionDTO[]; loadedAt: number }>();
+const pendingVersionLoads = new Map<string, Promise<DevisVersionDTO[]>>();
+
+function loadVersions(etudeId: number, refreshKey: number) {
+  const key = `${etudeId}:${refreshKey}`;
+  const cached = versionCache.get(key);
+  if (cached && Date.now() - cached.loadedAt < CACHE_DURATION_MS) return Promise.resolve(cached.versions);
+  const pending = pendingVersionLoads.get(key);
+  if (pending !== undefined) return pending;
+  const request = getDevisVersions(etudeId)
+    .then(versions => {
+      versionCache.set(key, { versions, loadedAt: Date.now() });
+      return versions;
+    })
+    .finally(() => pendingVersionLoads.delete(key));
+  pendingVersionLoads.set(key, request);
+  return request;
+}
+
 export function DevisVersionsCard({ etudeId, refreshKey = 0 }: Readonly<{ etudeId: number; refreshKey?: number }>) {
   const [versions, setVersions] = useState<DevisVersionDTO[]>([]);
   useEffect(() => {
     let active = true;
-    getDevisVersions(etudeId)
+    loadVersions(etudeId, refreshKey)
       .then(result => { if (active) setVersions(result); })
       .catch(() => { if (active) setVersions([]); });
     return () => { active = false; };

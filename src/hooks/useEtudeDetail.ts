@@ -3,6 +3,24 @@ import { getEtudeDetailById, getEtudeDocuments } from '../api/etude';
 import { EtudeDetailDTO, EtudeDocumentsDTO } from '../types';
 import { useToast } from '../contexts/ToastContext';
 
+interface EtudeBundle {
+  etude: EtudeDetailDTO;
+  documents: EtudeDocumentsDTO;
+}
+
+const pendingLoads = new Map<number, Promise<EtudeBundle>>();
+
+function loadEtude(id: number): Promise<EtudeBundle> {
+  const pending = pendingLoads.get(id);
+  if (pending !== undefined) return pending;
+
+  const request = Promise.all([getEtudeDetailById(id), getEtudeDocuments(id)])
+    .then(([etude, documents]) => ({ etude, documents }))
+    .finally(() => pendingLoads.delete(id));
+  pendingLoads.set(id, request);
+  return request;
+}
+
 /**
  * Hook partagé pour les pages de détail d'étude (CLIENT & BE).
  * Gère le chargement initial, le re-fetch après action, et les états dérivés.
@@ -21,12 +39,9 @@ export function useEtudeDetail(id: string | undefined) {
   const fetchEtude = useCallback(async () => {
     if (!id) return;
     try {
-      const [etudeData, docsData] = await Promise.all([
-        getEtudeDetailById(Number(id)),
-        getEtudeDocuments(Number(id)),
-      ]);
-      setEtude(etudeData);
-      setDocuments(docsData);
+      const bundle = await loadEtude(Number(id));
+      setEtude(bundle.etude);
+      setDocuments(bundle.documents);
     } catch {
       setError("Impossible de charger les données de l'étude.");
     } finally {
@@ -34,7 +49,19 @@ export function useEtudeDetail(id: string | undefined) {
     }
   }, [id]);
 
-  useEffect(() => { fetchEtude(); }, [fetchEtude]);
+  useEffect(() => {
+    let active = true;
+    if (!id) return () => { active = false; };
+    loadEtude(Number(id))
+      .then(bundle => {
+        if (!active) return;
+        setEtude(bundle.etude);
+        setDocuments(bundle.documents);
+      })
+      .catch(() => { if (active) setError("Impossible de charger les données de l'étude."); })
+      .finally(() => { if (active) setIsLoading(false); });
+    return () => { active = false; };
+  }, [id]);
 
   /**
    * Exécute une action PATCH puis re-fetche le détail complet.
@@ -62,6 +89,6 @@ export function useEtudeDetail(id: string | undefined) {
     }
   }, [id]);
 
-  return { etude, documents, isLoading, actionLoading, actionKey, error, withAction };
+  return { etude, documents, isLoading, actionLoading, actionKey, error, withAction, refresh: fetchEtude };
 }
 

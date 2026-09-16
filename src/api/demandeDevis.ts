@@ -1,5 +1,5 @@
 import api from './index';
-import { BEDemandePageItemDTO, DemandeDetailDTO, DemandeDevisDTO, PageResponse } from '../types';
+import { BEDemandePageItemDTO, DemandeDetailDTO, DemandeDevisDTO, EnrichissementDemandeDTO, PageResponse } from '../types';
 
 export const createDemandeDevis = async (demande: DemandeDevisDTO) => {
   const { data } = await api.post<{ demandeId?: number; id?: number }>('/demandeDevis', demande);
@@ -8,6 +8,11 @@ export const createDemandeDevis = async (demande: DemandeDevisDTO) => {
 
 export const updateDemandeDevis = async (demande: DemandeDevisDTO) => {
   const { data } = await api.put('/demandeDevis', demande);
+  return data;
+};
+
+export const enrichirDemande = async (id: number, demande: EnrichissementDemandeDTO): Promise<DemandeDevisDTO> => {
+  const { data } = await api.patch<DemandeDevisDTO>(`/demandeDevis/${id}/informations`, demande);
   return data;
 };
 

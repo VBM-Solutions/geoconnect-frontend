@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getDevisVersions } from '../../api/devisVersion';
 import { downloadDocument } from '../../api/document';
@@ -24,8 +25,15 @@ describe('DevisVersionsCard', () => {
 
   it('reste vide si le chargement échoue sans produire de rejet non géré', async () => {
     vi.mocked(getDevisVersions).mockRejectedValue(new Error('réseau indisponible'));
-    const { container } = render(<DevisVersionsCard etudeId={42} />);
-    await waitFor(() => expect(getDevisVersions).toHaveBeenCalledWith(42));
+    const { container } = render(<DevisVersionsCard etudeId={43} />);
+    await waitFor(() => expect(getDevisVersions).toHaveBeenCalledWith(43));
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('ne charge les versions qu’une fois sous StrictMode', async () => {
+    vi.mocked(getDevisVersions).mockResolvedValue([]);
+    render(<StrictMode><DevisVersionsCard etudeId={44} /></StrictMode>);
+    await waitFor(() => expect(getDevisVersions).toHaveBeenCalledWith(44));
+    expect(getDevisVersions).toHaveBeenCalledTimes(1);
   });
 });

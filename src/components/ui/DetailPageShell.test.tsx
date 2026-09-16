@@ -11,7 +11,7 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-function renderShell(tone: 'client' | 'be' = 'client') {
+function renderShell(tone: 'client' | 'be' = 'client', unframedContent = false) {
   return render(
     <MemoryRouter>
       <DetailPageShell
@@ -23,6 +23,7 @@ function renderShell(tone: 'client' | 'be' = 'client') {
         description="Projet G2 - 75001"
         status={<span>En attente</span>}
         actions={<button type="button">Action rapide</button>}
+        unframedContent={unframedContent}
       >
         <div>Contenu detail</div>
       </DetailPageShell>
@@ -59,5 +60,13 @@ describe('DetailPageShell', () => {
 
     expect(container.querySelector('.from-slate-900')).not.toBeNull();
     expect(container.querySelector('.to-blue-700')).not.toBeNull();
+  });
+
+  it('peut afficher le contenu sans panneau englobant', () => {
+    renderShell('client', true);
+
+    const content = screen.getByText('Contenu detail').parentElement;
+    expect(content).not.toHaveClass('gc-surface-panel');
+    expect(content).not.toHaveClass('rounded-2xl');
   });
 });
