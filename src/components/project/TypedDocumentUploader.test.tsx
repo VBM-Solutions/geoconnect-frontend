@@ -39,4 +39,33 @@ describe('TypedDocumentUploader', () => {
     rerender(<TypedDocumentUploader id="docs" typeEtude="G2_PRO" documents={[]} onChange={onChange} maxDocuments={1} />);
     expect(screen.getByRole('option', { name: /Plan BET de DDC/i })).toBeInTheDocument();
   });
+
+  it('refuse un document dépassant 10 Mo avant l’envoi', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const oversized = new File(['x'], 'volumineux.pdf', { type: 'application/pdf' });
+    Object.defineProperty(oversized, 'size', { value: 10 * 1024 * 1024 + 1 });
+    render(<TypedDocumentUploader id="docs" typeEtude="G0" documents={[]} onChange={onChange} maxFileSizeBytes={10 * 1024 * 1024} />);
+
+    await user.selectOptions(screen.getByLabelText('Type de document'), 'PLAN_SITUATION');
+    await user.click(screen.getByRole('button', { name: /ajouter un document/i }));
+    await user.upload(document.querySelector('input[type="file"]')!, oversized);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/10 Mo/i);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('conserve la limite standard de 20 Mo hors inscription', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const file = new File(['x'], 'rapport.pdf', { type: 'application/pdf' });
+    Object.defineProperty(file, 'size', { value: 15 * 1024 * 1024 });
+    render(<TypedDocumentUploader id="docs" typeEtude="G0" documents={[]} onChange={onChange} />);
+
+    await user.selectOptions(screen.getByLabelText('Type de document'), 'PLAN_SITUATION');
+    await user.click(screen.getByRole('button', { name: /ajouter un document/i }));
+    await user.upload(document.querySelector('input[type="file"]')!, file);
+
+    expect(onChange).toHaveBeenCalledOnce();
+  });
 });

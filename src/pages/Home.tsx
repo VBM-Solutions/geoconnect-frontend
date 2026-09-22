@@ -25,6 +25,7 @@ import { codePostalRules, createConfirmPasswordRules, createMatchingFieldRules, 
 import { getFieldMessage } from '../lib/formErrors';
 import { AddressSuggestionDTO, TypeDemandeDevis } from '../types';
 import { TypedDocumentDraft } from '../constants/documentCategories';
+import { REGISTRATION_MAX_FILE_SIZE_BYTES } from '../constants/uploadPolicy';
 import { getPublicApiError } from '../lib/utils';
 import { PublicHomeSeo } from '../components/seo/PublicHomeSeo';
 import { LandingSections } from '../components/home/LandingSections';
@@ -320,7 +321,13 @@ function QuoteTunnel({
               <CardDescription className="text-xs">Cette étape est facultative, mais chaque document ajouté doit être qualifié.</CardDescription>
             </CardHeader>
             <CardContent className="p-5">
-              <TypedDocumentUploader id="docFile-step3" typeEtude={selectedType} documents={documents} onChange={setDocuments} />
+              <TypedDocumentUploader
+                id="docFile-step3"
+                typeEtude={selectedType}
+                documents={documents}
+                onChange={setDocuments}
+                maxFileSizeBytes={REGISTRATION_MAX_FILE_SIZE_BYTES}
+              />
             </CardContent>
             <CardFooter className="flex justify-between bg-slate-50/80 px-5 py-4">
               <Button type="button" variant="outline" onClick={() => setStep(2)}>Retour</Button>

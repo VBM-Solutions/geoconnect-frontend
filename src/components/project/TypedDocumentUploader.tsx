@@ -2,6 +2,10 @@ import { useRef, useState } from 'react';
 import { FilePlus2, FileText, Trash2 } from 'lucide-react';
 import { categoriesForStudy, DOCUMENT_CATEGORY_LABELS, DocumentCategory, TypedDocumentDraft } from '../../constants/documentCategories';
 import { TypeDemandeDevis } from '../../types';
+import {
+  REGISTRATION_MAX_DOCUMENTS,
+  STANDARD_MAX_FILE_SIZE_BYTES,
+} from '../../constants/uploadPolicy';
 
 interface Props {
   id: string;
@@ -9,9 +13,17 @@ interface Props {
   documents: TypedDocumentDraft[];
   onChange: (documents: TypedDocumentDraft[]) => void;
   maxDocuments?: number;
+  maxFileSizeBytes?: number;
 }
 
-export function TypedDocumentUploader({ id, typeEtude, documents, onChange, maxDocuments = 5 }: Readonly<Props>) {
+export function TypedDocumentUploader({
+  id,
+  typeEtude,
+  documents,
+  onChange,
+  maxDocuments = REGISTRATION_MAX_DOCUMENTS,
+  maxFileSizeBytes = STANDARD_MAX_FILE_SIZE_BYTES,
+}: Readonly<Props>) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [category, setCategory] = useState<DocumentCategory | ''>('');
   const [precision, setPrecision] = useState('');
@@ -27,6 +39,11 @@ export function TypedDocumentUploader({ id, typeEtude, documents, onChange, maxD
 
   const addFile = (file?: File) => {
     if (!file || !category) return;
+    if (file.size > maxFileSizeBytes) {
+      setError(`Chaque document doit peser au maximum ${maxFileSizeBytes / 1024 / 1024} Mo.`);
+      return;
+    }
+    setError('');
     onChange([...documents, {
       key: `${Date.now()}-${file.name}`,
       file,
@@ -59,7 +76,7 @@ export function TypedDocumentUploader({ id, typeEtude, documents, onChange, maxD
         </button>
         <input ref={inputRef} id={id} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => { addFile(e.target.files?.[0]); e.target.value = ''; }} />
         {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
-        <p className="text-xs text-slate-500">PDF ou image — {documents.length}/{maxDocuments} document(s)</p>
+        <p className="text-xs text-slate-500">PDF ou image, {maxFileSizeBytes / 1024 / 1024} Mo maximum — {documents.length}/{maxDocuments} document(s)</p>
       </div>
       {documents.length > 0 && <ul className="space-y-2">{documents.map(doc => (
         <li key={doc.key} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
