@@ -18,11 +18,6 @@ export const modifierPropositionDevis = async (id: number, payload: Modification
   return data;
 };
 
-export const getAllPropositionDevis = async (): Promise<PropositionDevisDTO[]> => {
-  const { data } = await api.get('/propositionDevis');
-  return data;
-};
-
 export const getPropositionDevisById = async (id: number): Promise<PropositionDevisDTO> => {
   const { data } = await api.get(`/propositionDevis/${id}`);
   return data;
