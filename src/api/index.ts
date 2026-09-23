@@ -2,18 +2,18 @@ import axios from 'axios';
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 let csrfInitialization: Promise<void> | null = null;
+let csrfToken: string | null = null;
 
-function hasCsrfCookie(): boolean {
-  return typeof document !== 'undefined'
-    && document.cookie.split(';').some(cookie => cookie.trim().startsWith('XSRF-TOKEN='));
-}
-
-async function ensureCsrfCookie(): Promise<void> {
-  if (hasCsrfCookie()) return;
+async function ensureCsrfToken(): Promise<void> {
+  if (csrfToken) return;
   if (!csrfInitialization) {
     // Instance séparée pour ne pas rappeler cet intercepteur récursivement.
     csrfInitialization = axios.get('/api/auth/csrf', { withCredentials: true })
-      .then(() => undefined)
+      .then(response => {
+        const token = response.headers['x-xsrf-token'];
+        if (!token) throw new Error('Jeton CSRF absent de la réponse');
+        csrfToken = token;
+      })
       .finally(() => {
         csrfInitialization = null;
       });
@@ -30,15 +30,13 @@ const api = axios.create({
     'Accept': 'application/json',
   },
   withCredentials: true,
-  xsrfCookieName: 'XSRF-TOKEN',
-  xsrfHeaderName: 'X-XSRF-TOKEN',
-  withXSRFToken: true,
 });
 
 api.interceptors.request.use(async config => {
   const method = config.method?.toUpperCase();
   if (method && UNSAFE_METHODS.has(method)) {
-    await ensureCsrfCookie();
+    await ensureCsrfToken();
+    config.headers.set('X-XSRF-TOKEN', csrfToken);
   }
   return config;
 });
