@@ -170,7 +170,8 @@ describe('ClientRequestDetail — identité du bureau', () => {
     await waitFor(() => expect(uploadDocument).toHaveBeenCalledTimes(1));
     expect(enrichirDemande).toHaveBeenCalledWith(12, expect.objectContaining({ documentsDemande: [expect.objectContaining({ documentId: 91, categorie: 'PLAN_SITUATION' })] }));
     expect(await screen.findByText('plan.pdf')).toBeTruthy();
-    expect(screen.queryByTitle('Télécharger')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Visualiser plan.pdf' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Télécharger plan.pdf' })).toBeTruthy();
   });
 
   it('n’affiche l’édition que dans l’onglet Description', async () => {

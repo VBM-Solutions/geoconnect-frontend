@@ -61,9 +61,9 @@ export function DocumentList({ documents, showCard = true, allowDownload = true 
         return (
           <li
             key={doc.id}
-            className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100"
+            className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100"
           >
-            <span className="flex items-center gap-2 text-xs font-medium text-slate-700 min-w-0">
+            <span className="flex min-w-0 flex-1 items-center gap-2 text-xs font-medium text-slate-700">
               <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <span className="min-w-0">
                 <span className="block truncate" title={categoryLabel ?? label}>{categoryLabel ?? label}</span>
@@ -72,23 +72,27 @@ export function DocumentList({ documents, showCard = true, allowDownload = true 
             </span>
             <span className="flex items-center gap-1 shrink-0">
               {isBusy ? (
-                <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                <Loader2 className="m-1 w-4 h-4 animate-spin text-blue-500" aria-label="Chargement du document" />
               ) : (
                 <>
                   <button
-                    title="Ouvrir"
+                    type="button"
+                    title="Visualiser dans le navigateur"
+                    aria-label={`Visualiser ${label}`}
                     onClick={() => handle(() => openDocument(doc.id, label), doc.id)}
                     className="p-1 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
                   >
-                    <Eye className="w-3.5 h-3.5" />
+                    <Eye className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                   {allowDownload && (
                     <button
+                      type="button"
                       title="Télécharger"
+                      aria-label={`Télécharger ${label}`}
                       onClick={() => handle(() => downloadDocument(doc.id, label), doc.id)}
                       className="p-1 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
                     >
-                      <Download className="w-3.5 h-3.5" />
+                      <Download className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
                   )}
                 </>

@@ -1,5 +1,4 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
 import { BackButton } from './BackButton';
 import { cn } from '../../lib/utils';
 
@@ -50,8 +49,7 @@ export function DetailPageShell({
 
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="min-w-0 space-y-2">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
-              <Sparkles className="h-3.5 w-3.5 shrink-0" />
+            <div className="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
               {eyebrow}
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

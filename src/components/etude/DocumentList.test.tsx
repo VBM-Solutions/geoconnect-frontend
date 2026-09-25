@@ -23,17 +23,17 @@ describe('DocumentList', () => {
   it('autorise par défaut l’ouverture et le téléchargement', async () => {
     render(<DocumentList documents={[{ id: 7, label: 'Plan.pdf' }]} />);
 
-    fireEvent.click(screen.getByTitle('Télécharger'));
+    fireEvent.click(screen.getByRole('button', { name: 'Télécharger Plan.pdf' }));
     await waitFor(() => expect(downloadDocument).toHaveBeenCalledWith(7, 'Plan.pdf'));
-    await waitFor(() => expect(screen.getByTitle('Ouvrir')).toBeTruthy());
-    fireEvent.click(screen.getByTitle('Ouvrir'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Visualiser Plan.pdf' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Visualiser Plan.pdf' }));
     await waitFor(() => expect(openDocument).toHaveBeenCalledWith(7, 'Plan.pdf'));
   });
 
   it('peut masquer le téléchargement tout en conservant la consultation', () => {
     render(<DocumentList documents={[{ id: 7, label: 'Plan.pdf' }]} allowDownload={false} />);
 
-    expect(screen.getByTitle('Ouvrir')).toBeTruthy();
-    expect(screen.queryByTitle('Télécharger')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Visualiser Plan.pdf' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Télécharger Plan.pdf' })).toBeNull();
   });
 });
