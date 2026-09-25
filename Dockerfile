@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────
 # Étape 1 : Build du frontend avec Node.js
 # ─────────────────────────────────────────────
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 
