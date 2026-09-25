@@ -27,7 +27,7 @@ RUN npm run build -- --mode $BUILD_MODE
 # ─────────────────────────────────────────────
 # Étape 2 : Serveur de production avec Nginx
 # ─────────────────────────────────────────────
-FROM nginx:1.27-alpine AS production
+FROM nginx:1.29-alpine AS production
 
 # Suppression de la config Nginx par défaut
 RUN rm /etc/nginx/conf.d/default.conf
