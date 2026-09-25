@@ -7,7 +7,7 @@ import { extractCodeDepartement } from '../../lib/utils';
 import { DemandeDevisDTO, PropositionDevisDTO, EtudeDetailDTO } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Calendar, ChevronRight, ChevronDown, Check, FlaskConical, User, Clock, AlertCircle, Archive, Globe, Sparkles, CircleDashed, CheckCircle2, FolderKanban, SlidersHorizontal } from 'lucide-react';
+import { Calendar, ChevronRight, ChevronDown, Check, FlaskConical, User, Clock, AlertCircle, Archive, Globe, CircleDashed, CheckCircle2, FolderKanban, SlidersHorizontal } from 'lucide-react';
 import { beMustAct } from '../../components/etude/EtudeStatusBadge';
 import { EtudeCardHeader } from '../../components/etude/EtudeCardHeader';
 import { DashboardSidebarNav, type DashboardNavSection } from '../../components/ui/DashboardSidebarNav';
@@ -753,8 +753,7 @@ export default function BEDashboard() {
       <div className="rounded-2xl border border-slate-800/10 bg-linear-to-r from-slate-900 via-slate-800 to-blue-700 p-5 text-white shadow-lg shadow-slate-300/60">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
-              <Sparkles className="h-3.5 w-3.5" />
+            <div className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]">
               Bureau d'études
             </div>
             <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>

@@ -1,8 +1,12 @@
-import axios from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 let csrfInitialization: Promise<void> | null = null;
 let csrfToken: string | null = null;
+
+interface CsrfRetryConfig extends InternalAxiosRequestConfig {
+  _retryAfterCsrfRefresh?: boolean;
+}
 
 async function ensureCsrfToken(): Promise<void> {
   if (csrfToken) return;
@@ -40,5 +44,25 @@ api.interceptors.request.use(async config => {
   }
   return config;
 });
+
+// Un onglet peut conserver en mémoire un jeton qui ne correspond plus au cookie
+// (redémarrage du backend, restauration de session ou cookie renouvelé). Dans ce
+// cas seulement, réinitialiser le couple cookie/en-tête puis rejouer une fois.
+api.interceptors.response.use(
+  response => response,
+  async (error: AxiosError<{ typeError?: string }>) => {
+    const config = error.config as CsrfRetryConfig | undefined;
+    if (error.response?.status === 403
+      && error.response.data?.typeError === 'CSRF_TOKEN_INVALID'
+      && config
+      && !config._retryAfterCsrfRefresh) {
+      config._retryAfterCsrfRefresh = true;
+      csrfToken = null;
+      await ensureCsrfToken();
+      return api.request(config);
+    }
+    throw error;
+  },
+);
 
 export default api;

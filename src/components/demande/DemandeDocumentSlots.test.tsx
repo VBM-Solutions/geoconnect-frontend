@@ -2,9 +2,10 @@ import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DemandeDocumentSlots } from './DemandeDocumentSlots';
-import { openDocument, uploadDocument } from '../../api/document';
+import { downloadDocument, openDocument, uploadDocument } from '../../api/document';
 
-vi.mock('../../api/document', () => ({ uploadDocument: vi.fn(), openDocument: vi.fn() }));
+vi.mock('../../api/document', () => ({ uploadDocument: vi.fn(), openDocument: vi.fn(), downloadDocument: vi.fn() }));
+vi.mock('../../contexts/ToastContext', () => ({ useToast: () => ({ toastError: vi.fn() }) }));
 const demande = { id: 3, type: 'G2_PRO' as const, referencesCadastrales: [], presenceReseaux: 'OUI' as const, accessibiliteMachines: 'NON' as const };
 
 describe('DemandeDocumentSlots', () => {
@@ -17,12 +18,20 @@ describe('DemandeDocumentSlots', () => {
     expect(screen.queryByRole('button', { name: 'Ajouter' })).toBeNull();
   });
 
-  it('ouvre un document existant', async () => {
+  it('affiche à droite les actions de visualisation et de téléchargement sans rendre le nom cliquable', async () => {
     const user = userEvent.setup();
     render(<DemandeDocumentSlots demande={demande} documents={[{ id: 8, categorieDemande: 'PLAN_SITUATION', nomFichierOriginal: 'plan.pdf', nomTelechargement: 'download.pdf' }]} editable={false} onSave={vi.fn()} />);
     expect(screen.queryByText('plan.pdf')).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'download.pdf' }));
+    expect(screen.queryByRole('button', { name: 'download.pdf' })).not.toBeInTheDocument();
+    const viewButton = screen.getByRole('button', { name: 'Visualiser download.pdf' });
+    const downloadButton = screen.getByRole('button', { name: 'Télécharger download.pdf' });
+    const filename = screen.getByText('download.pdf');
+    expect(filename.compareDocumentPosition(viewButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(filename.compareDocumentPosition(downloadButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await user.click(viewButton);
     expect(openDocument).toHaveBeenCalledWith(8, 'download.pdf');
+    await user.click(screen.getByRole('button', { name: 'Télécharger download.pdf' }));
+    expect(downloadDocument).toHaveBeenCalledWith(8, 'download.pdf');
   });
 
   it('ajoute puis remplace une catégorie unique', async () => {
