@@ -365,12 +365,11 @@ npm run test:coverage
 | `react-router-dom` | ^7.14.2 | Routing SPA |
 | `axios` | ^1.16.0 | Client HTTP |
 | `react-hook-form` | ^7.75.0 | Gestion des formulaires |
-| `tailwindcss` | ^4.1.14 | Styles utilitaires |
 | `lucide-react` | ^0.546.0 | Icônes |
 | `date-fns` | ^4.1.0 | Formatage des dates (locale `fr`) |
 | `clsx` + `tailwind-merge` | — | Composition de classes CSS |
 | `motion` | ^12.23.24 | Animations |
-| `@google/genai` | ^1.29.0 | SDK Gemini IA |
+| `leaflet` + `react-leaflet` | — | Cartographie interactive |
 
 ### Outillage
 
@@ -379,6 +378,7 @@ npm run test:coverage
 | `vite` ^6 | Bundler + serveur de développement |
 | `@vitejs/plugin-react` | Support JSX / Fast Refresh |
 | `@tailwindcss/vite` | Plugin Tailwind CSS v4 pour Vite |
+| `tailwindcss` ^4 | Génération des styles utilitaires |
 | `typescript` ~5.8 | Typage statique |
 | `vitest` ^4 | Framework de tests |
 | `@testing-library/react` | Tests composants React |

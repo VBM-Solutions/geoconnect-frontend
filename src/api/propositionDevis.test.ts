@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   createPropositionDevis,
-  getAllPropositionDevis,
   getPropositionDevisById,
   getPropositionDevisByDemandeId,
   getPropositionsByDemandeIds,
@@ -37,15 +36,6 @@ describe('createPropositionDevis', () => {
   it('propage l\'erreur', async () => {
     (api.post as any).mockRejectedValueOnce(new Error('Bad request'));
     await expect(createPropositionDevis(fakeProposition as any)).rejects.toThrow('Bad request');
-  });
-});
-
-describe('getAllPropositionDevis', () => {
-  it('appelle GET /propositionDevis et retourne la liste', async () => {
-    (api.get as any).mockResolvedValueOnce({ data: [fakeProposition] });
-    const result = await getAllPropositionDevis();
-    expect(api.get).toHaveBeenCalledWith('/propositionDevis');
-    expect(result).toEqual([fakeProposition]);
   });
 });
 

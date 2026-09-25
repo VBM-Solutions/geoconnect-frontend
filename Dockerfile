@@ -37,6 +37,7 @@ RUN mkdir -p /etc/nginx/templates
 
 # Copie du template Nginx (sera traité par docker-entrypoint.sh au démarrage)
 COPY nginx.conf /etc/nginx/templates/app.conf.template
+COPY security-headers.conf /etc/nginx/security-headers.conf
 
 # Copie des artefacts de build depuis l'étape précédente
 COPY --from=builder /app/dist /usr/share/nginx/html
