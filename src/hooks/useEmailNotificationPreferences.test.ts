@@ -69,5 +69,6 @@ describe('useEmailNotificationPreferences', () => {
     failure.unmount();
     rejectLoad(new Error('trop tard'));
     await Promise.resolve();
+    expect(getEmailNotificationPreferences).toHaveBeenCalledTimes(2);
   });
 });

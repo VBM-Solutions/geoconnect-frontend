@@ -155,7 +155,7 @@ export default function UtilisateurDetailPage() {
         </dl>
 
         <div className="mt-6 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-          {utilisateur.activationStatus === 'INVITED' ? (
+          {utilisateur.activationStatus === 'INVITED' && (
             <>
               <Button onClick={handleResendInvitation} isLoading={isSubmitting}>
                 Renvoyer l'e-mail d'activation
@@ -164,11 +164,13 @@ export default function UtilisateurDetailPage() {
                 Supprimer l'invitation
               </Button>
             </>
-          ) : utilisateur.enabled ? (
+          )}
+          {utilisateur.activationStatus !== 'INVITED' && utilisateur.enabled && (
             <Button variant="danger" onClick={() => setShowDisableModal(true)} disabled={isSubmitting}>
               Desactiver
             </Button>
-          ) : (
+          )}
+          {utilisateur.activationStatus !== 'INVITED' && !utilisateur.enabled && (
             <Button variant="secondary" onClick={handleActiver} isLoading={isSubmitting}>
               Activer
             </Button>

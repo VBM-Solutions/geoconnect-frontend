@@ -27,7 +27,7 @@ export function ProposalCarousel({
   const [previewError, setPreviewError] = useState(false);
   const initialIndex = useMemo(() => {
     const selected = proposals.findIndex(proposal => proposal.id === initialProposalId);
-    return selected >= 0 ? selected : 0;
+    return Math.max(selected, 0);
   }, [initialProposalId, proposals]);
   const [index, setIndex] = useState(initialIndex);
 
@@ -57,6 +57,18 @@ export function ProposalCarousel({
   const acceptedProposal = proposals.some(item => item.statut === 'ACCEPTEE');
   const isAccepted = proposal.statut === 'ACCEPTEE';
   const isRefused = proposal.statut === 'REFUSEE';
+  let preview = <p className="p-8 text-center text-sm text-slate-500">Prévisualisation du devis indisponible.</p>;
+  if (proposal.documentId && previewUrl) {
+    preview = (
+      <iframe
+        title={`Prévisualisation du devis de ${proposal.bureauEtude?.raisonSociale ?? 'bureau d’études'}`}
+        src={previewUrl}
+        className="h-[clamp(42rem,85vh,70rem)] w-full"
+      />
+    );
+  } else if (proposal.documentId && previewError) {
+    preview = <p className="p-8 text-center text-sm text-red-700" role="alert">Prévisualisation du devis indisponible.</p>;
+  }
 
   return (
     <section className="space-y-4" aria-label="Propositions de devis">
@@ -95,17 +107,7 @@ export function ProposalCarousel({
         </div>
 
         <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-          {proposal.documentId && previewUrl ? (
-            <iframe
-              title={`Prévisualisation du devis de ${proposal.bureauEtude?.raisonSociale ?? 'bureau d’études'}`}
-              src={previewUrl}
-              className="h-[clamp(42rem,85vh,70rem)] w-full"
-            />
-          ) : proposal.documentId && previewError ? (
-            <p className="p-8 text-center text-sm text-red-700" role="alert">Prévisualisation du devis indisponible.</p>
-          ) : (
-            <p className="p-8 text-center text-sm text-slate-500">Prévisualisation du devis indisponible.</p>
-          )}
+          {preview}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">

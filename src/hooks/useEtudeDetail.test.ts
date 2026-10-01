@@ -106,6 +106,7 @@ describe('useEtudeDetail', () => {
     unmount();
     resolveEtude(fakeEtude);
     await Promise.resolve();
+    expect(getEtudeDetailById).toHaveBeenCalledWith(77);
   });
 
   it('réutilise une requête déjà en cours pour le même identifiant', async () => {
@@ -126,6 +127,7 @@ describe('useEtudeDetail', () => {
     unmount();
     rejectEtude(new Error('trop tard'));
     await Promise.resolve();
+    expect(getEtudeDetailById).toHaveBeenCalledWith(79);
   });
 
   it('withAction exécute la fonction puis re-fetche le détail', async () => {

@@ -6,8 +6,8 @@ import { CardTitle } from '../ui/Card';
 import { EtudeTypeIcon } from './EtudeTypeIcon';
 
 interface EtudeCardHeaderProps {
-  demande?: DemandeDevisDetail;
-  etat?: EtatEtude;
+  readonly demande?: DemandeDevisDetail;
+  readonly etat?: EtatEtude;
 }
 
 /**

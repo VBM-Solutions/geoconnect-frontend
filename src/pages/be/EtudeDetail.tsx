@@ -59,8 +59,9 @@ export default function BureauEtudeDetail() {
     setEditingDateRenduPrevue(false);
   };
 
-  const dateRenduPrevueEditor = showDateRenduPrevueEditor ? (
-    (!editingDateRenduPrevue && hasExistingDate) ? (
+  let dateRenduPrevueEditor;
+  if (showDateRenduPrevueEditor && !editingDateRenduPrevue && hasExistingDate) {
+    dateRenduPrevueEditor = (
       // Mode lecture : date formatée + badge jours restants + icône crayon
       <div className="flex items-center gap-2 flex-wrap">
         <span className="font-semibold text-slate-800 text-xs">{formatDateLong(etude.dateRenduPrevue)}</span>
@@ -73,7 +74,9 @@ export default function BureauEtudeDetail() {
           <Pencil className="w-3.5 h-3.5" />
         </button>
       </div>
-    ) : (
+    );
+  } else if (showDateRenduPrevueEditor) {
+    dateRenduPrevueEditor = (
       // Mode édition : input + bouton enregistrer + annuler si date existante
       <div className="flex flex-wrap gap-2 items-center">
         <input
@@ -100,8 +103,8 @@ export default function BureauEtudeDetail() {
           </Button>
         )}
       </div>
-    )
-  ) : undefined;
+    );
+  }
 
   const infoCard = (<div className="space-y-4">
     {etude.id != null && etat === 'DEVIS_VALIDE' && <DevisNegotiationBE
@@ -354,8 +357,7 @@ export function BEStepActions({ etat, dateIntervention, periodeIntervention, mot
     <div className="flex items-start gap-2 rounded-lg bg-orange-50 border border-orange-200 p-3 text-xs text-orange-800">
       <CalendarClock className="w-4 h-4 shrink-0 mt-0.5 text-orange-500" />
       <span>
-        La date d'intervention est prévue au{' '}
-        <strong>{formatCreneauIntervention(dateIntervention, periodeIntervention)}</strong>, dans{' '}
+        La date d'intervention est prévue au <strong>{formatCreneauIntervention(dateIntervention, periodeIntervention)}</strong>, dans{' '}
         <strong>
           {interventionDaysRemaining} jour{interventionDaysRemaining > 1 ? 's' : ''}
         </strong>

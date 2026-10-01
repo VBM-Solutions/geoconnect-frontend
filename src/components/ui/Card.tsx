@@ -14,12 +14,18 @@ export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDiv
   return <div className={cn("px-4 py-3 border-b border-slate-100 flex flex-col justify-center bg-slate-50/50", className)} {...props} />;
 }
 
-export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+type CardTitleProps = React.HTMLAttributes<HTMLHeadingElement> & {
+  readonly children: React.ReactNode;
+};
+
+export function CardTitle({ className, children, ...props }: CardTitleProps) {
   return (
     <h3
       className={cn("font-bold text-slate-800 text-sm tracking-tight", className)}
       {...props}
-    />
+    >
+      {children}
+    </h3>
   );
 }
 

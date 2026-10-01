@@ -61,6 +61,7 @@ describe('useClientParametres', () => {
     unmount();
     resolveProfil(fakeClient);
     await Promise.resolve();
+    expect(getClientProfil).toHaveBeenCalledOnce();
   });
 
   it('ignore une erreur de profil arrivée après démontage', async () => {
@@ -70,6 +71,7 @@ describe('useClientParametres', () => {
     unmount();
     rejectProfil(new Error('trop tard'));
     await Promise.resolve();
+    expect(getClientProfil).toHaveBeenCalledOnce();
   });
 
   it('saveTelephone met à jour le profil et les flags de chargement', async () => {

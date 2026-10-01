@@ -204,6 +204,7 @@ describe('useNotifications', () => {
       await loading;
       await Promise.resolve();
     });
+    expect(getNotifications).toHaveBeenCalledOnce();
   });
 
   it('ignore une erreur de liste après démontage', async () => {
@@ -215,6 +216,7 @@ describe('useNotifications', () => {
     unmount();
     rejectList(new Error('trop tard'));
     await loading;
+    expect(getNotifications).toHaveBeenCalledOnce();
   });
 
   it('tolère une erreur de rafraîchissement du badge', async () => {

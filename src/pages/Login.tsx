@@ -89,7 +89,7 @@ export default function Login() {
               error={errors.password ? "Requis" : undefined}
             />
             <div className="flex justify-end">
-              <a href="#" className="text-[10px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider">Mot de passe oublié ?</a>
+              <button type="button" className="text-[10px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider">Mot de passe oublié ?</button>
             </div>
           </CardContent>
           <CardFooter className="flex-col items-stretch">

@@ -1,3 +1,4 @@
+import { useId, useRef } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { CADASTRAL_REFERENCE_PLACEHOLDER, EMPTY_CADASTRAL_REFERENCE } from '../../lib/cadastralReferences';
 
@@ -17,6 +18,13 @@ export function CadastralReferencesField({
   placeholder = CADASTRAL_REFERENCE_PLACEHOLDER,
 }: Readonly<CadastralReferencesFieldProps>) {
   const referencesCadastrales = value.length > 0 ? value : [EMPTY_CADASTRAL_REFERENCE];
+  const fieldId = useId();
+  const nextReferenceId = useRef(0);
+  const referenceIds = useRef<string[]>([]);
+  while (referenceIds.current.length < referencesCadastrales.length) {
+    referenceIds.current.push(`${fieldId}-${nextReferenceId.current}`);
+    nextReferenceId.current += 1;
+  }
 
   const updateReference = (index: number, nextReference: string) => {
     onChange(
@@ -31,6 +39,7 @@ export function CadastralReferencesField({
   };
 
   const removeReference = (index: number) => {
+    referenceIds.current.splice(index, 1);
     const nextReferences = referencesCadastrales.filter((_, currentIndex) => currentIndex !== index);
     onChange(nextReferences.length > 0 ? nextReferences : [EMPTY_CADASTRAL_REFERENCE]);
   };
@@ -42,7 +51,7 @@ export function CadastralReferencesField({
       </label>
       <div className="space-y-2">
         {referencesCadastrales.map((reference, index) => (
-          <div key={index} className="flex items-center gap-2">
+          <div key={referenceIds.current[index]} className="flex items-center gap-2">
             <input
               type="text"
               value={reference}

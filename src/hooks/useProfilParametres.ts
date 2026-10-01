@@ -54,7 +54,7 @@ export function useProfilParametres<T>({
       }
     }
 
-    load();
+    void load();
     return () => {
       cancelled = true;
     };

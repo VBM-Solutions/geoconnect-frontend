@@ -99,7 +99,8 @@ function QuoteTunnel({
       codePostalProjet: initialPostalCode ?? '',
     },
   });
-  const passwordValue = String(watch('password', '') ?? '');
+  const watchedPassword = watch('password', '');
+  const passwordValue = typeof watchedPassword === 'string' ? watchedPassword : '';
   const cgvAcceptees = watch('cgvAcceptees') === true;
   const selectedType = watch('type') as TypeDemandeDevis | undefined;
 
@@ -448,7 +449,10 @@ function QuoteTunnel({
                 label="Confirmation du mot de passe *"
                 {...formRegister(
                   'confirmPassword',
-                  createConfirmPasswordRules(() => String(getValues('password') ?? '')),
+                  createConfirmPasswordRules(() => {
+                    const password = getValues('password');
+                    return typeof password === 'string' ? password : '';
+                  }),
                 )}
                 error={getFieldMessage(errors.confirmPassword)}
                 showPasswordToggle

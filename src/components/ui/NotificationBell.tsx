@@ -62,7 +62,7 @@ export function NotificationBell({
       <button
         onClick={handleToggle}
         className="relative w-8 h-8 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center hover:bg-slate-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-        aria-label={unreadCount > 0 ? `Notifications — ${unreadCount} non lue${unreadCount > 1 ? 's' : ''}` : 'Notifications'}
+        aria-label={notificationButtonLabel(unreadCount)}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
       >
@@ -94,4 +94,10 @@ export function NotificationBell({
 }
 
 
+
+function notificationButtonLabel(unreadCount: number): string {
+  if (unreadCount === 0) return 'Notifications';
+  const suffix = unreadCount > 1 ? 's' : '';
+  return `Notifications — ${unreadCount} non lue${suffix}`;
+}
 

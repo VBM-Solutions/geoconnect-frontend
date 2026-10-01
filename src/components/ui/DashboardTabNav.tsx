@@ -8,9 +8,9 @@ export interface DashboardTab {
 }
 
 interface DashboardTabNavProps {
-  tabs: DashboardTab[];
-  activeTab: string;
-  onTabChange: (id: string) => void;
+  readonly tabs: DashboardTab[];
+  readonly activeTab: string;
+  readonly onTabChange: (id: string) => void;
 }
 
 /**

@@ -153,6 +153,7 @@ export function ProfilBureauEtudeForm({
         <label className="flex items-start gap-2 rounded-lg border border-slate-200 p-3 text-xs text-slate-700">
           <input
             type="checkbox"
+            aria-label="Afficher mon adresse complète"
             checked={value.afficherAdresseComplete}
             onChange={event => patch({ afficherAdresseComplete: event.target.checked })}
             className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"

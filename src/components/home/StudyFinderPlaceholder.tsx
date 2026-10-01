@@ -20,13 +20,13 @@ export function StudyFinderPlaceholder({ onContinue }: StudyFinderPlaceholderPro
 
           <div className="mt-6 space-y-4" aria-label="Aperçu du futur assistant d'orientation">
             <label className="block text-sm font-bold text-stone-800">
-              Quel est votre projet ?
+              <span className="block">Quel est votre projet ?</span>
               <select disabled className="mt-2 h-12 w-full rounded-xl border border-stone-300 bg-white px-4 text-stone-500">
                 <option>Construction, vente, rénovation…</option>
               </select>
             </label>
             <label className="block text-sm font-bold text-stone-800">
-              Où en êtes-vous ?
+              <span className="block">Où en êtes-vous ?</span>
               <select disabled className="mt-2 h-12 w-full rounded-xl border border-stone-300 bg-white px-4 text-stone-500">
                 <option>Je prépare mon projet…</option>
               </select>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../../contexts/ToastContext';
-import type { ClientDashboardData } from '../../hooks/useClientDashboardData';
+import type { ClientDashboardData, DemandeWithPropositions } from '../../hooks/useClientDashboardData';
 import { STATUT_LABELS, TYPE_LABELS } from '../../constants/labels';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -152,12 +152,19 @@ function PaginationControls({ page, totalPages, onChange }: Readonly<{
   );
 }
 
+function isPendingDemande(demande: DemandeWithPropositions): boolean {
+  return !demande.propositions?.some(proposition => proposition.statut === 'ACCEPTEE');
+}
+
+function isArchivedEtude(etude: EtudeDetailDTO): boolean {
+  return etude.etat === 'PAIEMENT_EFFECTUE';
+}
+
 export default function ClientDashboard() {
   const { toastError } = useToast();
   const {
     demandes, etudes, etudeIdsAEvaluer = [], isLoading, error,
     demandePage, activeEtudePage, archivedEtudePage,
-    demandeTotal, activeEtudeTotal, archivedEtudeTotal,
     demandeTotalPages, activeEtudeTotalPages, archivedEtudeTotalPages,
     setDemandePage, setActiveEtudePage, setArchivedEtudePage,
   } = useOutletContext<ClientDashboardData>();
@@ -194,9 +201,9 @@ export default function ClientDashboard() {
     );
   }
 
-  const demandesEnCours = demandes.filter(d => !d.propositions?.some(p => p.statut === 'ACCEPTEE'));
-  const etudesArchivees = etudes.filter(e => e.etat === 'PAIEMENT_EFFECTUE');
-  const etudesEnCours   = etudes.filter(e => e.etat !== 'PAIEMENT_EFFECTUE');
+  const demandesEnCours = demandes.filter(isPendingDemande);
+  const etudesArchivees = etudes.filter(isArchivedEtude);
+  const etudesEnCours = etudes.filter(etude => !isArchivedEtude(etude));
   const sectionMeta: Record<TabType, { title: string; description: string }> = {
     DEMANDES: {
       title: 'Demandes de devis',

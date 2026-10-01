@@ -2,8 +2,14 @@ import { useRef } from 'react';
 import { ArrowLeft, ArrowRight, ExternalLink } from 'lucide-react';
 import { DOCUMENT_GUIDES } from './documentContent';
 
+function instructionTitle(category: string): string {
+  if (category === 'PHOTO_ACCES') return 'Quelles photos préparer ?';
+  if (category === 'PLAN_SITUATION') return 'Vous possédez déjà ce document ?';
+  return 'Comment récupérer ce document ?';
+}
+
 export function DocumentsSection() {
-  const carouselRef = useRef<HTMLDivElement>(null);
+  const carouselRef = useRef<HTMLElement>(null);
 
   const move = (direction: number) => {
     const carousel = carouselRef.current;
@@ -50,7 +56,7 @@ export function DocumentsSection() {
               <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </button>
           </div>
-        <div ref={carouselRef} id="documents-carousel" role="region" aria-label="Documents à préparer" tabIndex={0} className="gc-carousel-scrollbar flex w-full min-w-0 items-stretch gap-4 overflow-x-auto pb-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">
+        <section ref={carouselRef} id="documents-carousel" aria-label="Documents à préparer" className="gc-carousel-scrollbar flex w-full min-w-0 items-stretch gap-4 overflow-x-auto pb-4">
           {DOCUMENT_GUIDES.map((document, index) => (
             <article key={document.category} className="relative flex min-h-[25rem] w-[82vw] min-w-0 max-w-full shrink-0 flex-col whitespace-normal [overflow-wrap:anywhere] rounded-2xl border border-stone-200 bg-white p-6 shadow-[0_12px_24px_-18px_rgba(74,58,38,0.38)] sm:w-[calc((100%_-_0.5rem)/1.5)] sm:p-7">
               <button type="button" aria-label={`Afficher ${document.title}`} onClick={() => showDocument(index)} className="absolute inset-0 z-0 cursor-pointer rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/40" />
@@ -58,7 +64,7 @@ export function DocumentsSection() {
               <p className="pointer-events-none relative z-10 mt-5 leading-7 text-stone-600">{document.description}</p>
               {document.instructions && (
                 <div className="pointer-events-none relative z-10 mt-auto pt-6">
-                  <h4 className="font-bold text-stone-900">{document.category === 'PHOTO_ACCES' ? 'Quelles photos préparer ?' : document.category === 'PLAN_SITUATION' ? 'Vous possédez déjà ce document ?' : 'Comment récupérer ce document ?'}</h4>
+                  <h4 className="font-bold text-stone-900">{instructionTitle(document.category)}</h4>
                   {document.instructions.length === 1 ? <p className="mt-3 leading-7 text-stone-600">{document.instructions[0]}</p> : (
                     <ul className="mt-3 list-disc space-y-2 pl-5 leading-7 text-stone-600">{document.instructions.map((instruction) => <li key={instruction}>{instruction}</li>)}</ul>
                   )}
@@ -67,7 +73,7 @@ export function DocumentsSection() {
               )}
             </article>
           ))}
-        </div>
+        </section>
           <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-[#f7f4ed]/80 to-transparent" />
           <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-[#f7f4ed]/80 to-transparent" />
         </div>

@@ -9,9 +9,9 @@ export const COLOR_MAP: Record<string, string> = {
 };
 
 interface InfoMsgProps {
-  icon: React.ReactNode;
-  color: string;
-  children: React.ReactNode;
+  readonly icon: React.ReactNode;
+  readonly color: string;
+  readonly children: React.ReactNode;
 }
 
 export function InfoMsg({ icon, color, children }: InfoMsgProps) {

@@ -68,6 +68,7 @@ describe('useBEPlanning', () => {
     unmount();
     resolveRequest({ start: '2026-08-17', end: '2026-08-24', events: [] });
     await Promise.resolve();
+    expect(getMyPlanning).toHaveBeenCalledOnce();
   });
 
   it('ignores an error received after unmount', async () => {
@@ -78,5 +79,6 @@ describe('useBEPlanning', () => {
     unmount();
     rejectRequest(new Error('late failure'));
     await Promise.resolve();
+    expect(getMyPlanning).toHaveBeenCalledOnce();
   });
 });
