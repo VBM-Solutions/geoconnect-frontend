@@ -80,6 +80,8 @@ export default defineConfig(({mode}) => {
         exclude: [
           // Fichiers d'infrastructure / entrée
           'src/main.tsx',
+          // Bootstrap global Vitest (matchers/polyfills), sans logique applicative
+          'src/test/setup.ts',
           'src/vite-env.d.ts',
           // Types purs TypeScript — aucune logique exécutable
           'src/types/**',

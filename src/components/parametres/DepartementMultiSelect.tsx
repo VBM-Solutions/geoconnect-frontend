@@ -117,12 +117,11 @@ export function DepartementMultiSelect({
 
       {/* Dropdown — role="group" pour compatibilité a11y sans forcer un native <select> */}
       {isOpen && (
-        <div
+        <fieldset
           className="absolute z-50 mt-1 w-full bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden"
-          role="group"
           id={listboxId}
-          aria-label="Liste des départements"
         >
+          <legend className="sr-only">Liste des départements</legend>
           {/* Recherche */}
           <div className="p-2 border-b border-slate-100">
             <div className="relative">
@@ -147,16 +146,18 @@ export function DepartementMultiSelect({
             {filtered.map((dept) => {
               const checked = selectedCodes.includes(dept.code);
               return (
-                <button
+                <label
                   key={dept.code}
-                  type="button"
-                  role="checkbox"
-                  aria-checked={checked}
-                  onClick={() => toggle(dept.code)}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left hover:bg-slate-50 transition-colors ${
                     checked ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700'
                   }`}
                 >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggle(dept.code)}
+                    className="sr-only"
+                  />
                   <span
                     className={`w-4 h-4 flex-shrink-0 rounded border-2 flex items-center justify-center transition-colors ${
                       checked ? 'bg-blue-600 border-blue-600' : 'border-slate-300'
@@ -171,11 +172,11 @@ export function DepartementMultiSelect({
                   </span>
                   <span className="flex-1">{dept.libelle}</span>
                   <span className="text-xs text-slate-400 font-mono">{dept.code}</span>
-                </button>
+                </label>
               );
             })}
           </div>
-        </div>
+        </fieldset>
       )}
 
       {/* Badges des sélections */}

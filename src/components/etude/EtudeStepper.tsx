@@ -103,11 +103,28 @@ export function getActiveStepIndex(etat: EtatEtude): number {
 type Role = 'CLIENT' | 'BE';
 
 interface EtudeStepperProps {
-  etat?: EtatEtude;
-  datesEtapes?: Partial<Record<EtatEtude, string>>;
-  role: Role;
+  readonly etat?: EtatEtude;
+  readonly datesEtapes?: Partial<Record<EtatEtude, string>>;
+  readonly role: Role;
   /** Contenu action rendu à l'intérieur de l'étape active */
-  renderActions?: (step: StepDef, index: number) => React.ReactNode;
+  readonly renderActions?: (step: StepDef, index: number) => React.ReactNode;
+}
+
+function stepLabelClass(isCurrent: boolean, isCompleted: boolean): string {
+  if (isCurrent) return 'text-blue-700';
+  if (isCompleted) return 'text-green-600';
+  return 'text-slate-400';
+}
+
+function stepCircleClass(isCompleted: boolean, isCurrent: boolean, isPending: boolean): string {
+  if (isCompleted) return 'bg-green-500 border-green-500 text-white';
+  if (isCurrent) return 'bg-white border-blue-600 text-blue-600 shadow-md';
+  if (isPending) return 'bg-white border-slate-200 text-slate-300';
+  return '';
+}
+
+function stepDescriptionClass(isCurrent: boolean): string {
+  return isCurrent ? 'text-slate-600' : 'text-slate-400';
 }
 
 // ─── Composant ────────────────────────────────────────────────────────────────
@@ -135,12 +152,7 @@ export const EtudeStepper: React.FC<EtudeStepperProps> = ({ etat, datesEtapes, r
             <div className="flex flex-col items-center">
               {/* Cercle d'état */}
               <div
-                className={`
-                  w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 transition-all
-                  ${isCompleted ? 'bg-green-500 border-green-500 text-white' : ''}
-                  ${isCurrent  ? 'bg-white border-blue-600 text-blue-600 shadow-md' : ''}
-                  ${isPending  ? 'bg-white border-slate-200 text-slate-300' : ''}
-                `}
+                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 transition-all ${stepCircleClass(isCompleted, isCurrent, isPending)}`}
               >
                 {isCompleted ? (
                   <CheckCircle2 className="w-4 h-4" />
@@ -157,14 +169,10 @@ export const EtudeStepper: React.FC<EtudeStepperProps> = ({ etat, datesEtapes, r
             </div>
 
             {/* Colonne droite : contenu */}
-            <div className={`pb-6 flex-1 ${isLast ? '' : ''}`}>
+            <div className="pb-6 flex-1">
               {/* Label */}
               <div className="mb-1 flex items-baseline justify-between gap-3">
-                <p className={`text-xs font-bold uppercase tracking-wider leading-none ${
-                  isCurrent  ? 'text-blue-700' :
-                  isCompleted ? 'text-green-600' :
-                  'text-slate-400'
-                }`}>
+                <p className={`text-xs font-bold uppercase tracking-wider leading-none ${stepLabelClass(isCurrent, isCompleted)}`}>
                   {step.label}
                 </p>
                 {dateFranchissement && (
@@ -179,7 +187,7 @@ export const EtudeStepper: React.FC<EtudeStepperProps> = ({ etat, datesEtapes, r
 
               {/* Description */}
               {(isCurrent || isCompleted) && (
-                <p className={`text-[11px] leading-relaxed mb-2 ${isCurrent ? 'text-slate-600' : 'text-slate-400'}`}>
+                <p className={`text-[11px] leading-relaxed mb-2 ${stepDescriptionClass(isCurrent)}`}>
                   {description}
                 </p>
               )}

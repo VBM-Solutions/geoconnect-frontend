@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AuthResponseDTO } from '../types';
 import { logoutCall } from '../api/auth';
 import {
@@ -32,20 +32,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, []);
 
-  const login = (userData: AuthResponseDTO) => {
+  const login = useCallback((userData: AuthResponseDTO) => {
     writeStoredUser(userData);
     seedSessionMetadata();
     setUser(userData);
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     logoutCall().catch(() => {});
     clearAuthSessionStorage();
     setUser(null);
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    user,
+    login,
+    logout,
+    isAuthenticated: !!user,
+    isLoading,
+  }), [isLoading, login, logout, user]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, isLoading }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

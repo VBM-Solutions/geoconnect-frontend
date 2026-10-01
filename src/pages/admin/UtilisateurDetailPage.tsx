@@ -25,7 +25,7 @@ export default function UtilisateurDetailPage() {
       const numericId = Number(id);
       if (!numericId) {
         toastError('Identifiant utilisateur invalide');
-        navigate('/admin/utilisateurs', { replace: true });
+        void navigate('/admin/utilisateurs', { replace: true });
         return;
       }
 
@@ -35,13 +35,13 @@ export default function UtilisateurDetailPage() {
         setUtilisateur(data);
       } catch (error: any) {
         toastError(getApiMessage(error, 'Compte introuvable'));
-        navigate('/admin/utilisateurs', { replace: true });
+        void navigate('/admin/utilisateurs', { replace: true });
       } finally {
         setIsLoading(false);
       }
     }
 
-    loadUtilisateur();
+    void loadUtilisateur();
   }, [id, navigate, toastError]);
 
   const handleActiver = async () => {
@@ -106,7 +106,7 @@ export default function UtilisateurDetailPage() {
     try {
       await supprimerInvitationBureauEtude(utilisateur.id);
       toastSuccess('Invitation supprimée');
-      navigate('/admin/utilisateurs');
+      void navigate('/admin/utilisateurs');
     } catch (error: any) {
       toastError(getApiMessage(error, "Impossible de supprimer l'invitation"));
       setIsSubmitting(false);
@@ -155,7 +155,7 @@ export default function UtilisateurDetailPage() {
         </dl>
 
         <div className="mt-6 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-          {utilisateur.activationStatus === 'INVITED' ? (
+          {utilisateur.activationStatus === 'INVITED' && (
             <>
               <Button onClick={handleResendInvitation} isLoading={isSubmitting}>
                 Renvoyer l'e-mail d'activation
@@ -164,11 +164,13 @@ export default function UtilisateurDetailPage() {
                 Supprimer l'invitation
               </Button>
             </>
-          ) : utilisateur.enabled ? (
+          )}
+          {utilisateur.activationStatus !== 'INVITED' && utilisateur.enabled && (
             <Button variant="danger" onClick={() => setShowDisableModal(true)} disabled={isSubmitting}>
               Desactiver
             </Button>
-          ) : (
+          )}
+          {utilisateur.activationStatus !== 'INVITED' && !utilisateur.enabled && (
             <Button variant="secondary" onClick={handleActiver} isLoading={isSubmitting}>
               Activer
             </Button>

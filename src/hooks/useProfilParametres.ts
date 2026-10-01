@@ -40,21 +40,21 @@ export function useProfilParametres<T>({
 
       try {
         const nextProfil = await loadProfil();
-        if (!cancelled && isMounted.current) {
+        if (!cancelled) {
           setProfil(nextProfil);
         }
       } catch {
-        if (!cancelled && isMounted.current) {
+        if (!cancelled) {
           setLoadError(loadErrorMessage);
         }
       } finally {
-        if (!cancelled && isMounted.current) {
+        if (!cancelled) {
           setIsLoading(false);
         }
       }
     }
 
-    load();
+    void load();
     return () => {
       cancelled = true;
     };

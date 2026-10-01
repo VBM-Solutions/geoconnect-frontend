@@ -1,6 +1,6 @@
-export const TELEPHONE_REGEX = /^[0-9+\-\s()]{8,20}$/;
+export const TELEPHONE_REGEX = /^[\d+\-\s()]{8,20}$/;
 export const CODE_POSTAL_REGEX = /^(?:\d{5}|2[AB]\d{3})$/;
-export const IBAN_REGEX = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{4,30}$/;
+export const IBAN_REGEX = /^[A-Z]{2}\d{2}[A-Z\d]{4,30}$/;
 
 export function isNonEmpty(value: string): boolean {
   return value.trim().length > 0;

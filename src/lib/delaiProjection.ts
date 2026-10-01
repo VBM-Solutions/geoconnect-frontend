@@ -10,7 +10,8 @@ export function formatDelaiWithProjection(
   if (!projection?.label) return base;
 
   const remaining = formatRemaining(projection.semainesRestantes);
-  return `${base} (${remaining ? `${remaining}, ` : ''}${projection.label})`;
+  const remainingPrefix = remaining ? `${remaining}, ` : '';
+  return `${base} (${remainingPrefix}${projection.label})`;
 }
 
 function formatRemaining(semainesRestantes?: number): string | null {

@@ -99,7 +99,8 @@ function QuoteTunnel({
       codePostalProjet: initialPostalCode ?? '',
     },
   });
-  const passwordValue = String(watch('password', '') ?? '');
+  const watchedPassword = watch('password', '');
+  const passwordValue = typeof watchedPassword === 'string' ? watchedPassword : '';
   const cgvAcceptees = watch('cgvAcceptees') === true;
   const selectedType = watch('type') as TypeDemandeDevis | undefined;
 
@@ -114,7 +115,7 @@ function QuoteTunnel({
     if (step < 4) {
       setStep(step + 1);
     } else {
-      submitTunnel({ ...formData, ...data });
+      void submitTunnel({ ...formData, ...data });
     }
   };
 
@@ -160,7 +161,7 @@ function QuoteTunnel({
       }, documents.map(document => document.file));
 
       sessionStorage.setItem('geoconnect.verification-email', authRes.login);
-      navigate('/verification-email-envoyee', { state: { email: authRes.login } });
+      void navigate('/verification-email-envoyee', { state: { email: authRes.login } });
     } catch (err: unknown) {
       setError(getPublicApiError(err,
         "Nous n'avons pas pu créer votre compte. Veuillez réessayer dans quelques instants.").message);
@@ -448,7 +449,10 @@ function QuoteTunnel({
                 label="Confirmation du mot de passe *"
                 {...formRegister(
                   'confirmPassword',
-                  createConfirmPasswordRules(() => String(getValues('password') ?? '')),
+                  createConfirmPasswordRules(() => {
+                    const password = getValues('password');
+                    return typeof password === 'string' ? password : '';
+                  }),
                 )}
                 error={getFieldMessage(errors.confirmPassword)}
                 showPasswordToggle

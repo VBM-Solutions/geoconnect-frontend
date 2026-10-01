@@ -52,6 +52,7 @@ export function SectionEmailNotifications(props: Readonly<SectionEmailNotificati
               <span className="block text-xs text-slate-500">{category.description}</span>
             </span>
             <input type="checkbox" checked={selected.includes(category.value)}
+              aria-label={category.label}
               onChange={() => toggle(category.value)} className="mt-1 h-4 w-4 accent-blue-600" />
           </label>
         ))}

@@ -173,12 +173,12 @@ export function SectionNotifications({
           <label className="flex items-center gap-3 text-sm text-slate-700">
             <input type="radio" name="modeVisibilite" checked={afficherTous}
               onChange={() => setAfficherTous(true)} className="accent-blue-600" />
-            Toutes les missions
+            <span>Toutes les missions</span>
           </label>
           <label className="flex items-center gap-3 text-sm text-slate-700">
             <input type="radio" name="modeVisibilite" checked={!afficherTous}
               onChange={() => setAfficherTous(false)} className="accent-blue-600" />
-            Uniquement mes zones visibles
+            <span>Uniquement mes zones visibles</span>
           </label>
           <div className="pt-2">
             <DepartementMultiSelect departements={departements} selectedCodes={visibleDepts}

@@ -42,15 +42,15 @@ export default function Login() {
 
       const requestedPath = (location.state as { returnTo?: unknown } | null)?.returnTo;
       if (isRoleCompatibleReturnTo(requestedPath, authRes.role)) {
-        navigate(requestedPath, { replace: true, state: null });
+        void navigate(requestedPath, { replace: true, state: null });
       } else if (authRes.role === 'ADMIN') {
-        navigate('/admin/utilisateurs');
+        void navigate('/admin/utilisateurs');
       } else if (authRes.role === 'BUREAU_ETUDE') {
-        navigate('/be/dashboard');
+        void navigate('/be/dashboard');
       } else if (authRes.onboardingFinalized) {
-        navigate('/success');
+        void navigate('/success');
       } else {
-        navigate('/client/dashboard');
+        void navigate('/client/dashboard');
       }
     } catch (err: any) {
       setError(getPublicApiError(err, 'Adresse email ou mot de passe incorrect.').message);
@@ -89,7 +89,7 @@ export default function Login() {
               error={errors.password ? "Requis" : undefined}
             />
             <div className="flex justify-end">
-              <a href="#" className="text-[10px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider">Mot de passe oublié ?</a>
+              <button type="button" className="text-[10px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider">Mot de passe oublié ?</button>
             </div>
           </CardContent>
           <CardFooter className="flex-col items-stretch">
@@ -99,7 +99,7 @@ export default function Login() {
 
             <div className="mt-6 text-center border-t border-slate-100 pt-4">
               <p className="text-xs text-slate-500 mb-2">Vous êtes un Bureau d'Étude Géotechnique ?</p>
-              <Button type="button" variant="outline" className="w-full text-xs" onClick={() => navigate('/bureau-etudes/inscription')}>
+              <Button type="button" variant="outline" className="w-full text-xs" onClick={() => { void navigate('/bureau-etudes/inscription'); }}>
                 Créer un compte professionnel
               </Button>
             </div>

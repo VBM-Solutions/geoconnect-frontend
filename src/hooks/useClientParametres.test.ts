@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useClientParametres } from './useClientParametres';
+import type { ClientDTO } from '../types';
 
 vi.mock('../api/parametres', () => ({
   getClientProfil: vi.fn(),
@@ -16,7 +17,7 @@ import {
   updateClientTelephone,
 } from '../api/parametres';
 
-const fakeClient = {
+const fakeClient: ClientDTO = {
   id: 12,
   civilite: 'MME',
   nom: 'Dupont',
@@ -51,6 +52,26 @@ describe('useClientParametres', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.client).toBeNull();
     expect(result.current.loadError).toContain('Impossible de charger les paramètres');
+  });
+
+  it('ignore un profil chargé après démontage', async () => {
+    let resolveProfil!: (value: typeof fakeClient) => void;
+    vi.mocked(getClientProfil).mockReturnValue(new Promise(resolve => { resolveProfil = resolve; }));
+    const { unmount } = renderHook(() => useClientParametres());
+    unmount();
+    resolveProfil(fakeClient);
+    await Promise.resolve();
+    expect(getClientProfil).toHaveBeenCalledOnce();
+  });
+
+  it('ignore une erreur de profil arrivée après démontage', async () => {
+    let rejectProfil!: (reason: unknown) => void;
+    vi.mocked(getClientProfil).mockReturnValue(new Promise((_resolve, reject) => { rejectProfil = reject; }));
+    const { unmount } = renderHook(() => useClientParametres());
+    unmount();
+    rejectProfil(new Error('trop tard'));
+    await Promise.resolve();
+    expect(getClientProfil).toHaveBeenCalledOnce();
   });
 
   it('saveTelephone met à jour le profil et les flags de chargement', async () => {
@@ -114,6 +135,26 @@ describe('useClientParametres', () => {
 
     expect(updateClientMotDePasse).toHaveBeenCalledWith({ ancienMotDePasse: 'ancien1234', nouveauMotDePasse: 'nouveau1234' });
     expect(result.current.isSavingMotDePasse).toBe(false);
+  });
+
+  it('n’actualise aucun état de sauvegarde après démontage', async () => {
+    (getClientProfil as ReturnType<typeof vi.fn>).mockResolvedValue(fakeClient);
+    let resolveTelephone!: (value: typeof fakeClient) => void;
+    let resolveAdresse!: (value: typeof fakeClient) => void;
+    let resolvePassword!: () => void;
+    vi.mocked(updateClientTelephone).mockReturnValue(new Promise(resolve => { resolveTelephone = resolve; }) as never);
+    vi.mocked(updateClientAdresseFacturation).mockReturnValue(new Promise(resolve => { resolveAdresse = resolve; }) as never);
+    vi.mocked(updateClientMotDePasse).mockReturnValue(new Promise(resolve => { resolvePassword = resolve; }));
+    const { result, unmount } = renderHook(() => useClientParametres());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const telephone = result.current.saveTelephone('0600000000');
+    const adresse = result.current.saveAdresseFacturation({ rue: 'Rue', codePostal: '75001', ville: 'Paris' });
+    const password = result.current.saveMotDePasse({ ancienMotDePasse: 'ancien', nouveauMotDePasse: 'Nouveau!1' });
+    unmount();
+    resolveTelephone(fakeClient);
+    resolveAdresse(fakeClient);
+    resolvePassword();
+    await Promise.all([telephone, adresse, password]);
   });
 });
 

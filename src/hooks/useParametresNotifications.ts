@@ -56,8 +56,8 @@ export function useParametresNotifications(): UseParametresNotificationsReturn {
 
       try {
         // Départements : servis depuis le cache si déjà chargés
-        const depts = departementsCache ?? await getDepartements();
-        if (!departementsCache) departementsCache = depts;
+        departementsCache ??= await getDepartements();
+        const depts = departementsCache;
 
         const prefs = await getNotificationPreferences();
 
@@ -76,7 +76,7 @@ export function useParametresNotifications(): UseParametresNotificationsReturn {
       }
     }
 
-    load();
+    void load();
     return () => {
       cancelled = true;
     };

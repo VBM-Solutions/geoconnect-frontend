@@ -96,4 +96,19 @@ describe('addressAutocomplete api', () => {
 
     expect(result.rue).toBe('12 Rue de la Paix');
   });
+
+  it('conserve le label complet si le code postal ou la ville commencent le label', () => {
+    expect(normalizeAddressSuggestion({
+      label: '75001 Paris', rue: 'Paris', codePostal: '75001', ville: 'Paris',
+    }).rue).toBe('75001 Paris');
+    expect(normalizeAddressSuggestion({
+      label: 'Paris', rue: 'Paris', ville: 'Paris',
+    }).rue).toBe('Paris');
+  });
+
+  it('gère une rue absente et tous les séparateurs de fin', () => {
+    expect(normalizeAddressSuggestion({
+      label: '12 Rue de la Paix ;,  ', rue: undefined,
+    }).rue).toBe('12 Rue de la Paix');
+  });
 });

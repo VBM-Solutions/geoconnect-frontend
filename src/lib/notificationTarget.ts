@@ -6,7 +6,9 @@ export function resolveNotificationPath(notification: NotificationDTO, role?: Ro
     return notification.lienAction;
   }
 
-  const prefix = role === 'CLIENT' ? '/client' : role === 'BUREAU_ETUDE' ? '/be' : undefined;
+  let prefix: string | undefined;
+  if (role === 'CLIENT') prefix = '/client';
+  if (role === 'BUREAU_ETUDE') prefix = '/be';
   if (!prefix) return notification.lienAction;
 
   const resource = notification.cibleType === 'DEMANDE' ? 'demande' : 'etude';
@@ -18,5 +20,6 @@ export function resolveNotificationPath(notification: NotificationDTO, role?: Ro
     params.set('proposition', String(notification.cibleReferenceId));
   }
   const query = params.toString();
-  return `${prefix}/${resource}/${notification.cibleId}${query ? `?${query}` : ''}`;
+  const querySuffix = query ? `?${query}` : '';
+  return `${prefix}/${resource}/${notification.cibleId}${querySuffix}`;
 }

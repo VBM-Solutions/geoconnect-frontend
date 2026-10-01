@@ -44,13 +44,15 @@ export function ConfirmModal({
   return createPortal((
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Fond flouté */}
-      <div
+      <button
+        type="button"
+        aria-label="Fermer la fenêtre de confirmation"
         className="absolute inset-0 backdrop-blur-sm bg-white/20"
         data-testid="confirm-modal-backdrop"
         onClick={dismissible ? onCancel : undefined}
       />
       {/* Contenu */}
-      <div className={`relative bg-white rounded-lg shadow-2xl border ${borderClass} max-w-md w-full mx-4 p-6 z-10`} role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+      <dialog open className={`relative bg-white rounded-lg shadow-2xl border ${borderClass} max-w-md w-full mx-4 p-6 z-10`} aria-labelledby="confirm-modal-title">
         <h3 id="confirm-modal-title" className={`text-base font-bold mb-3 ${headerClass}`}>{title}</h3>
         <p className="text-sm text-slate-600 mb-4">{message}</p>
         {extra && <div className="mb-5">{extra}</div>}
@@ -62,7 +64,7 @@ export function ConfirmModal({
             {confirmLabel}
           </Button>
         </div>
-      </div>
+      </dialog>
     </div>
   ), document.body);
 }

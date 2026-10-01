@@ -31,7 +31,7 @@ export const TYPE_ICONS: Record<TypeDemandeDevis, IconComponent> = {
 export const FallbackEtudeIcon = FlaskConical;
 
 interface EtudeTypeIconProps extends LucideProps {
-  type?: TypeDemandeDevis | string | null;
+  readonly type?: string | null;
 }
 
 /**

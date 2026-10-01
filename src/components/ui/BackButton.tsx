@@ -5,10 +5,10 @@ import { cn } from '../../lib/utils';
 
 interface BackButtonProps {
   /** URL cible (tableau de bord avec onglet encodé, ex : "/client/dashboard?tab=ETUDES") */
-  to: string;
+  readonly to: string;
   /** Libellé affiché (défaut : "Retour") */
-  label?: string;
-  className?: string;
+  readonly label?: string;
+  readonly className?: string;
 }
 
 /**

@@ -54,4 +54,21 @@ describe('useEmailNotificationPreferences', () => {
     expect(success).toBe(false);
     expect(result.current.isSaving).toBe(false);
   });
+
+  it('ignore succès et erreur de chargement après démontage', async () => {
+    let resolveLoad!: (value: { categoriesActives: never[] }) => void;
+    vi.mocked(getEmailNotificationPreferences).mockReturnValue(new Promise(resolve => { resolveLoad = resolve; }));
+    const success = renderHook(() => useEmailNotificationPreferences());
+    success.unmount();
+    resolveLoad({ categoriesActives: [] });
+    await Promise.resolve();
+
+    let rejectLoad!: (reason: unknown) => void;
+    vi.mocked(getEmailNotificationPreferences).mockReturnValue(new Promise((_resolve, reject) => { rejectLoad = reject; }));
+    const failure = renderHook(() => useEmailNotificationPreferences());
+    failure.unmount();
+    rejectLoad(new Error('trop tard'));
+    await Promise.resolve();
+    expect(getEmailNotificationPreferences).toHaveBeenCalledTimes(2);
+  });
 });

@@ -79,6 +79,11 @@ describe('getPropositionsByDemandeIds', () => {
     await expect(getPropositionsByDemandeIds([])).resolves.toEqual({});
     expect(api.get).not.toHaveBeenCalled();
   });
+
+  it('retourne un objet vide quand le backend ne renvoie aucune donnée', async () => {
+    (api.get as any).mockResolvedValueOnce({ data: null });
+    await expect(getPropositionsByDemandeIds([1])).resolves.toEqual({});
+  });
 });
 
 describe('getPropositionDevisByBureauId', () => {
