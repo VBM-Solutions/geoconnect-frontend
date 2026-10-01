@@ -115,7 +115,7 @@ function QuoteTunnel({
     if (step < 4) {
       setStep(step + 1);
     } else {
-      submitTunnel({ ...formData, ...data });
+      void submitTunnel({ ...formData, ...data });
     }
   };
 
@@ -161,7 +161,7 @@ function QuoteTunnel({
       }, documents.map(document => document.file));
 
       sessionStorage.setItem('geoconnect.verification-email', authRes.login);
-      navigate('/verification-email-envoyee', { state: { email: authRes.login } });
+      void navigate('/verification-email-envoyee', { state: { email: authRes.login } });
     } catch (err: unknown) {
       setError(getPublicApiError(err,
         "Nous n'avons pas pu créer votre compte. Veuillez réessayer dans quelques instants.").message);
