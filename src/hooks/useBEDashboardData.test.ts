@@ -84,6 +84,19 @@ describe('useBEDashboardData', () => {
     expect(getBureauEtudeWorkItemsPaginated).toHaveBeenCalledWith('AVAILABLE', 0, 8, ['92']);
   });
 
+  it('utilise une liste vide si la zone visible est absente', async () => {
+    vi.mocked(getNotificationPreferences).mockResolvedValue({
+      notifierTousDepartements: false,
+      departementsSuivis: ['92'],
+      afficherTousDepartements: true,
+    } as never);
+    const { result } = renderHook(() => useBEDashboardData());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    vi.mocked(getBureauEtudeWorkItemsPaginated).mockClear();
+    await act(() => result.current.setMissionZoneFilter('VISIBLE'));
+    expect(getBureauEtudeWorkItemsPaginated).toHaveBeenCalledWith('AVAILABLE', 0, 8, []);
+  });
+
   it('conserve le dashboard affiché pendant la mise à jour du filtre', async () => {
     const { result } = renderHook(() => useBEDashboardData());
     await waitFor(() => expect(result.current.isLoading).toBe(false));

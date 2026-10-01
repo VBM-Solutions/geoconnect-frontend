@@ -91,6 +91,22 @@ describe('useBureauEtudeIban', () => {
     expect(updateBureauEtudeMotDePasse).toHaveBeenCalledWith({ ancienMotDePasse: 'ancien1234', nouveauMotDePasse: 'Nouveau123!' });
     expect(result.current.isSavingMotDePasse).toBe(false);
   });
+
+  it('ignore les résolutions de sauvegarde après démontage', async () => {
+    (getCurrentBureauEtude as ReturnType<typeof vi.fn>).mockResolvedValue(fakeBureau);
+    let resolveIban!: (value: typeof fakeBureau) => void;
+    let resolvePassword!: () => void;
+    vi.mocked(updateBureauEtudeIban).mockReturnValue(new Promise(resolve => { resolveIban = resolve; }) as never);
+    vi.mocked(updateBureauEtudeMotDePasse).mockReturnValue(new Promise(resolve => { resolvePassword = resolve; }));
+    const { result, unmount } = renderHook(() => useBureauEtudeIban());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const iban = result.current.saveIban('FR7612345678901234567890123');
+    const password = result.current.saveMotDePasse({ ancienMotDePasse: 'ancien', nouveauMotDePasse: 'Nouveau!1' });
+    unmount();
+    resolveIban(fakeBureau);
+    resolvePassword();
+    await Promise.all([iban, password]);
+  });
 });
 
 

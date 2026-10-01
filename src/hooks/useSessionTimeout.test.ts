@@ -6,6 +6,7 @@ import {
   SESSION_SYNC_EVENT_KEY,
 } from '../lib/authSessionStorage';
 import { useSessionTimeout } from './useSessionTimeout';
+import * as authSessionStorage from '../lib/authSessionStorage';
 
 const mockNavigate = vi.fn();
 const mockLogout = vi.fn();
@@ -113,6 +114,34 @@ describe('useSessionTimeout', () => {
     expect(mockLogout).toHaveBeenCalledOnce();
     expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true });
     expect(mockToastInfo).toHaveBeenCalledWith('Vous avez été déconnecté après une période d\'inactivité.');
+  });
+
+  it('affiche le message dédié à l’expiration absolue', async () => {
+    vi.setSystemTime(62_000);
+    renderHook(() => useSessionTimeout({ policy: {
+      idleTimeoutMs: 120_000, warningDurationMs: 2_000, absoluteTimeoutMs: 60_000, activityThrottleMs: 1,
+    } }));
+    await flushEffects();
+    expect(mockToastInfo).toHaveBeenCalledWith('Votre session est arrivée à son terme. Veuillez vous reconnecter.');
+  });
+
+  it('recrée les métadonnées manquantes avec la date courante', async () => {
+    sessionStorage.clear();
+    localStorage.clear();
+    vi.setSystemTime(5_000);
+    const { result } = renderHook(() => useSessionTimeout());
+    await flushEffects();
+    expect(result.current.showWarning).toBe(false);
+    expect(Number(localStorage.getItem(LAST_ACTIVITY_AT_KEY))).toBe(5_000);
+  });
+
+  it('utilise la date courante si les lectures de métadonnées restent nulles', async () => {
+    vi.setSystemTime(5_000);
+    vi.spyOn(authSessionStorage, 'readSessionStartedAt').mockReturnValueOnce(null);
+    vi.spyOn(authSessionStorage, 'readLastActivityAt').mockReturnValueOnce(null);
+    const { result } = renderHook(() => useSessionTimeout());
+    await flushEffects();
+    expect(result.current.secondsRemaining).toBeGreaterThan(0);
   });
 
   it('stayConnected prolonge la session en mettant à jour la dernière activité', async () => {
@@ -287,6 +316,17 @@ describe('useSessionTimeout', () => {
     await flushEffects();
     act(() => document.dispatchEvent(new Event('visibilitychange')));
     expect(result.current.showWarning).toBe(false);
+    if (visibility) Object.defineProperty(document, 'visibilityState', visibility);
+  });
+
+  it('ignore visibilitychange lorsque l’onglet reste masqué', async () => {
+    vi.setSystemTime(2_000);
+    const visibility = Object.getOwnPropertyDescriptor(document, 'visibilityState');
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+    renderHook(() => useSessionTimeout());
+    await flushEffects();
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    expect(mockLogout).not.toHaveBeenCalled();
     if (visibility) Object.defineProperty(document, 'visibilityState', visibility);
   });
 });

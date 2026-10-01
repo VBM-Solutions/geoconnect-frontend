@@ -10,6 +10,7 @@ import {
   PASSWORD_REQUIREMENTS,
   codePostalRules,
   createConfirmPasswordRules,
+  createMatchingFieldRules,
   emailRules,
   getMissingPasswordRequirementLabels,
   isEmailValid,
@@ -158,6 +159,19 @@ describe('isEmailValid', () => {
     expect(isEmailValid('user@-domaine.fr')).toBe(false);
     expect(isEmailValid('user@domaine-.fr')).toBe(false);
   });
+
+  it('refuse toutes les formes structurelles invalides', () => {
+    expect(isEmailValid('')).toBe(false);
+    expect(isEmailValid(`${'a'.repeat(65)}@example.fr`)).toBe(false);
+    expect(isEmailValid(`${'a'.repeat(245)}@example.fr`)).toBe(false);
+    expect(isEmailValid('@example.fr')).toBe(false);
+    expect(isEmailValid('user@')).toBe(false);
+    expect(isEmailValid('user@.example.fr')).toBe(false);
+    expect(isEmailValid('user@example.fr.')).toBe(false);
+    expect(isEmailValid('user@example..fr')).toBe(false);
+    expect(isEmailValid('user@exam_ple.fr')).toBe(false);
+    expect(isEmailValid('user@123.fr')).toBe(true);
+  });
 });
 
 describe('emailRules', () => {
@@ -250,6 +264,20 @@ describe('createConfirmPasswordRules', () => {
   it('retourne le message attendu si les mots de passe diffèrent', () => {
     const rules = createConfirmPasswordRules(() => 'MotDePasse!123');
     expect(rules.validate('AutreMotDePasse!123')).toBe('Les mots de passe ne correspondent pas');
+  });
+
+  it('compare à une chaîne vide quand la valeur attendue est absente', () => {
+    const rules = createMatchingFieldRules(() => undefined, 'Différent');
+    expect(rules.validate('')).toBe(true);
+    expect(rules.validate('valeur')).toBe('Différent');
+  });
+});
+
+describe('codePostalRules.onChange', () => {
+  it('normalise la saisie en majuscules', () => {
+    const event = { target: { value: '2a004' } };
+    codePostalRules.onChange(event);
+    expect(event.target.value).toBe('2A004');
   });
 });
 

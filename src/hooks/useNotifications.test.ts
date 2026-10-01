@@ -176,6 +176,53 @@ describe('useNotifications', () => {
     await act(async () => { await result.current.markAllAsRead(); });
     expect(result.current.unreadCount).toBe(3);
   });
+
+  it('ignore le chargement explicite sans authentification', async () => {
+    const { result } = renderHook(() => useNotifications(false));
+    await act(async () => { await result.current.loadNotifications(); });
+    expect(getNotifications).not.toHaveBeenCalled();
+  });
+
+  it('ne resynchronise pas le badge après une erreur si déconnecté', async () => {
+    vi.mocked(markNotificationAsRead).mockRejectedValue(new Error('KO'));
+    const { result } = renderHook(() => useNotifications(false));
+    await act(async () => { await result.current.markAsRead(1); });
+    expect(getUnreadCount).not.toHaveBeenCalled();
+  });
+
+  it('ignore les réponses du badge et de la liste après démontage', async () => {
+    let resolveCount!: (value: number) => void;
+    let resolveList!: (value: any) => void;
+    vi.mocked(getUnreadCount).mockReturnValue(new Promise(resolve => { resolveCount = resolve; }));
+    vi.mocked(getNotifications).mockReturnValue(new Promise(resolve => { resolveList = resolve; }));
+    const { result, unmount } = renderHook(() => useNotifications(true));
+    const loading = result.current.loadNotifications();
+    unmount();
+    resolveCount(8);
+    resolveList(fakeNotifications as never);
+    await act(async () => {
+      await loading;
+      await Promise.resolve();
+    });
+  });
+
+  it('ignore une erreur de liste après démontage', async () => {
+    vi.mocked(getUnreadCount).mockResolvedValue(0);
+    let rejectList!: (reason: unknown) => void;
+    vi.mocked(getNotifications).mockReturnValue(new Promise((_resolve, reject) => { rejectList = reject; }));
+    const { result, unmount } = renderHook(() => useNotifications(true));
+    const loading = result.current.loadNotifications();
+    unmount();
+    rejectList(new Error('trop tard'));
+    await loading;
+  });
+
+  it('tolère une erreur de rafraîchissement du badge', async () => {
+    vi.mocked(getUnreadCount).mockRejectedValue(new Error('indisponible'));
+    const { result } = renderHook(() => useNotifications(true));
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(result.current.unreadCount).toBe(0);
+  });
 });
 
 

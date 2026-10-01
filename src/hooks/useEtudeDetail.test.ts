@@ -74,6 +74,60 @@ describe('useEtudeDetail', () => {
     expect(result.current.error).toBe("Impossible de charger les données de l'étude.");
   });
 
+  it('rafraîchit explicitement les données', async () => {
+    (getEtudeDetailById as any)
+      .mockResolvedValueOnce(fakeEtude)
+      .mockResolvedValueOnce({ ...fakeEtude, etat: 'TERMINE' });
+    const { result } = renderHook(() => useEtudeDetail('42'), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => { await result.current.refresh(); });
+
+    expect(result.current.etude).toEqual({ ...fakeEtude, etat: 'TERMINE' });
+    expect(result.current.documents).toEqual(fakeDocuments);
+  });
+
+  it('ignore refresh sans identifiant et expose son erreur avec un identifiant', async () => {
+    const noId = renderHook(() => useEtudeDetail(undefined), { wrapper });
+    await expect(noId.result.current.refresh()).resolves.toBeUndefined();
+    noId.unmount();
+
+    (getEtudeDetailById as any).mockResolvedValueOnce(fakeEtude).mockRejectedValueOnce(new Error('KO'));
+    const { result } = renderHook(() => useEtudeDetail('42'), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(async () => { await result.current.refresh(); });
+    expect(result.current.error).toBe("Impossible de charger les données de l'étude.");
+  });
+
+  it('ignore le chargement initial résolu après démontage', async () => {
+    let resolveEtude!: (value: typeof fakeEtude) => void;
+    (getEtudeDetailById as any).mockReturnValue(new Promise(resolve => { resolveEtude = resolve; }));
+    const { unmount } = renderHook(() => useEtudeDetail('77'), { wrapper });
+    unmount();
+    resolveEtude(fakeEtude);
+    await Promise.resolve();
+  });
+
+  it('réutilise une requête déjà en cours pour le même identifiant', async () => {
+    let resolveEtude!: (value: typeof fakeEtude) => void;
+    (getEtudeDetailById as any).mockReturnValue(new Promise(resolve => { resolveEtude = resolve; }));
+    const first = renderHook(() => useEtudeDetail('78'), { wrapper });
+    const second = renderHook(() => useEtudeDetail('78'), { wrapper });
+    expect(getEtudeDetailById).toHaveBeenCalledTimes(1);
+    resolveEtude(fakeEtude);
+    await waitFor(() => expect(first.result.current.isLoading).toBe(false));
+    await waitFor(() => expect(second.result.current.isLoading).toBe(false));
+  });
+
+  it('ignore aussi une erreur arrivée après démontage', async () => {
+    let rejectEtude!: (reason: unknown) => void;
+    (getEtudeDetailById as any).mockReturnValue(new Promise((_resolve, reject) => { rejectEtude = reject; }));
+    const { unmount } = renderHook(() => useEtudeDetail('79'), { wrapper });
+    unmount();
+    rejectEtude(new Error('trop tard'));
+    await Promise.resolve();
+  });
+
   it('withAction exécute la fonction puis re-fetche le détail', async () => {
     (getEtudeDetailById as any)
       .mockResolvedValueOnce(fakeEtude)               // chargement initial

@@ -55,6 +55,12 @@ describe('API CSRF interceptor', () => {
     responseErrorInterceptor = mocks.responseUse.mock.calls[0][1];
   });
 
+  it('laisse passer une réponse réussie telle quelle', () => {
+    const successInterceptor = mocks.responseUse.mock.calls[0][0];
+    const response = { status: 200, data: { ok: true } };
+    expect(successInterceptor(response)).toBe(response);
+  });
+
   it('initializes, caches and sends the CSRF token for mutating requests', async () => {
     const firstConfig = mutatingConfig();
     const secondConfig = mutatingConfig('delete');

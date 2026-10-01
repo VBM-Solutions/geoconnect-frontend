@@ -78,8 +78,9 @@ describe('useParametresNotifications', () => {
     (getNotificationPreferences as ReturnType<typeof vi.fn>).mockResolvedValue(fakePrefs);
 
     // Premier montage — remplit le cache
-    const { unmount } = renderHook(() => useParametresNotifications());
-    await waitFor(() => expect(getDepartements).toHaveBeenCalledTimes(1));
+    const first = renderHook(() => useParametresNotifications());
+    await waitFor(() => expect(first.result.current.isLoading).toBe(false));
+    const { unmount } = first;
     unmount();
 
     // Deuxième montage — doit utiliser le cache
@@ -283,6 +284,8 @@ describe('useParametresNotifications', () => {
 
     // Au premier rendu synchrone, departements doit déjà contenir les données du cache
     expect(result.current.departements).toEqual(fakeDepts);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(getDepartements).toHaveBeenCalledTimes(1);
   });
 });
 

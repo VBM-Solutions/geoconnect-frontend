@@ -73,4 +73,17 @@ describe('useDemandeSubmission', () => {
     expect(onError).toHaveBeenCalledWith('Network down');
     expect(result.current.isSubmitting).toBe(false);
   });
+
+  it('utilise le message par défaut pour une erreur inconnue', async () => {
+    vi.mocked(documentApi.uploadDocuments).mockRejectedValue('échec inconnu');
+    const onError = vi.fn();
+    const { result } = renderHook(() => useDemandeSubmission({ onSuccess: vi.fn(), onError }));
+
+    await result.current.submit(
+      { clientId: 42, type: 'G0', adresseProjet: { rue: 'Rue', codePostal: '75001', ville: 'Paris' } } as any,
+      [],
+    );
+
+    expect(onError).toHaveBeenCalledWith('Une erreur est survenue.');
+  });
 });
