@@ -99,7 +99,7 @@ export default function UtilisateursPage() {
       }
     }
 
-    loadUtilisateurs();
+    void loadUtilisateurs();
   }, [currentPage, debouncedSearch, roleFilter, sortDirection, sortKey, toastError]);
 
   useEffect(() => {

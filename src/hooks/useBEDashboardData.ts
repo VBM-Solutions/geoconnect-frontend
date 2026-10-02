@@ -51,8 +51,8 @@ export function useBEDashboardData(): BEDashboardData {
   const [activeEtudes, setActiveEtudes] = useState<EtudeDetailDTO[]>([]);
   const [archivedEtudes, setArchivedEtudes] = useState<EtudeDetailDTO[]>([]);
   const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferencesDTO | null>(null);
-  const [filterByDept, setFilterByDeptState] = useState(false);
-  const [missionZoneFilter, setMissionZoneFilterState] = useState<MissionZoneFilter>('ALL');
+  const [filterByDept, setFilterByDept] = useState(false);
+  const [missionZoneFilter, setMissionZoneFilter] = useState<MissionZoneFilter>('ALL');
   const [availableMeta, setAvailableMeta] = useState({ page: 0, totalItems: 0, totalPages: 0 });
   const [pendingMeta, setPendingMeta] = useState({ page: 0, totalItems: 0, totalPages: 0 });
   const [activeMeta, setActiveMeta] = useState({ page: 0, totalItems: 0, totalPages: 0 });
@@ -118,8 +118,8 @@ export function useBEDashboardData(): BEDashboardData {
         setNotificationPreferences(prefs);
         const hasVisibleZone = Boolean(prefs && !prefs.afficherTousDepartements && prefs.departementsVisibles?.length);
         const initialFilter: MissionZoneFilter = prefs ? 'VISIBLE' : 'ALL';
-        setMissionZoneFilterState(initialFilter);
-        setFilterByDeptState(initialFilter !== 'ALL');
+        setMissionZoneFilter(initialFilter);
+        setFilterByDept(initialFilter !== 'ALL');
         const depts = hasVisibleZone ? prefs!.departementsVisibles : [];
         const [available, pending, active, archived] = await Promise.all([
           getBureauEtudeWorkItemsPaginated('AVAILABLE', 0, PAGE_SIZE, depts),
@@ -140,19 +140,19 @@ export function useBEDashboardData(): BEDashboardData {
         if (!cancelled) setIsLoading(false);
       }
     }
-    fetchAll();
+    void fetchAll();
     return () => { cancelled = true; };
   }, [user, tick]);
 
-  const setFilterByDept = async (enabled: boolean) => runAvailableUpdate(async () => {
+  const updateFilterByDept = async (enabled: boolean) => runAvailableUpdate(async () => {
     const filter: MissionZoneFilter = enabled ? 'NOTIFIED' : 'ALL';
-    setFilterByDeptState(enabled);
-    setMissionZoneFilterState(filter);
+    setFilterByDept(enabled);
+    setMissionZoneFilter(filter);
     await loadAvailable(0, filter);
   });
-  const setMissionZoneFilter = async (filter: MissionZoneFilter) => runAvailableUpdate(async () => {
-    setMissionZoneFilterState(filter);
-    setFilterByDeptState(filter !== 'ALL');
+  const updateMissionZoneFilter = async (filter: MissionZoneFilter) => runAvailableUpdate(async () => {
+    setMissionZoneFilter(filter);
+    setFilterByDept(filter !== 'ALL');
     await loadAvailable(0, filter);
   });
   const setAvailablePage = async (page: number) => runAvailableUpdate(() => loadAvailable(page));
@@ -176,7 +176,8 @@ export function useBEDashboardData(): BEDashboardData {
     activeEtudePage: activeMeta.page, archivedEtudePage: archivedMeta.page,
     availableTotalPages: availableMeta.totalPages, pendingTotalPages: pendingMeta.totalPages,
     activeEtudeTotalPages: activeMeta.totalPages, archivedEtudeTotalPages: archivedMeta.totalPages,
-    setFilterByDept, setMissionZoneFilter, setAvailablePage, setPendingPage, setActiveEtudePage, setArchivedEtudePage,
+    setFilterByDept: updateFilterByDept, setMissionZoneFilter: updateMissionZoneFilter,
+    setAvailablePage, setPendingPage, setActiveEtudePage, setArchivedEtudePage,
     isLoading, isUpdatingAvailable, error, refetch: () => setTick(value => value + 1),
   };
 }

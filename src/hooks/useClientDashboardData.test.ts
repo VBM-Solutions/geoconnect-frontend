@@ -132,6 +132,20 @@ describe('useClientDashboardData', () => {
     expect(result.current.etudes).toEqual([activeEtude, archivedEtude]);
   });
 
+  it('conserve les études archivées lors du rechargement des études actives', async () => {
+    (getEtudeDetailsByClientIdPaginated as any).mockImplementation((_id: number, category: string) => {
+      if (category === 'ARCHIVED') return Promise.resolve(page([archivedEtude]));
+      return Promise.resolve(page([]));
+    });
+    const { result } = renderHook(() => useClientDashboardData());
+    await waitFor(() => expect(result.current.etudes).toEqual([archivedEtude]));
+
+    (getEtudeDetailsByClientIdPaginated as any).mockResolvedValueOnce(page([activeEtude]));
+    await act(() => result.current.setActiveEtudePage(1));
+
+    expect(result.current.etudes).toEqual([activeEtude, archivedEtude]);
+  });
+
   it('capture les erreurs des changements de pages', async () => {
     const { result } = renderHook(() => useClientDashboardData());
     await waitFor(() => expect(result.current.isLoading).toBe(false));

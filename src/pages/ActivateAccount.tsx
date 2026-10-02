@@ -31,7 +31,7 @@ export default function ActivateAccount() {
 
   const activateAccount = async ({ password }: Form) => {
     await acceptAccountInvitation(token, password);
-    navigate('/login');
+    void navigate('/login');
   };
 
   return (

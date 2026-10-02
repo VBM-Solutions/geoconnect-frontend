@@ -108,7 +108,7 @@ export function useClientDashboardData(): ClientDashboardData {
       }
     }
 
-    fetchAll();
+    void fetchAll();
     return () => { cancelled = true; };
   }, [user, tick]);
 

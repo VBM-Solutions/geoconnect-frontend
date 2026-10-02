@@ -41,7 +41,7 @@ export default function ClientRequestDetail() {
         setPropositions(detail.propositions ?? []);
       } catch (err: any) {
         if (err?.response?.status === 403) {
-          navigate('/client/dashboard', { replace: true });
+          void navigate('/client/dashboard', { replace: true });
           return;
         }
         toastError(err?.response?.data?.message ?? err?.message ?? 'Impossible de charger la demande.');
@@ -49,7 +49,7 @@ export default function ClientRequestDetail() {
         setIsLoading(false);
       }
     }
-    fetchData();
+    void fetchData();
   }, [id]);
 
   const handleAccept = async (propId: number) => {

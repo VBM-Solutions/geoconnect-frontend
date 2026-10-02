@@ -39,7 +39,7 @@ export default function CreerUtilisateurPage() {
       });
 
       toastSuccess('Compte cree avec succes');
-      navigate(`/admin/utilisateurs/${createdUser.id}`);
+      void navigate(`/admin/utilisateurs/${createdUser.id}`);
     } catch (error: any) {
       if (error?.response?.status === 409) {
         setError('login', { type: 'server', message: 'Cette adresse e-mail est deja utilisee' });

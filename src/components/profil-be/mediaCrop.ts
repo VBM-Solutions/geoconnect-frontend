@@ -38,6 +38,12 @@ const encode = (canvas: HTMLCanvasElement, quality: number) => new Promise<Blob>
   canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Impossible de générer l’image.')), 'image/webp', quality);
 });
 
+async function encodeWithinLimit(canvas: HTMLCanvasElement, quality: number, maxBytes: number): Promise<Blob> {
+  const blob = await encode(canvas, quality);
+  if (blob.size <= maxBytes || quality <= .42) return blob;
+  return encodeWithinLimit(canvas, quality - .1, maxBytes);
+}
+
 export async function cropImage(
   image: HTMLImageElement,
   type: 'LOGO' | 'BANNIERE',
@@ -58,12 +64,7 @@ export async function cropImage(
   );
   context.drawImage(image, placement.x, placement.y, placement.width, placement.height);
 
-  let quality = .92;
-  let blob = await encode(canvas, quality);
-  while (blob.size > maxBytes && quality > .42) {
-    quality -= .1;
-    blob = await encode(canvas, quality);
-  }
+  const blob = await encodeWithinLimit(canvas, .92, maxBytes);
   if (blob.size > maxBytes) throw new Error(`L’image optimisée dépasse encore ${type === 'LOGO' ? '1 Mo' : '4 Mo'}.`);
   return new File([blob], type === 'LOGO' ? 'logo.webp' : 'bandeau.webp', { type: 'image/webp' });
 }

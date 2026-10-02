@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { CheckCircle2, XCircle, Info, X } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'info';
@@ -47,9 +47,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const toastSuccess = useCallback((msg: string) => addToast('success', msg), [addToast]);
   const toastError   = useCallback((msg: string) => addToast('error', msg),   [addToast]);
   const toastInfo    = useCallback((msg: string) => addToast('info', msg),    [addToast]);
+  const contextValue = useMemo(
+    () => ({ toastSuccess, toastError, toastInfo }),
+    [toastSuccess, toastError, toastInfo],
+  );
 
   return (
-    <ToastContext.Provider value={{ toastSuccess, toastError, toastInfo }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       {/* Portal de toasts */}
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 w-80">

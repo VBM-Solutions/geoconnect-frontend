@@ -361,7 +361,7 @@ export function BEStepActions({ etat, dateIntervention, periodeIntervention, mot
         <strong>
           {interventionDaysRemaining} jour{interventionDaysRemaining > 1 ? 's' : ''}
         </strong>
-        . Confirmez uniquement si l'intervention a bien été réalisée par anticipation.
+        <span>. Confirmez uniquement si l'intervention a bien été réalisée par anticipation.</span>
       </span>
     </div>
   ) : null;

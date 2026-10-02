@@ -50,7 +50,7 @@ export default function MainLayout() {
       }
     }
 
-    loadIdentityLabel();
+    void loadIdentityLabel();
   }, [isAuthenticated, user]);
 
   const roleLabel = useMemo(() => {
@@ -61,7 +61,7 @@ export default function MainLayout() {
   }, [user?.role]);
 
   const handleLogout = () => {
-    navigate('/login', { replace: true, state: null });
+    void navigate('/login', { replace: true, state: null });
     logout();
   };
 

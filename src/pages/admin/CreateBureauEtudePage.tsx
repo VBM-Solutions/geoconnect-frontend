@@ -50,7 +50,7 @@ export default function CreateBureauEtudePage() {
           longitude: address.longitude, geocodingScore: address.score },
         contactId: contact?.id, contactVersion: contact?.version,
       });
-      navigate(`/admin/utilisateurs/${result.userId}`);
+      void navigate(`/admin/utilisateurs/${result.userId}`);
     } catch {
       setError('Impossible de créer le compte. Vérifiez que cet email ou ce contact ne sont pas déjà utilisés.');
     }

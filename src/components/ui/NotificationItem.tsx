@@ -23,7 +23,7 @@ export function NotificationItem({ notification, onMarkAsRead, onClose }: Notifi
     onClose();
     const target = resolveNotificationPath(notification, user?.role);
     if (target) {
-      navigate(target);
+      void navigate(target);
     }
   };
 

@@ -218,7 +218,7 @@ export function EtudeDetailLayout({
           {activeSection === 'description' && (
             <SectionPanel title="Description">
               <div className="space-y-5">
-                {demande && <DemandeInformationEditor demande={demande as DemandeDevisDTO} editable={Boolean(onEnrichissement) && isBeforeIntervention(etat)} onSave={onEnrichissement ?? (async () => undefined)} />}
+                {demande && <DemandeInformationEditor demande={demande as DemandeDevisDTO} editable={Boolean(onEnrichissement) && isBeforeIntervention(etat)} onSave={onEnrichissement ?? (() => Promise.resolve())} />}
                 <div>
                   <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Dates</h3>
                   <div className="grid gap-3 md:grid-cols-2">
@@ -247,7 +247,7 @@ export function EtudeDetailLayout({
 
           {activeSection === 'documents' && (
             <SectionPanel title="Documents">
-              {demande && <DemandeDocumentSlots demande={demande as DemandeDevisDTO} documents={documents?.documentsDemandeDevis} editable={Boolean(onEnrichissement) && isBeforeIntervention(etat)} onSave={onEnrichissement ?? (async () => undefined)} />}
+              {demande && <DemandeDocumentSlots demande={demande as DemandeDevisDTO} documents={documents?.documentsDemandeDevis} editable={Boolean(onEnrichissement) && isBeforeIntervention(etat)} onSave={onEnrichissement ?? (() => Promise.resolve())} />}
               <div className="mt-4"><DocumentsSection documents={documents} clientView={etatRole === 'CLIENT'} includeProjectDocuments={false} /></div>
             </SectionPanel>
           )}
