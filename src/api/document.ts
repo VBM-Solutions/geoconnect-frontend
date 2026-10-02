@@ -36,18 +36,15 @@ const renameFileWithIncrement = (file: File, index: number): File => {
  * L'ordre retourné suit l'ordre de sélection des fichiers.
  */
 export const uploadDocuments = async (files: File[]): Promise<number[]> => {
-  const documentIds: number[] = [];
+  const uploads = files.map((file, index) => uploadDocument(renameFileWithIncrement(file, index + 1)));
+  const uploadedDocuments = await Promise.all(uploads);
 
-  for (let i = 0; i < files.length; i++) {
-    const renamedFile = renameFileWithIncrement(files[i], i + 1);
-    const uploaded = await uploadDocument(renamedFile);
+  return uploadedDocuments.map((uploaded, index) => {
     if (uploaded.id == null) {
-      throw new Error(`Document uploadé sans identifiant pour le fichier "${files[i].name}".`);
+      throw new Error(`Document uploadé sans identifiant pour le fichier "${files[index].name}".`);
     }
-    documentIds.push(uploaded.id);
-  }
-
-  return documentIds;
+    return uploaded.id;
+  });
 };
 
 /**

@@ -128,6 +128,25 @@ describe('AuthContext', () => {
     expect(logoutCall).toHaveBeenCalledOnce();
   });
 
+  it("logout() nettoie quand même la session si l'appel serveur échoue", async () => {
+    const { logoutCall } = await import('../api/auth');
+    vi.mocked(logoutCall).mockRejectedValueOnce(new Error('Serveur indisponible'));
+    sessionStorage.setItem('user', JSON.stringify({ userId: 42, role: 'CLIENT', login: 'a@b.com' }));
+
+    const { getByText } = render(
+      <AuthProvider>
+        <AuthActionsConsumer />
+      </AuthProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('userId').textContent).toBe('42'));
+
+    act(() => { getByText('logout').click(); });
+    await waitFor(() => expect(logoutCall).toHaveBeenCalledOnce());
+
+    expect(sessionStorage.getItem('user')).toBeNull();
+    expect(screen.getByTestId('userId').textContent).toBe('none');
+  });
+
   it("useAuth() lève une erreur si utilisé hors AuthProvider", () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => render(<AuthConsumer />)).toThrow('useAuth must be used within an AuthProvider');

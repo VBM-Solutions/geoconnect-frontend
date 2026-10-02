@@ -8,6 +8,25 @@ describe('sessionPolicy', () => {
     vi.stubEnv('VITE_IDLE_TIMEOUT_MS', 'invalide');
     expect(resolveSessionPolicy().idleTimeoutMs).toBe(20 * 60 * 1000);
   });
+
+  it('utilise la valeur par défaut lorsque la durée configurée est négative', () => {
+    vi.stubEnv('VITE_IDLE_TIMEOUT_MS', '-1');
+    expect(resolveSessionPolicy().idleTimeoutMs).toBe(20 * 60 * 1000);
+  });
+
+  it('utilise les durées positives configurées dans l’environnement', () => {
+    vi.stubEnv('VITE_IDLE_TIMEOUT_MS', '30000');
+    vi.stubEnv('VITE_SESSION_WARNING_MS', '5000');
+    vi.stubEnv('VITE_ABSOLUTE_SESSION_TIMEOUT_MS', '120000');
+    vi.stubEnv('VITE_ACTIVITY_THROTTLE_MS', '250');
+
+    expect(resolveSessionPolicy()).toEqual({
+      idleTimeoutMs: 30_000,
+      warningDurationMs: 5_000,
+      absoluteTimeoutMs: 120_000,
+      activityThrottleMs: 250,
+    });
+  });
   it('normalise warningDurationMs pour rester strictement inférieur au délai idle', () => {
     const policy = resolveSessionPolicy({
       idleTimeoutMs: 10_000,

@@ -251,7 +251,7 @@ export default function BERequestDetail() {
         setIsLoading(false);
       }
     }
-    fetchData();
+    void fetchData();
   }, [id, user]);
 
   const onSubmit = async (data: any) => {
@@ -276,7 +276,7 @@ export default function BERequestDetail() {
       setMyProposition(newProp);
       setAllPropositions(prev => [...prev, newProp]);
       toastSuccess('Proposition soumise avec succès !');
-      navigate('/be/dashboard');
+      void navigate('/be/dashboard');
     } catch (err: any) {
       toastError(err?.response?.data?.message ?? err?.message ?? 'Erreur lors de la soumission.');
     } finally {
@@ -392,14 +392,14 @@ export default function BERequestDetail() {
                   )}
                 </div>
               </div>
-              <DemandeInformationEditor demande={demande} editable={false} onSave={async () => undefined} />
+              <DemandeInformationEditor demande={demande} editable={false} onSave={() => Promise.resolve()} />
               </div>
             </DetailSectionPanel>
           )}
 
           {activeSection === 'documents' && (
             <DetailSectionPanel title="Documents du projet">
-              <DemandeDocumentSlots demande={demande} editable={false} onSave={async () => undefined} />
+              <DemandeDocumentSlots demande={demande} editable={false} onSave={() => Promise.resolve()} />
             </DetailSectionPanel>
           )}
 

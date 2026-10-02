@@ -26,6 +26,49 @@ interface EtudeCardProps {
   readonly evaluationPending?: boolean;
 }
 
+interface EtudeCardFooterProps {
+  readonly etudeId?: number;
+  readonly archived: boolean;
+  readonly evaluationPending: boolean;
+  readonly mustAct: boolean;
+}
+
+function EtudeCardFooter({ etudeId, archived, evaluationPending, mustAct }: Readonly<EtudeCardFooterProps>) {
+  if (!etudeId) return null;
+
+  const target = `/client/etude/${etudeId}${archived ? '?source=ARCHIVES' : ''}`;
+  if (archived) {
+    return (
+      <CardFooter>
+        <Link to={target} className="w-full">
+          <Button variant="outline" size="sm" className="w-full group border-green-300 text-green-700 hover:border-green-400 hover:bg-green-50">
+            {evaluationPending
+              ? <MessageSquareHeart className="w-3 h-3 mr-1.5 text-violet-500" />
+              : <Archive className="w-3 h-3 mr-1.5 text-green-500" />}
+            {evaluationPending ? 'Consulter et noter' : "Consulter l'étude"}
+            <ChevronRight className="w-3.5 h-3.5 ml-1.5 group-hover:translate-x-1 transition-transform" />
+          </Button>
+        </Link>
+      </CardFooter>
+    );
+  }
+
+  return (
+    <CardFooter>
+      <Link to={target} className="w-full">
+        <Button
+          variant="outline"
+          size="sm"
+          className={`w-full group ${mustAct ? 'border-orange-400 text-orange-700 hover:bg-orange-50' : 'border-slate-300 hover:border-blue-300 hover:bg-blue-50/70'}`}
+        >
+          {mustAct && <AlertCircle className="w-3 h-3 mr-1.5 text-orange-500" />}
+          Suivre l'étude <ChevronRight className="w-3.5 h-3.5 ml-1.5 group-hover:translate-x-1 transition-transform" />
+        </Button>
+      </Link>
+    </CardFooter>
+  );
+}
+
 function EtudeCard(props: Readonly<EtudeCardProps>) {
   const { etude, archived = false, evaluationPending = false } = props;
   const prop     = etude.propositionDevis;
@@ -103,32 +146,12 @@ function EtudeCard(props: Readonly<EtudeCardProps>) {
         {!archived && <CompactEtudeStepper etat={etude.etat} />}
       </CardContent>
 
-      {!!(etude.id) && (
-        <CardFooter>
-          <Link to={`/client/etude/${etude.id}${archived ? '?source=ARCHIVES' : ''}`} className="w-full">
-            {archived ? (
-              <Button variant="outline" size="sm" className="w-full group border-green-300 text-green-700 hover:border-green-400 hover:bg-green-50">
-                {evaluationPending ? (
-                  <MessageSquareHeart className="w-3 h-3 mr-1.5 text-violet-500" />
-                ) : (
-                  <Archive className="w-3 h-3 mr-1.5 text-green-500" />
-                )}
-                {evaluationPending ? 'Consulter et noter' : "Consulter l'étude"}
-                <ChevronRight className="w-3.5 h-3.5 ml-1.5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className={`w-full group ${mustAct ? 'border-orange-400 text-orange-700 hover:bg-orange-50' : 'border-slate-300 hover:border-blue-300 hover:bg-blue-50/70'}`}
-              >
-                {mustAct && <AlertCircle className="w-3 h-3 mr-1.5 text-orange-500" />}
-                Suivre l'étude <ChevronRight className="w-3.5 h-3.5 ml-1.5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            )}
-          </Link>
-        </CardFooter>
-      )}
+      <EtudeCardFooter
+        etudeId={etude.id}
+        archived={archived}
+        evaluationPending={evaluationPending}
+        mustAct={mustAct}
+      />
     </Card>
   );
 }

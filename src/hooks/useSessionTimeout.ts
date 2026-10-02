@@ -58,7 +58,7 @@ export function useSessionTimeout(options?: UseSessionTimeoutOptions): SessionTi
         ? 'Votre session est arrivée à son terme. Veuillez vous reconnecter.'
         : 'Vous avez été déconnecté après une période d\'inactivité.',
     );
-    navigate('/login', { replace: true });
+    void navigate('/login', { replace: true });
   }, [logout, navigate, toastInfo]);
 
   const evaluate = useCallback(() => {

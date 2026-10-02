@@ -88,7 +88,7 @@ export function ApiInterceptorSetup() {
           if (!authFailureHandledRef.current) {
             authFailureHandledRef.current = true;
             logout();
-            navigate('/login', { replace: true });
+            void navigate('/login', { replace: true });
           }
         } else if (status === 403) {
           const message =

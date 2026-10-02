@@ -33,7 +33,7 @@ export function useBEMapData(filters: BEMapFilters = {}): UseBEMapDataResult {
       }
     }
 
-    fetchMapData();
+    void fetchMapData();
     return () => { cancelled = true; };
   }, [filtersKey, tick]);
 
