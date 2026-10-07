@@ -22,6 +22,22 @@ import { cn } from '../../lib/utils';
 
 type RequestSection = 'offre' | 'description' | 'documents';
 
+const REFUS_LABELS: Record<string, string> = {
+  PRIX: 'Prix trop élevé', DELAI_INTERVENTION: 'Délai d’intervention trop long',
+  DELAI_RENDU: 'Délai de rendu trop long', PERIMETRE_INADAPTE: 'Périmètre de prestation inadapté',
+  AUTRE_BUREAU_PREFERE: 'Préférence pour un autre bureau',
+  PROJET_REPORTE_OU_ANNULE: 'Projet reporté ou annulé', AUTRE: 'Autre motif',
+  AUTRE_OFFRE_ACCEPTEE: 'Une autre offre a été acceptée',
+};
+
+function RefusalReason({ proposal }: Readonly<{ proposal: PropositionDevisDTO }>) {
+  if (proposal.statut !== 'REFUSEE' || !proposal.motifRefus) return null;
+  return <div className="rounded-md border border-red-200 bg-white/70 p-3 text-xs text-red-900">
+    <p><span className="font-bold">Motif du refus :</span> {REFUS_LABELS[proposal.motifRefus] ?? proposal.motifRefus}</p>
+    {proposal.commentaireRefus && <p className="mt-1 whitespace-pre-line text-slate-700">{proposal.commentaireRefus}</p>}
+  </div>;
+}
+
 // ─── Sous-composants ──────────────────────────────────────────────────────────
 
 interface ActivePropositionCardProps {
@@ -44,6 +60,7 @@ function ActivePropositionCard({ prop, statusConfig, onEdit }: Readonly<ActivePr
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4 text-current space-y-4">
+        <RefusalReason proposal={prop} />
         {prop.statut === 'EN_ATTENTE' && onEdit && <div className="flex justify-end"><Button variant="outline" onClick={onEdit}>Modifier l’offre</Button></div>}
         <div>
           <span className="block text-[10px] font-bold uppercase mb-1">Montant Estimé</span>
@@ -124,6 +141,18 @@ function OfferForm({ isResubmit, isEditing = false, isSubmitting, register, erro
               ? ((errors as Record<string, { message?: string }>).prix?.message ?? 'Requis')
               : undefined}
           />
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">TAUX DE TVA *
+            <select className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" defaultValue="20" {...register('tauxTVA', { required: true })}>
+              <option value="0">0 %</option><option value="5.5">5,5 %</option><option value="10">10 %</option><option value="20">20 %</option>
+            </select>
+          </label>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">PRESTATIONS INCLUSES
+            <textarea className="mt-1 min-h-20 w-full rounded-md border border-slate-300 p-2 text-sm font-normal normal-case" maxLength={3000} placeholder="Une prestation par ligne" {...register('inclusions')} />
+          </label>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">EXCLUSIONS OU RÉSERVES
+            <textarea className="mt-1 min-h-20 w-full rounded-md border border-slate-300 p-2 text-sm font-normal normal-case" maxLength={3000} placeholder="Une exclusion par ligne" {...register('exclusions')} />
+          </label>
+          <Input label="OFFRE VALABLE JUSQU’AU" type="date" {...register('validiteOffreJusquAu')} />
           <Input
             label="DÉLAI INTERVENTION (semaines) *"
             type="number"
@@ -269,6 +298,11 @@ export default function BERequestDetail() {
         demandeDevisId: demande.id,
         bureauEtudeId: myBureau.id,
         prix: Number.parseFloat(data.prix),
+        montantHT: Number.parseFloat(data.prix), tauxTVA: Number(data.tauxTVA), devise: 'EUR',
+        fraisDeplacementHT: 0, fraisDeplacementInclus: true,
+        inclusions: String(data.inclusions || '').split('\n').map(item => item.trim()).filter(Boolean).slice(0, 10),
+        exclusions: String(data.exclusions || '').split('\n').map(item => item.trim()).filter(Boolean).slice(0, 10),
+        validiteOffreJusquAu: data.validiteOffreJusquAu || undefined,
         delaiMaxRendu: data.delaiMaxRendu ? Number(data.delaiMaxRendu) : undefined,
         delaiMaxIntervention: data.delaiMaxIntervention ? Number(data.delaiMaxIntervention) : undefined,
         documentId,
@@ -291,6 +325,11 @@ export default function BERequestDetail() {
       const document = pdfFile ? await uploadDocument(pdfFile) : undefined;
       const updated = await modifierPropositionDevis(myProposition.id, {
         prix: Number(data.prix), delaiMaxIntervention: Number(data.delaiMaxIntervention),
+        montantHT: Number(data.prix), tauxTVA: Number(data.tauxTVA), devise: 'EUR',
+        fraisDeplacementHT: 0, fraisDeplacementInclus: true,
+        inclusions: String(data.inclusions || '').split('\n').map(item => item.trim()).filter(Boolean).slice(0, 10),
+        exclusions: String(data.exclusions || '').split('\n').map(item => item.trim()).filter(Boolean).slice(0, 10),
+        validiteOffreJusquAu: data.validiteOffreJusquAu || undefined,
         delaiMaxRendu: Number(data.delaiMaxRendu), documentId: document?.id,
       });
       setMyProposition(updated);
@@ -426,6 +465,7 @@ export default function BERequestDetail() {
                       {rp.delaiMaxIntervention != null && `Intervention : ${formatDelaiWithProjection(rp.delaiMaxIntervention, rp.delaiProjectionIntervention)} · `}
                       Rendu : {formatDelaiWithProjection(rp.delaiMaxRendu, rp.delaiProjectionRendu)}
                     </div>
+                    <RefusalReason proposal={rp} />
                   </div>
                 ))}
               </CardContent>
@@ -443,6 +483,10 @@ export default function BERequestDetail() {
           {myProposition && !isEditingProposition && (
             <ActivePropositionCard prop={myProposition} statusConfig={statusConfig} onEdit={() => {
               setValue('prix', myProposition.prix);
+              setValue('tauxTVA', myProposition.tauxTVA ?? 20);
+              setValue('inclusions', myProposition.inclusions?.join('\n') ?? '');
+              setValue('exclusions', myProposition.exclusions?.join('\n') ?? '');
+              setValue('validiteOffreJusquAu', myProposition.validiteOffreJusquAu ?? '');
               setValue('delaiMaxIntervention', myProposition.delaiMaxIntervention);
               setValue('delaiMaxRendu', myProposition.delaiMaxRendu);
               setIsEditingProposition(true);

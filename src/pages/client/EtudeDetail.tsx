@@ -16,6 +16,7 @@ import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 import { EtudeInfoMetric } from '../../components/etude/EtudeInfoMetric';
 import { EvaluationEtudeCard } from '../../components/etude/EvaluationEtudeCard';
 import { BureauEtudeProfileLink } from '../../components/profil-be/BureauEtudeProfileLink';
+import { formatProposalPrice } from '../../lib/proposalPrice';
 import { DevisVersionsCard } from '../../components/etude/DevisVersionsCard';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { enrichirDemande } from '../../api/demandeDevis';
@@ -68,7 +69,7 @@ export default function ClientEtudeDetail() {
           {bureau?.emailContact && <p className="text-slate-500">{bureau.emailContact}</p>}
           {bureau?.telContact && <p className="text-slate-500">{bureau.telContact}</p>}
           <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 mt-1">
-            <EtudeInfoMetric label="Montant">{prop?.prix == null ? '—' : `${prop.prix} €`}</EtudeInfoMetric>
+            <EtudeInfoMetric label="Montant">{formatProposalPrice(prop)}</EtudeInfoMetric>
             <EtudeInfoMetric label="Délai intervention">{formatDelaiWithProjection(prop?.delaiMaxIntervention, prop?.delaiProjectionIntervention)}</EtudeInfoMetric>
             <EtudeInfoMetric label="Délai rendu">{formatDelaiWithProjection(prop?.delaiMaxRendu, prop?.delaiProjectionRendu)}</EtudeInfoMetric>
           </div>

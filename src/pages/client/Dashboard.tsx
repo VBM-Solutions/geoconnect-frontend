@@ -14,6 +14,8 @@ import { EtudeDetailDTO } from '../../types';
 import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 import { BureauEtudeProfileLink } from '../../components/profil-be/BureauEtudeProfileLink';
 import { formatDateLong } from '../../lib/formatters';
+import { formatProposalPrice } from '../../lib/proposalPrice';
+import { groupCurrentProposals } from '../../lib/proposalHistory';
 
 type TabType = 'DEMANDES' | 'ETUDES' | 'ARCHIVES';
 
@@ -125,7 +127,7 @@ function EtudeCard(props: Readonly<EtudeCardProps>) {
         <div className={`p-2 rounded border text-[11px] ${offreBg}`}>
           <p className={`font-bold uppercase tracking-wider mb-1 ${offreLabel}`}>Offre retenue</p>
           <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-700">
-            <p>Montant : <span className="font-semibold">{prop?.prix == null ? '—' : `${prop.prix} €`}</span></p>
+            <p>Montant : <span className="font-semibold">{formatProposalPrice(prop)}</span></p>
             <p>Statut : <span className="font-semibold">{prop?.statut ? (STATUT_LABELS[prop.statut] ?? prop.statut) : '—'}</span></p>
             <p>Intervention : <span className="font-semibold">{formatDelaiWithProjection(prop?.delaiMaxIntervention, prop?.delaiProjectionIntervention)}</span></p>
             <p>Rendu : <span className="font-semibold">{formatDelaiWithProjection(prop?.delaiMaxRendu, prop?.delaiProjectionRendu)}</span></p>
@@ -275,7 +277,8 @@ export default function ClientDashboard() {
               <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 {demandesEnCours.map(demande => {
-                  const propsCount = demande.propositions?.length || 0;
+                  const visiblePropositions = groupCurrentProposals(demande.propositions);
+                  const propsCount = visiblePropositions.length;
                   return (
                     <Card key={demande.id} className="flex flex-col border-slate-200/90">
                       <CardHeader>
@@ -303,7 +306,7 @@ export default function ClientDashboard() {
                             <p className="rounded-lg border border-dashed border-slate-300 p-4 text-xs text-slate-500">Aucune proposition reçue.</p>
                           ) : (
                             <div className="flex gap-3 overflow-x-auto pb-2" aria-label={`Propositions pour la demande ${demande.id}`}>
-                              {demande.propositions.map((proposition) => (
+                              {visiblePropositions.map(({ current: proposition, refusedHistory }) => (
                                 <Link
                                   key={proposition.id}
                                   to={`/client/demande/${demande.id}?proposition=${proposition.id}`}
@@ -311,9 +314,10 @@ export default function ClientDashboard() {
                                 >
                                   <p className="truncate text-sm font-semibold text-slate-800">{proposition.bureauEtude?.raisonSociale ?? 'Bureau d’études'}</p>
                                   <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-600">
-                                    <span>{proposition.prix == null ? 'Prix non renseigné' : `${proposition.prix} €`}</span>
+                                    <span>{formatProposalPrice(proposition)}</span>
                                     <span>{proposition.delaiMaxRendu == null ? 'Délai non renseigné' : `${proposition.delaiMaxRendu} sem`}</span>
                                   </div>
+                                  {refusedHistory.length > 0 && <p className="mt-2 text-xs font-medium text-amber-700">{refusedHistory.length} offre{refusedHistory.length > 1 ? 's' : ''} précédente{refusedHistory.length > 1 ? 's' : ''} refusée{refusedHistory.length > 1 ? 's' : ''}</p>}
                                 </Link>
                               ))}
                             </div>

@@ -97,6 +97,22 @@ describe('BERequestDetail — rendu initial', () => {
     expect(await screen.findByPlaceholderText('Ex: 4200')).toBeTruthy();
     expect(screen.getByPlaceholderText('Ex: 4')).toBeTruthy();
     expect(screen.getByPlaceholderText('Ex: 2')).toBeTruthy();
+    expect(screen.queryByText(/frais de déplacement/i)).toBeNull();
+  });
+
+  it('affiche le motif et le commentaire d’une offre refusée', async () => {
+    (demandeDevisApi.getDemandeDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+      demande: MOCK_DEMANDE,
+      bureauEtudeId: MOCK_BUREAU.id,
+      propositions: [{ id: 21, bureauEtudeId: MOCK_BUREAU.id, prix: 1200, delaiMaxIntervention: 2,
+        delaiMaxRendu: 4, statut: 'REFUSEE', motifRefus: 'PRIX', commentaireRefus: 'Budget dépassé.' }],
+    });
+
+    renderRequestDetail();
+
+    expect(await screen.findByText(/motif du refus/i)).toBeTruthy();
+    expect(screen.getAllByText(/prix trop élevé/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Budget dépassé.').length).toBeGreaterThan(0);
   });
 
   it('présente les champs dans l ordre prix intervention puis rendu', async () => {

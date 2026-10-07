@@ -8,6 +8,14 @@ export const createPropositionDevis = async (proposition: PropositionDevisDTO) =
 
 export interface ModificationPropositionPayload {
   prix: number;
+  montantHT?: number;
+  tauxTVA?: number;
+  devise?: string;
+  fraisDeplacementHT?: number;
+  fraisDeplacementInclus?: boolean;
+  inclusions?: string[];
+  exclusions?: string[];
+  validiteOffreJusquAu?: string;
   delaiMaxIntervention: number;
   delaiMaxRendu: number;
   documentId?: number;
@@ -51,8 +59,12 @@ export const accepterPropositionDevis = async (id: number) => {
   return data;
 };
 
-export const refuserPropositionDevis = async (id: number) => {
-  const { data } = await api.patch(`/propositionDevis/${id}/refuser`);
+export type MotifRefusProposition = 'PRIX' | 'DELAI_INTERVENTION' | 'DELAI_RENDU' | 'PERIMETRE_INADAPTE' | 'AUTRE_BUREAU_PREFERE' | 'PROJET_REPORTE_OU_ANNULE' | 'AUTRE';
+
+export const refuserPropositionDevis = async (id: number, motif?: MotifRefusProposition, commentaire?: string) => {
+  const { data } = motif
+    ? await api.patch(`/propositionDevis/${id}/refuser`, { motif, commentaire })
+    : await api.patch(`/propositionDevis/${id}/refuser`);
   return data;
 };
 
