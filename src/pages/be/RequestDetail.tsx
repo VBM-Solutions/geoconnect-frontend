@@ -141,15 +141,15 @@ function OfferForm({ isResubmit, isEditing = false, isSubmitting, register, erro
               ? ((errors as Record<string, { message?: string }>).prix?.message ?? 'Requis')
               : undefined}
           />
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">TAUX DE TVA *
+          <label className="block"><span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">TAUX DE TVA *</span>
             <select className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" defaultValue="20" {...register('tauxTVA', { required: true })}>
               <option value="0">0 %</option><option value="5.5">5,5 %</option><option value="10">10 %</option><option value="20">20 %</option>
             </select>
           </label>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">PRESTATIONS INCLUSES
+          <label className="block"><span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">PRESTATIONS INCLUSES</span>
             <textarea className="mt-1 min-h-20 w-full rounded-md border border-slate-300 p-2 text-sm font-normal normal-case" maxLength={3000} placeholder="Une prestation par ligne" {...register('inclusions')} />
           </label>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">EXCLUSIONS OU RÉSERVES
+          <label className="block"><span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">EXCLUSIONS OU RÉSERVES</span>
             <textarea className="mt-1 min-h-20 w-full rounded-md border border-slate-300 p-2 text-sm font-normal normal-case" maxLength={3000} placeholder="Une exclusion par ligne" {...register('exclusions')} />
           </label>
           <Input label="OFFRE VALABLE JUSQU’AU" type="date" {...register('validiteOffreJusquAu')} />

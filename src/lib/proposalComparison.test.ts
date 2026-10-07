@@ -51,4 +51,45 @@ describe('proposalComparison', () => {
   it('ne calcule aucun badge avec moins de deux offres', () => {
     expect(computeProposalHighlights([proposal(1)]).size).toBe(0);
   });
+
+  it('couvre toutes les valeurs absentes du comparateur et les replis stables', () => {
+    const withoutValues = [
+      proposal(1, { prix: undefined, totalTTC: undefined, delaiMaxIntervention: undefined, delaiMaxRendu: undefined, bureauEtude: undefined, createdAt: undefined }),
+      proposal(2, { prix: undefined, totalTTC: undefined, delaiMaxIntervention: undefined, delaiMaxRendu: undefined, bureauEtude: undefined, createdAt: undefined }),
+    ];
+    expect(sortProposals(withoutValues, 'PRIX_ASC').map(item => item.id)).toEqual([1, 2]);
+    expect(sortProposals([proposal(1), proposal(2, { prix: undefined })], 'PRIX_ASC').map(item => item.id)).toEqual([1, 2]);
+    expect(sortProposals([proposal(1, { prix: undefined }), proposal(2)], 'PRIX_ASC').map(item => item.id)).toEqual([2, 1]);
+    expect(sortProposals([proposal(1, { createdAt: '2026-01-01' }), proposal(2, { createdAt: '2026-01-02' })], 'RECENT').map(item => item.id)).toEqual([2, 1]);
+    expect(computeProposalHighlights(withoutValues).size).toBe(0);
+    expect(sortProposals([
+      { statut: undefined, createdAt: undefined, id: undefined },
+      { statut: undefined, createdAt: undefined, id: 2 },
+    ], 'RECENT')).toHaveLength(2);
+    expect(sortProposals([
+      { statut: undefined, createdAt: undefined, id: 1 },
+      { statut: undefined, createdAt: undefined, id: undefined },
+    ], 'RECENT')).toHaveLength(2);
+    expect(computeProposalHighlights([
+      proposal(1, { statut: undefined }), proposal(2, { statut: undefined }),
+    ])).not.toBeNull();
+  });
+
+  it('compare les offres refusées entre elles et ignore les candidats incomplets aux badges', () => {
+    const refused = [
+      proposal(1, { statut: 'REFUSEE', bureauEtude: { id: 1, raisonSociale: 'A', noteGlobale: undefined, nombreAvis: 10 } }),
+      proposal(2, { statut: 'REFUSEE', bureauEtude: { id: 2, raisonSociale: 'B', noteGlobale: 5, nombreAvis: undefined } }),
+      proposal(3, { statut: 'REFUSEE', id: undefined }),
+    ];
+    expect(computeProposalHighlights(refused).get(1)?.has('PRIX')).toBe(true);
+    expect(computeProposalHighlights(refused).get(2)?.has('NOTE')).toBeFalsy();
+  });
+
+  it('utilise le TTC avant le prix historique et conserve les badges déjà attribués', () => {
+    const result = computeProposalHighlights([
+      proposal(1, { totalTTC: 90, prix: 500 }),
+      proposal(2, { totalTTC: 100, prix: 50 }),
+    ]);
+    expect(result.get(1)).toEqual(new Set(['PRIX', 'INTERVENTION', 'RENDU']));
+  });
 });

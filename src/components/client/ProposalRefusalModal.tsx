@@ -16,7 +16,7 @@ export function ProposalRefusalModal({ isLoading, onConfirm, onCancel }: Readonl
   const [commentaire, setCommentaire] = useState('');
   const [confirmation, setConfirmation] = useState(false);
   const invalid = motif === 'AUTRE' && commentaire.trim().length === 0;
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" role="dialog" aria-modal="true" aria-labelledby="refus-title">
+  return <dialog open className="fixed inset-0 z-50 flex h-full max-h-none w-full max-w-none items-center justify-center bg-slate-950/50 p-4" aria-labelledby="refus-title">
     <div className="w-full max-w-lg space-y-4 rounded-xl bg-white p-6 shadow-xl">
       <h2 id="refus-title" className="text-lg font-bold">{confirmation ? 'Confirmer le refus ?' : 'Pourquoi refusez-vous cette proposition ?'}</h2>
       {confirmation ? <div className="space-y-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm">
@@ -24,17 +24,17 @@ export function ProposalRefusalModal({ isLoading, onConfirm, onCancel }: Readonl
         <p className="font-semibold">{OPTIONS.find(option => option.value === motif)?.label}</p>
         {commentaire.trim() && <p className="whitespace-pre-line text-slate-700">{commentaire.trim()}</p>}
       </div> : <>
-      <label className="block text-sm font-semibold">Motif
+      <label className="block text-sm font-semibold"><span>Motif</span>
         <select className="mt-1 w-full rounded-md border border-slate-300 p-2" value={motif} onChange={event => setMotif(event.target.value as MotifRefusProposition)}>
           {OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
       </label>
-      <label className="block text-sm font-semibold">Commentaire {motif === 'AUTRE' ? '(obligatoire)' : '(facultatif)'}
+      <label className="block text-sm font-semibold"><span>Commentaire {motif === 'AUTRE' ? '(obligatoire)' : '(facultatif)'}</span>
         <textarea className="mt-1 min-h-24 w-full rounded-md border border-slate-300 p-2" maxLength={500} value={commentaire} onChange={event => setCommentaire(event.target.value)} />
       </label>
       {invalid && <p className="text-sm text-red-700">Précisez la raison lorsque vous choisissez « Autre ».</p>}
       </>}
       <div className="flex justify-end gap-2"><Button variant="outline" onClick={confirmation ? () => setConfirmation(false) : onCancel}>{confirmation ? 'Retour' : 'Annuler'}</Button><Button variant="danger" disabled={invalid} isLoading={isLoading} onClick={() => confirmation ? onConfirm(motif, commentaire.trim() || undefined) : setConfirmation(true)}>{confirmation ? 'Confirmer le refus' : 'Continuer'}</Button></div>
     </div>
-  </div>;
+  </dialog>;
 }

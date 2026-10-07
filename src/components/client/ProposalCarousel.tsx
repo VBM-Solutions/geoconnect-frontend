@@ -18,6 +18,12 @@ interface ProposalCarouselProps {
   refusedHistoryByProposalId?: Map<number, PropositionDevisDTO[]>;
 }
 
+function formatValidityDate(value?: string): string {
+  if (!value) return 'Non renseignée';
+  const date = new Date(`${value}T00:00:00`).toLocaleDateString('fr-FR');
+  return `Jusqu’au ${date}`;
+}
+
 export function ProposalCarousel({
   proposals,
   initialProposalId,
@@ -123,7 +129,7 @@ export function ProposalCarousel({
             </div>
             <div>
               <span className="block text-[10px] font-bold uppercase text-slate-400">Validité de l’offre</span>
-              <p className="mt-1">{proposal.validiteOffreJusquAu ? `Jusqu’au ${new Date(`${proposal.validiteOffreJusquAu}T00:00:00`).toLocaleDateString('fr-FR')}` : 'Non renseignée'}</p>
+              <p className="mt-1">{formatValidityDate(proposal.validiteOffreJusquAu)}</p>
             </div>
           </div>
           {proposal.totalTTC != null && <div className="rounded-lg bg-slate-50 p-3 text-sm">
