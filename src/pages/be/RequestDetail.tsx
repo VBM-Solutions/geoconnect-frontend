@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { getDemandeDetail } from '../../api/demandeDevis';
-import { createPropositionDevis, modifierPropositionDevis } from '../../api/propositionDevis';
+import { createPropositionDevis, findActivePropositionAfterUncertainSubmission, modifierPropositionDevis } from '../../api/propositionDevis';
 import { uploadDocument } from '../../api/document';
+import { isRequestTimeout } from '../../api/requestPolicy';
 import { DemandeDevisDTO, PropositionDevisDTO, BureauEtudesDTO } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -254,9 +255,32 @@ export default function BERequestDetail() {
     void fetchData();
   }, [id, user]);
 
+  const handleSuccessfulSubmission = (proposition: PropositionDevisDTO) => {
+    setMyProposition(proposition);
+    setAllPropositions(current => current.some(item => item.id === proposition.id)
+      ? current
+      : [...current, proposition]);
+    toastSuccess('Proposition soumise avec succès !');
+    void navigate('/be/dashboard');
+  };
+
+  const recoverUncertainSubmission = async (demandeId: number, bureauEtudeId: number) => {
+    try {
+      const recovered = await findActivePropositionAfterUncertainSubmission(demandeId, bureauEtudeId);
+      if (recovered) {
+        handleSuccessfulSubmission(recovered);
+        return;
+      }
+      toastError("La soumission n'a pas été confirmée. Vérifiez vos propositions avant de réessayer.");
+    } catch {
+      toastError("La connexion a été interrompue et l'état de la soumission n'a pas pu être vérifié. Actualisez la page avant de réessayer.");
+    }
+  };
+
   const onSubmit = async (data: any) => {
     if (!demande || !user || !myBureau?.id) return;
     setIsSubmitting(true);
+    let creationStarted = false;
     try {
       if (!pdfFile) {
         setPdfRequiredError(true);
@@ -265,6 +289,7 @@ export default function BERequestDetail() {
       const doc = await uploadDocument(pdfFile);
       const documentId = doc.id;
 
+      creationStarted = true;
       const newProp = await createPropositionDevis({
         demandeDevisId: demande.id,
         bureauEtudeId: myBureau.id,
@@ -273,11 +298,16 @@ export default function BERequestDetail() {
         delaiMaxIntervention: data.delaiMaxIntervention ? Number(data.delaiMaxIntervention) : undefined,
         documentId,
       });
-      setMyProposition(newProp);
-      setAllPropositions(prev => [...prev, newProp]);
-      toastSuccess('Proposition soumise avec succès !');
-      void navigate('/be/dashboard');
+      handleSuccessfulSubmission(newProp);
     } catch (err: any) {
+      if (creationStarted && isRequestTimeout(err)) {
+        await recoverUncertainSubmission(demande.id, myBureau.id);
+        return;
+      }
+      if (isRequestTimeout(err)) {
+        toastError("Le transfert du devis a pris trop de temps. Vérifiez votre connexion puis réessayez.");
+        return;
+      }
       toastError(err?.response?.data?.message ?? err?.message ?? 'Erreur lors de la soumission.');
     } finally {
       setIsSubmitting(false);

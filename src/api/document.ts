@@ -1,5 +1,6 @@
 import api from './index';
 import { DocumentDTO } from '../types';
+import { UPLOAD_TIMEOUT_MS } from './requestPolicy';
 
 /**
  * Upload un fichier standalone → retourne un DocumentDTO avec son id et nomTelechargement.
@@ -10,6 +11,7 @@ export const uploadDocument = async (file: File): Promise<DocumentDTO> => {
   formData.append('file', file);
   const { data } = await api.post('/documents/upload', formData, {
     headers: { 'Content-Type': undefined as any },
+    timeout: UPLOAD_TIMEOUT_MS,
   });
   return data;
 };
@@ -54,6 +56,7 @@ export const uploadDocuments = async (files: File[]): Promise<number[]> => {
 export const downloadDocument = async (documentId: number, nomTelechargement?: string): Promise<void> => {
   const res = await api.get(`/documents/${documentId}/download`, {
     responseType: 'blob',
+    timeout: UPLOAD_TIMEOUT_MS,
   });
   const url = URL.createObjectURL(res.data);
   const link = document.createElement('a');

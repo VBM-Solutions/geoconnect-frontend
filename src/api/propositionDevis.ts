@@ -1,9 +1,21 @@
 import api from './index';
 import { PropositionDevisDTO } from '../types';
+import { VERIFICATION_TIMEOUT_MS } from './requestPolicy';
 
-export const createPropositionDevis = async (proposition: PropositionDevisDTO) => {
-  const { data } = await api.post('/propositionDevis', proposition);
+export const createPropositionDevis = async (proposition: PropositionDevisDTO): Promise<PropositionDevisDTO> => {
+  const { data } = await api.post<PropositionDevisDTO>('/propositionDevis', proposition);
   return data;
+};
+
+export const findActivePropositionAfterUncertainSubmission = async (
+  demandeId: number,
+  bureauEtudeId: number,
+): Promise<PropositionDevisDTO | null> => {
+  const { data } = await api.get<PropositionDevisDTO[]>(`/propositionDevis/devis/${demandeId}`, {
+    timeout: VERIFICATION_TIMEOUT_MS,
+  });
+  return data.find(proposition => proposition.bureauEtudeId === bureauEtudeId
+    && (proposition.statut === 'EN_ATTENTE' || proposition.statut === 'ACCEPTEE')) ?? null;
 };
 
 export interface ModificationPropositionPayload {

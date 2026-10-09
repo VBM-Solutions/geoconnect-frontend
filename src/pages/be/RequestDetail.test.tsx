@@ -19,6 +19,8 @@ vi.mock('../../api/bureauEtude');
 vi.mock('../../api/document');
 
 const mockNavigate = vi.fn();
+const mockToastSuccess = vi.fn();
+const mockToastError = vi.fn();
 vi.mock('react-router-dom', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-router-dom')>();
   return { ...actual, useNavigate: () => mockNavigate };
@@ -49,8 +51,8 @@ function renderRequestDetail(demandeId = '1') {
   } as ReturnType<typeof AuthContextModule.useAuth>);
 
   vi.spyOn(ToastContextModule, 'useToast').mockReturnValue({
-    toastSuccess: vi.fn(),
-    toastError: vi.fn(),
+    toastSuccess: mockToastSuccess,
+    toastError: mockToastError,
   } as ReturnType<typeof ToastContextModule.useToast>);
 
   return render(
@@ -60,6 +62,18 @@ function renderRequestDetail(demandeId = '1') {
       </Routes>
     </MemoryRouter>
   );
+}
+
+async function fillAndConfirmOffer(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(await screen.findByPlaceholderText('Ex: 4200'), '4200');
+  await user.type(screen.getByPlaceholderText('Ex: 4'), '4');
+  await user.type(screen.getByPlaceholderText('Ex: 2'), '2');
+  await user.upload(
+    screen.getByLabelText(/devis pdf/i),
+    new File(['devis'], 'devis.pdf', { type: 'application/pdf' }),
+  );
+  await user.click(screen.getByRole('button', { name: /soumettre mon offre/i }));
+  await user.click(screen.getByRole('button', { name: /^soumettre$/i }));
 }
 
 describe('libellés du formulaire d’offre', () => {
@@ -385,6 +399,67 @@ describe('BERequestDetail — validation du formulaire de proposition', () => {
 
     expect(await screen.findByText("Le délai de rendu ne peut pas être inférieur au délai d'intervention.")).toBeTruthy();
     expect(propositionDevisApi.createPropositionDevis).not.toHaveBeenCalled();
+  });
+
+  it('confirme la soumission si la proposition est retrouvée après un timeout', async () => {
+    const user = userEvent.setup();
+    const timeout = Object.assign(new Error('timeout'), { isAxiosError: true, code: 'ECONNABORTED' });
+    (propositionDevisApi.createPropositionDevis as ReturnType<typeof vi.fn>).mockRejectedValue(timeout);
+    (propositionDevisApi.findActivePropositionAfterUncertainSubmission as ReturnType<typeof vi.fn>)
+      .mockResolvedValue({ id: 99, bureauEtudeId: 10, statut: 'EN_ATTENTE' });
+    renderRequestDetail();
+
+    await fillAndConfirmOffer(user);
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/be/dashboard'));
+    expect(mockToastSuccess).toHaveBeenCalledWith('Proposition soumise avec succès !');
+    expect(mockToastError).not.toHaveBeenCalled();
+  });
+
+  it('demande une vérification manuelle si aucune proposition ne suit le timeout', async () => {
+    const user = userEvent.setup();
+    const timeout = Object.assign(new Error('timeout'), { isAxiosError: true, code: 'ETIMEDOUT' });
+    (propositionDevisApi.createPropositionDevis as ReturnType<typeof vi.fn>).mockRejectedValue(timeout);
+    (propositionDevisApi.findActivePropositionAfterUncertainSubmission as ReturnType<typeof vi.fn>)
+      .mockResolvedValue(null);
+    renderRequestDetail();
+
+    await fillAndConfirmOffer(user);
+
+    await waitFor(() => expect(mockToastError).toHaveBeenCalledWith(
+      "La soumission n'a pas été confirmée. Vérifiez vos propositions avant de réessayer.",
+    ));
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('signale un état inconnu si la vérification après timeout échoue', async () => {
+    const user = userEvent.setup();
+    const timeout = Object.assign(new Error('timeout'), { isAxiosError: true, code: 'ECONNABORTED' });
+    (propositionDevisApi.createPropositionDevis as ReturnType<typeof vi.fn>).mockRejectedValue(timeout);
+    (propositionDevisApi.findActivePropositionAfterUncertainSubmission as ReturnType<typeof vi.fn>)
+      .mockRejectedValue(new Error('offline'));
+    renderRequestDetail();
+
+    await fillAndConfirmOffer(user);
+
+    await waitFor(() => expect(mockToastError).toHaveBeenCalledWith(
+      "La connexion a été interrompue et l'état de la soumission n'a pas pu être vérifié. Actualisez la page avant de réessayer.",
+    ));
+  });
+
+  it('arrête le chargement et explique un timeout pendant l’upload', async () => {
+    const user = userEvent.setup();
+    const timeout = Object.assign(new Error('timeout'), { isAxiosError: true, code: 'ECONNABORTED' });
+    (documentApi.uploadDocument as ReturnType<typeof vi.fn>).mockRejectedValue(timeout);
+    renderRequestDetail();
+
+    await fillAndConfirmOffer(user);
+
+    await waitFor(() => expect(mockToastError).toHaveBeenCalledWith(
+      'Le transfert du devis a pris trop de temps. Vérifiez votre connexion puis réessayez.',
+    ));
+    expect(propositionDevisApi.findActivePropositionAfterUncertainSubmission).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /soumettre mon offre/i })).toBeEnabled();
   });
 });
 
