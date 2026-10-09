@@ -255,6 +255,28 @@ export default function BERequestDetail() {
     void fetchData();
   }, [id, user]);
 
+  const handleSuccessfulSubmission = (proposition: PropositionDevisDTO) => {
+    setMyProposition(proposition);
+    setAllPropositions(current => current.some(item => item.id === proposition.id)
+      ? current
+      : [...current, proposition]);
+    toastSuccess('Proposition soumise avec succès !');
+    void navigate('/be/dashboard');
+  };
+
+  const recoverUncertainSubmission = async (demandeId: number, bureauEtudeId: number) => {
+    try {
+      const recovered = await findActivePropositionAfterUncertainSubmission(demandeId, bureauEtudeId);
+      if (recovered) {
+        handleSuccessfulSubmission(recovered);
+        return;
+      }
+      toastError("La soumission n'a pas été confirmée. Vérifiez vos propositions avant de réessayer.");
+    } catch {
+      toastError("La connexion a été interrompue et l'état de la soumission n'a pas pu être vérifié. Actualisez la page avant de réessayer.");
+    }
+  };
+
   const onSubmit = async (data: any) => {
     if (!demande || !user || !myBureau?.id) return;
     setIsSubmitting(true);
@@ -276,27 +298,11 @@ export default function BERequestDetail() {
         delaiMaxIntervention: data.delaiMaxIntervention ? Number(data.delaiMaxIntervention) : undefined,
         documentId,
       });
-      setMyProposition(newProp);
-      setAllPropositions(prev => [...prev, newProp]);
-      toastSuccess('Proposition soumise avec succès !');
-      void navigate('/be/dashboard');
+      handleSuccessfulSubmission(newProp);
     } catch (err: any) {
       if (creationStarted && isRequestTimeout(err)) {
-        try {
-          const recovered = await findActivePropositionAfterUncertainSubmission(demande.id, myBureau.id);
-          if (recovered) {
-            setMyProposition(recovered);
-            setAllPropositions(prev => prev.some(item => item.id === recovered.id) ? prev : [...prev, recovered]);
-            toastSuccess('Proposition soumise avec succès !');
-            void navigate('/be/dashboard');
-            return;
-          }
-          toastError("La soumission n'a pas été confirmée. Vérifiez vos propositions avant de réessayer.");
-          return;
-        } catch {
-          toastError("La connexion a été interrompue et l'état de la soumission n'a pas pu être vérifié. Actualisez la page avant de réessayer.");
-          return;
-        }
+        await recoverUncertainSubmission(demande.id, myBureau.id);
+        return;
       }
       if (isRequestTimeout(err)) {
         toastError("Le transfert du devis a pris trop de temps. Vérifiez votre connexion puis réessayez.");
