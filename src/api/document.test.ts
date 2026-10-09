@@ -106,6 +106,7 @@ describe('uploadDocument', () => {
     expect(body).toBeInstanceOf(FormData);
     expect(body.get('file')).toBe(file);
     expect(config.headers['Content-Type']).toBeUndefined();
+    expect(config.timeout).toBe(120_000);
     expect(result).toEqual(fakeDoc);
   });
 

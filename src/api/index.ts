@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { createRequestId, CSRF_TIMEOUT_MS, REQUEST_TIMEOUT_MS, UPLOAD_TIMEOUT_MS } from './requestPolicy';
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 let csrfInitialization: Promise<void> | null = null;
@@ -12,7 +13,11 @@ async function ensureCsrfToken(): Promise<void> {
   if (csrfToken) return;
   if (!csrfInitialization) {
     // Instance séparée pour ne pas rappeler cet intercepteur récursivement.
-    csrfInitialization = axios.get('/api/auth/csrf', { withCredentials: true })
+    csrfInitialization = axios.get('/api/auth/csrf', {
+      withCredentials: true,
+      timeout: CSRF_TIMEOUT_MS,
+      headers: { 'X-Request-ID': createRequestId() },
+    })
       .then(response => {
         const token = response.headers['x-xsrf-token'];
         if (!token) throw new Error('Jeton CSRF absent de la réponse');
@@ -34,9 +39,16 @@ const api = axios.create({
     'Accept': 'application/json',
   },
   withCredentials: true,
+  timeout: REQUEST_TIMEOUT_MS,
 });
 
 api.interceptors.request.use(async config => {
+  if (config.data instanceof FormData) {
+    config.timeout = UPLOAD_TIMEOUT_MS;
+  }
+  if (!config.headers.has('X-Request-ID')) {
+    config.headers.set('X-Request-ID', createRequestId());
+  }
   const method = config.method?.toUpperCase();
   if (method && UNSAFE_METHODS.has(method)) {
     await ensureCsrfToken();

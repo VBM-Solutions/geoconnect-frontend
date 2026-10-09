@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   createPropositionDevis,
+  findActivePropositionAfterUncertainSubmission,
   getPropositionDevisById,
   getPropositionDevisByDemandeId,
   getPropositionsByDemandeIds,
@@ -21,7 +22,7 @@ vi.mock('./index', () => ({
 
 import api from './index';
 
-const fakeProposition = { id: 5, bureauId: 10, demandeId: 1, statut: 'EN_ATTENTE', montant: 1500 };
+const fakeProposition = { id: 5, bureauEtudeId: 10, demandeDevisId: 1, statut: 'EN_ATTENTE', montant: 1500 };
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -36,6 +37,24 @@ describe('createPropositionDevis', () => {
   it('propage l\'erreur', async () => {
     (api.post as any).mockRejectedValueOnce(new Error('Bad request'));
     await expect(createPropositionDevis(fakeProposition as any)).rejects.toThrow('Bad request');
+  });
+});
+
+describe('findActivePropositionAfterUncertainSubmission', () => {
+  it('retrouve la proposition active du bureau avec un timeout court', async () => {
+    const refused = { ...fakeProposition, id: 4, statut: 'REFUSEE' };
+    (api.get as any).mockResolvedValueOnce({ data: [refused, fakeProposition] });
+
+    await expect(findActivePropositionAfterUncertainSubmission(1, 10))
+      .resolves.toEqual(fakeProposition);
+    expect(api.get).toHaveBeenCalledWith('/propositionDevis/devis/1', { timeout: 15_000 });
+  });
+
+  it('retourne null sans proposition active appartenant au bureau', async () => {
+    (api.get as any).mockResolvedValueOnce({
+      data: [{ ...fakeProposition, bureauEtudeId: 11, statut: 'EN_ATTENTE' }],
+    });
+    await expect(findActivePropositionAfterUncertainSubmission(1, 10)).resolves.toBeNull();
   });
 });
 

@@ -34,6 +34,7 @@ function mutatingConfig(method: string | undefined = 'post') {
     headers: {
       set: (name: string, value: string) => headers.set(name, value),
       get: (name: string) => headers.get(name),
+      has: (name: string) => headers.has(name),
     },
   };
 }
@@ -69,7 +70,12 @@ describe('API CSRF interceptor', () => {
     await expect(interceptor(secondConfig)).resolves.toBe(secondConfig);
 
     expect(mocks.csrfGet).toHaveBeenCalledTimes(1);
-    expect(mocks.csrfGet).toHaveBeenCalledWith('/api/auth/csrf', { withCredentials: true });
+    expect(mocks.csrfGet).toHaveBeenCalledWith('/api/auth/csrf', expect.objectContaining({
+      withCredentials: true,
+      timeout: 15_000,
+      headers: { 'X-Request-ID': expect.any(String) },
+    }));
+    expect(firstConfig.headers.get('X-Request-ID')).toEqual(expect.any(String));
     expect(firstConfig.headers.get('X-XSRF-TOKEN')).toBe('csrf-token');
     expect(secondConfig.headers.get('X-XSRF-TOKEN')).toBe('csrf-token');
   });
@@ -100,6 +106,23 @@ describe('API CSRF interceptor', () => {
     await interceptor({ ...mutatingConfig('get'), method: undefined });
 
     expect(mocks.csrfGet).not.toHaveBeenCalled();
+  });
+
+  it('conserve un identifiant de corrélation fourni par l’appelant', async () => {
+    const config = mutatingConfig('get');
+    config.headers.set('X-Request-ID', 'existing-id');
+
+    await interceptor(config);
+
+    expect(config.headers.get('X-Request-ID')).toBe('existing-id');
+  });
+
+  it('accorde un timeout long aux envois multipart', async () => {
+    const config = { ...mutatingConfig('post'), data: new FormData(), timeout: 30_000 };
+
+    await interceptor(config);
+
+    expect(config.timeout).toBe(120_000);
   });
 
   it('renouvelle le jeton et rejoue une fois une requête refusée par le filtre CSRF', async () => {

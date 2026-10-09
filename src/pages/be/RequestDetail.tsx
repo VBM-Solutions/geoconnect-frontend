@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { getDemandeDetail } from '../../api/demandeDevis';
-import { createPropositionDevis, modifierPropositionDevis } from '../../api/propositionDevis';
+import { createPropositionDevis, findActivePropositionAfterUncertainSubmission, modifierPropositionDevis } from '../../api/propositionDevis';
 import { uploadDocument } from '../../api/document';
+import { isRequestTimeout } from '../../api/requestPolicy';
 import { DemandeDevisDTO, PropositionDevisDTO, BureauEtudesDTO } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -257,6 +258,7 @@ export default function BERequestDetail() {
   const onSubmit = async (data: any) => {
     if (!demande || !user || !myBureau?.id) return;
     setIsSubmitting(true);
+    let creationStarted = false;
     try {
       if (!pdfFile) {
         setPdfRequiredError(true);
@@ -265,6 +267,7 @@ export default function BERequestDetail() {
       const doc = await uploadDocument(pdfFile);
       const documentId = doc.id;
 
+      creationStarted = true;
       const newProp = await createPropositionDevis({
         demandeDevisId: demande.id,
         bureauEtudeId: myBureau.id,
@@ -278,6 +281,27 @@ export default function BERequestDetail() {
       toastSuccess('Proposition soumise avec succès !');
       void navigate('/be/dashboard');
     } catch (err: any) {
+      if (creationStarted && isRequestTimeout(err)) {
+        try {
+          const recovered = await findActivePropositionAfterUncertainSubmission(demande.id, myBureau.id);
+          if (recovered) {
+            setMyProposition(recovered);
+            setAllPropositions(prev => prev.some(item => item.id === recovered.id) ? prev : [...prev, recovered]);
+            toastSuccess('Proposition soumise avec succès !');
+            void navigate('/be/dashboard');
+            return;
+          }
+          toastError("La soumission n'a pas été confirmée. Vérifiez vos propositions avant de réessayer.");
+          return;
+        } catch {
+          toastError("La connexion a été interrompue et l'état de la soumission n'a pas pu être vérifié. Actualisez la page avant de réessayer.");
+          return;
+        }
+      }
+      if (isRequestTimeout(err)) {
+        toastError("Le transfert du devis a pris trop de temps. Vérifiez votre connexion puis réessayez.");
+        return;
+      }
       toastError(err?.response?.data?.message ?? err?.message ?? 'Erreur lors de la soumission.');
     } finally {
       setIsSubmitting(false);
