@@ -1,31 +1,73 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { enrichirDemande, getDemandeDetail } from '../../api/demandeDevis';
-import { accepterPropositionDevis, refuserPropositionDevis } from '../../api/propositionDevis';
+import { accepterPropositionDevis, MotifRefusProposition, refuserPropositionDevis } from '../../api/propositionDevis';
 import { DemandeDevisDTO, EnrichissementDemandeDTO, PropositionDevisDTO } from '../../types';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
-import { ClipboardList, Clock, FileText, FolderOpen } from 'lucide-react';
+import { Check, ChevronDown, ClipboardList, Clock, FileText, FolderOpen } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { DetailPageShell } from '../../components/ui/DetailPageShell';
 import { ProposalCarousel } from '../../components/client/ProposalCarousel';
+import { ProposalComparisonTable } from '../../components/client/ProposalComparisonTable';
+import { ProposalRefusalModal } from '../../components/client/ProposalRefusalModal';
+import { getDefaultProposalSort, ProposalSort, sortProposals } from '../../lib/proposalComparison';
 import { TYPE_LABELS } from '../../constants/labels';
 import { DemandeInformationEditor } from '../../components/demande/DemandeInformationEditor';
 import { DemandeDocumentSlots } from '../../components/demande/DemandeDocumentSlots';
 import { cn } from '../../lib/utils';
 import { DetailSectionPanel } from '../../components/ui/DetailSectionPanel';
+import { groupCurrentProposals } from '../../lib/proposalHistory';
 
 type RequestSection = 'offres' | 'description' | 'documents';
+
+const PROPOSAL_SORT_OPTIONS: Array<{ value: ProposalSort; label: string }> = [
+  { value: 'RECENT', label: 'Réception la plus récente' },
+  { value: 'PRIX_ASC', label: 'Prix croissant' },
+  { value: 'INTERVENTION_ASC', label: 'Intervention la plus rapide' },
+  { value: 'RENDU_ASC', label: 'Rapport le plus rapide' },
+  { value: 'NOTE_DESC', label: 'Meilleure note' },
+];
+
+function ProposalSortSelect({ value, onChange }: Readonly<{ value: ProposalSort; onChange: (value: ProposalSort) => void }>) {
+  const [open, setOpen] = useState(false);
+  const selected = PROPOSAL_SORT_OPTIONS.find(option => option.value === value) ?? PROPOSAL_SORT_OPTIONS[0];
+  return (
+    <div className="relative">
+      <button type="button" role="combobox" aria-label="Trier les offres" aria-expanded={open} aria-controls="proposal-sort-options"
+        onClick={() => setOpen(current => !current)}
+        className="inline-flex h-10 min-w-60 items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30">
+        <span>{selected.label}</span>
+        <ChevronDown aria-hidden="true" className={`h-4 w-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div id="proposal-sort-options" role="listbox" aria-label="Tri des offres"
+        className="absolute right-0 z-20 mt-2 min-w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10">
+        {PROPOSAL_SORT_OPTIONS.map(option => <button key={option.value} type="button" role="option" aria-selected={option.value === value}
+          onClick={() => { onChange(option.value); setOpen(false); }}
+          className={`flex w-full items-center justify-between gap-4 whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm transition-colors ${option.value === value ? 'bg-blue-50 font-semibold text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
+          {option.label}{option.value === value && <Check aria-hidden="true" className="h-4 w-4" />}
+        </button>)}
+      </div>}
+    </div>
+  );
+}
 
 export default function ClientRequestDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedPropositionId = Number(searchParams.get('proposition')) || null;
+  const requestedSort = searchParams.get('tri') as ProposalSort | null;
+  const allowedSorts: ProposalSort[] = ['RECENT', 'PRIX_ASC', 'INTERVENTION_ASC', 'RENDU_ASC', 'NOTE_DESC'];
+  const proposalSort = requestedSort && allowedSorts.includes(requestedSort) ? requestedSort : getDefaultProposalSort();
   const sectionParam = searchParams.get('section');
   const activeSection: RequestSection = sectionParam === 'description' || sectionParam === 'documents' ? sectionParam : 'offres';
   const { toastError, toastSuccess } = useToast();
   const [demande, setDemande] = useState<DemandeDevisDTO | null>(null);
   const [propositions, setPropositions] = useState<PropositionDevisDTO[]>([]);
+  const proposalGroups = groupCurrentProposals(propositions);
+  const visiblePropositions = proposalGroups.map(group => group.current);
+  const refusedHistoryByProposalId = new Map(proposalGroups.flatMap(group => group.current.id == null ? [] : [[group.current.id, group.refusedHistory] as const]));
+  const comparisonMode = visiblePropositions.length > 1 && searchParams.get('vue') !== 'devis';
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState<number | null>(null);
   const [confirmAcceptId, setConfirmAcceptId] = useState<number | null>(null);
@@ -67,10 +109,10 @@ export default function ClientRequestDetail() {
     }
   };
 
-  const handleRefuse = async (propId: number) => {
+  const handleRefuse = async (propId: number, motif: MotifRefusProposition, commentaire?: string) => {
     setIsProcessing(propId);
     try {
-      await refuserPropositionDevis(propId);
+      await refuserPropositionDevis(propId, motif, commentaire);
       setPropositions(props => props.map(p =>
         p.id === propId ? { ...p, statut: 'REFUSEE' as const } : p
       ));
@@ -99,6 +141,14 @@ export default function ClientRequestDetail() {
       const next = new URLSearchParams(current);
       if (section === 'offres') next.delete('section');
       else next.set('section', section);
+      return next;
+    }, { replace: true });
+  };
+
+  const updateProposalParams = (changes: Record<string, string | null>) => {
+    setSearchParams(current => {
+      const next = new URLSearchParams(current);
+      Object.entries(changes).forEach(([key, value]) => value == null ? next.delete(key) : next.set(key, value));
       return next;
     }, { replace: true });
   };
@@ -145,22 +195,37 @@ export default function ClientRequestDetail() {
         </aside>
         <main className="min-w-0">
           {activeSection === 'offres' && (
-          <DetailSectionPanel title={`Offres Reçues (${propositions.length})`}>
-            {propositions.length === 0 ? (
+          <DetailSectionPanel title={`Offres Reçues (${visiblePropositions.length})`}>
+            {visiblePropositions.length === 0 ? (
               <div className="bg-white p-8 text-center">
                 <Clock className="w-8 h-8 text-slate-300 mx-auto mb-3" />
                 <p className="text-xs text-slate-500 font-medium">En attente des retours géotechniques.</p>
               </div>
-            ) : (
+            ) : <div className="space-y-4">
+              {visiblePropositions.length > 1 && <div className="flex flex-wrap items-end justify-between gap-3">
+                <div className="flex rounded-lg border border-slate-200 p-1" aria-label="Mode d’affichage des offres">
+                  <button type="button" className={cn('rounded-md px-3 py-2 text-xs font-semibold', comparisonMode ? 'bg-blue-600 text-white' : 'text-slate-600')} onClick={() => updateProposalParams({ vue: null })}>Comparer</button>
+                  <button type="button" className={cn('rounded-md px-3 py-2 text-xs font-semibold', !comparisonMode ? 'bg-blue-600 text-white' : 'text-slate-600')} onClick={() => updateProposalParams({ vue: 'devis' })}>Voir le devis</button>
+                </div>
+                {comparisonMode && <div className="flex items-center gap-2 text-xs font-semibold text-slate-600"><span>Trier par</span><ProposalSortSelect value={proposalSort} onChange={sort => updateProposalParams({ tri: sort })} /></div>}
+              </div>}
+              {comparisonMode ? <ProposalComparisonTable
+                proposals={sortProposals(visiblePropositions, proposalSort)} returnTo={`/client/demande/${id}`} processingId={isProcessing}
+                onPreview={proposalId => updateProposalParams({ vue: 'devis', proposition: String(proposalId) })}
+                onAccept={setConfirmAcceptId} onRefuse={setConfirmRefuseId}
+                onSort={sort => updateProposalParams({ tri: sort })}
+              /> : (
               <ProposalCarousel
-                proposals={propositions}
+                proposals={visiblePropositions}
+                refusedHistoryByProposalId={refusedHistoryByProposalId}
                 initialProposalId={selectedPropositionId}
                 returnTo={`/client/demande/${id}`}
                 processingId={isProcessing}
                 onAccept={setConfirmAcceptId}
                 onRefuse={setConfirmRefuseId}
               />
-            )}
+              )}
+            </div>}
           </DetailSectionPanel>
           )}
           {activeSection === 'description' && <DetailSectionPanel title="Description de la demande"><DemandeInformationEditor demande={demande} editable onSave={handleEnrichment} /></DetailSectionPanel>}
@@ -184,16 +249,12 @@ export default function ClientRequestDetail() {
       )}
 
       {confirmRefuseId !== null && (
-        <ConfirmModal
-          title="Refuser cette proposition ?"
-          message="Êtes-vous sûr de vouloir refuser cette offre ? Cette action est irréversible."
-          confirmLabel="Refuser l'offre"
-          cancelLabel="Annuler"
+        <ProposalRefusalModal
           isLoading={isProcessing === confirmRefuseId}
-          onConfirm={async () => {
+          onConfirm={async (motif, commentaire) => {
             const id = confirmRefuseId;
             setConfirmRefuseId(null);
-            await handleRefuse(id);
+            await handleRefuse(id, motif, commentaire);
           }}
           onCancel={() => setConfirmRefuseId(null)}
         />

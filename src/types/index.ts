@@ -139,6 +139,7 @@ export interface DemandeDevisDTO {
 export type TerrainAnswer = 'OUI' | 'NON' | 'NE_SAIS_PAS';
 
 export type StatutProposition = 'EN_ATTENTE' | 'ACCEPTEE' | 'REFUSEE';
+export type MotifRefusProposition = 'PRIX' | 'DELAI_INTERVENTION' | 'DELAI_RENDU' | 'PERIMETRE_INADAPTE' | 'AUTRE_BUREAU_PREFERE' | 'PROJET_REPORTE_OU_ANNULE' | 'AUTRE' | 'AUTRE_OFFRE_ACCEPTEE';
 
 export interface DelaiProjectionDTO {
   min?: string;
@@ -158,7 +159,23 @@ export interface PropositionDevisDTO {
   delaiMaxRendu?: number;
   delaiProjectionRendu?: DelaiProjectionDTO;
   prix?: number;
+  montantHT?: number;
+  tauxTVA?: number;
+  montantTVA?: number;
+  totalHT?: number;
+  totalTTC?: number;
+  devise?: string;
+  fraisDeplacementInclus?: boolean;
+  fraisDeplacementHT?: number;
+  inclusions?: string[];
+  exclusions?: string[];
+  validiteOffreJusquAu?: string;
+  motifRefus?: MotifRefusProposition;
+  commentaireRefus?: string;
+  origineRefus?: 'CLIENT' | 'SYSTEME';
+  refuseAt?: string;
   documentId?: number;
+    nomTelechargement?: string;
   statut?: StatutProposition;
 
   // Relations embarquées (usage front uniquement)
@@ -168,6 +185,7 @@ export interface PropositionDevisDTO {
     ville?: string;
     profilPublicSlug?: string;
     noteGlobale?: number;
+    nombreAvis?: number;
   };
   demandeDevis?: DemandeDevisDTO;
 }

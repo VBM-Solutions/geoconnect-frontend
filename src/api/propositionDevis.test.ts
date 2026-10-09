@@ -113,6 +113,14 @@ describe('refuserPropositionDevis', () => {
     expect(api.patch).toHaveBeenCalledWith('/propositionDevis/5/refuser');
     expect(result).toEqual(refused);
   });
+
+  it('transmet le motif et le commentaire du refus', async () => {
+    (api.patch as any).mockResolvedValueOnce({ data: fakeProposition });
+    await refuserPropositionDevis(5, 'AUTRE', 'Hors périmètre');
+    expect(api.patch).toHaveBeenCalledWith('/propositionDevis/5/refuser', {
+      motif: 'AUTRE', commentaire: 'Hors périmètre',
+    });
+  });
 });
 
 describe('deletePropositionDevis', () => {

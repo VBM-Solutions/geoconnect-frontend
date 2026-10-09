@@ -5,6 +5,8 @@ import { formatDelaiWithProjection } from '../../lib/delaiProjection';
 import { BureauEtudeProfileLink } from '../profil-be/BureauEtudeProfileLink';
 import { Button } from '../ui/Button';
 import api from '../../api';
+import { formatProposalPrice } from '../../lib/proposalPrice';
+import { ProposalHistory } from './ProposalHistory';
 
 interface ProposalCarouselProps {
   proposals: PropositionDevisDTO[];
@@ -13,6 +15,13 @@ interface ProposalCarouselProps {
   processingId?: number | null;
   onAccept: (id: number) => void;
   onRefuse: (id: number) => void;
+  refusedHistoryByProposalId?: Map<number, PropositionDevisDTO[]>;
+}
+
+function formatValidityDate(value?: string): string {
+  if (!value) return 'Non renseignée';
+  const date = new Date(`${value}T00:00:00`).toLocaleDateString('fr-FR');
+  return `Jusqu’au ${date}`;
 }
 
 export function ProposalCarousel({
@@ -22,6 +31,7 @@ export function ProposalCarousel({
   processingId,
   onAccept,
   onRefuse,
+  refusedHistoryByProposalId = new Map(),
 }: Readonly<ProposalCarouselProps>) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState(false);
@@ -40,7 +50,11 @@ export function ProposalCarousel({
     setPreviewError(false);
     const documentId = proposals[Math.min(index, Math.max(proposals.length - 1, 0))]?.documentId;
     if (documentId == null) return () => undefined;
-    api.get(`/documents/${documentId}/download`, { responseType: 'blob' })
+    const nomTelechargement = proposals[Math.min(index, Math.max(proposals.length - 1, 0))]?.nomTelechargement;
+    const downloadPath = nomTelechargement
+      ? `/documents/${documentId}/download/${encodeURIComponent(nomTelechargement)}`
+      : `/documents/${documentId}/download`;
+    api.get(downloadPath, { responseType: 'blob' })
       .then(({ data }) => {
         if (!active) return;
         objectUrl = URL.createObjectURL(data);
@@ -100,10 +114,30 @@ export function ProposalCarousel({
             <p className="mt-1 text-xs text-amber-700">★ {proposal.bureauEtude?.noteGlobale == null ? 'Pas encore noté' : `${proposal.bureauEtude.noteGlobale.toFixed(1)}/5`}</p>
           </div>
           <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
-            <div><span className="block text-[10px] font-bold uppercase text-slate-400">Prix du devis</span>{proposal.prix == null ? '—' : `${proposal.prix} €`}</div>
+            <div><span className="block text-[10px] font-bold uppercase text-slate-400">Prix du devis</span>{formatProposalPrice(proposal)}</div>
             <div><span className="block text-[10px] font-bold uppercase text-slate-400">Délai d’intervention</span>{formatDelaiWithProjection(proposal.delaiMaxIntervention, proposal.delaiProjectionIntervention)}</div>
             <div><span className="block text-[10px] font-bold uppercase text-slate-400">Délai de rendu</span>{formatDelaiWithProjection(proposal.delaiMaxRendu, proposal.delaiProjectionRendu)}</div>
           </div>
+          <div className="grid gap-3 border-t border-slate-100 pt-4 text-sm md:grid-cols-3">
+            <div>
+              <span className="block text-[10px] font-bold uppercase text-slate-400">Prestations incluses</span>
+              {proposal.inclusions?.length ? <ul className="mt-1 list-disc space-y-1 pl-4">{proposal.inclusions.map(item => <li key={item}>{item}</li>)}</ul> : <p className="mt-1 text-slate-500">Non renseignées</p>}
+            </div>
+            <div>
+              <span className="block text-[10px] font-bold uppercase text-slate-400">Exclusions ou réserves</span>
+              {proposal.exclusions?.length ? <ul className="mt-1 list-disc space-y-1 pl-4">{proposal.exclusions.map(item => <li key={item}>{item}</li>)}</ul> : <p className="mt-1 text-slate-500">Aucune exclusion renseignée</p>}
+            </div>
+            <div>
+              <span className="block text-[10px] font-bold uppercase text-slate-400">Validité de l’offre</span>
+              <p className="mt-1">{formatValidityDate(proposal.validiteOffreJusquAu)}</p>
+            </div>
+          </div>
+          {proposal.totalTTC != null && <div className="rounded-lg bg-slate-50 p-3 text-sm">
+            <p><span className="font-semibold">Montant HT :</span> {(proposal.totalHT ?? proposal.montantHT ?? proposal.prix)?.toFixed(2)} €</p>
+            <p><span className="font-semibold">TVA :</span> {proposal.tauxTVA == null ? 'Non renseignée' : `${proposal.tauxTVA.toFixed(2)} % (${proposal.montantTVA?.toFixed(2) ?? '—'} €)`}</p>
+            <p><span className="font-semibold">Montant TTC :</span> {proposal.totalTTC.toFixed(2)} €</p>
+          </div>}
+          <ProposalHistory proposals={proposal.id == null ? [] : (refusedHistoryByProposalId.get(proposal.id) ?? [])} />
         </div>
 
         <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
@@ -115,7 +149,7 @@ export function ProposalCarousel({
           {isRefused && <span className="text-sm font-semibold text-slate-500">Proposition refusée</span>}
           {!isAccepted && !isRefused && !acceptedProposal && proposal.id != null && (
             <>
-              <Button variant="destructive" size="sm" onClick={() => onRefuse(proposal.id!)} isLoading={processingId === proposal.id}>Refuser</Button>
+              <Button variant="danger" size="sm" onClick={() => onRefuse(proposal.id!)} isLoading={processingId === proposal.id}>Refuser</Button>
               <Button size="sm" onClick={() => onAccept(proposal.id!)} isLoading={processingId === proposal.id}>Accepter</Button>
             </>
           )}

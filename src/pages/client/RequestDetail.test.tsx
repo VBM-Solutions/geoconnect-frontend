@@ -134,6 +134,47 @@ describe('ClientRequestDetail — identité du bureau', () => {
     expect(screen.getByText('Proposition 1 sur 1')).toBeTruthy();
   });
 
+  it('ne montre que la resoumission active et rattache l’offre refusée à son historique', async () => {
+    vi.mocked(getDemandeDetail).mockResolvedValue({
+      demande: { id: 12, adresseProjet: { ville: 'Nantes' } },
+      propositions: [
+        { id: 41, bureauEtudeId: 8, createdAt: '2026-09-01T10:00:00Z', prix: 1800, statut: 'REFUSEE', motifRefus: 'PRIX', commentaireRefus: 'Budget dépassé.', bureauEtude: { id: 8, raisonSociale: 'Sols & Structures' } },
+        { id: 43, bureauEtudeId: 8, createdAt: '2026-09-02T10:00:00Z', prix: 1600, statut: 'EN_ATTENTE', bureauEtude: { id: 8, raisonSociale: 'Sols & Structures' } },
+        { id: 50, bureauEtudeId: 9, prix: 2000, statut: 'REFUSEE', bureauEtude: { id: 9, raisonSociale: 'Offre masquée' } },
+      ],
+      bureauEtudeId: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Offres Reçues (1)')).toBeTruthy();
+    expect(screen.getByText('1600.00 € HT · TVA non renseignée')).toBeTruthy();
+    expect(screen.queryByText('Offre masquée')).toBeNull();
+    expect(screen.getByText('Offre précédente refusée')).toBeTruthy();
+  });
+
+  it('permet de choisir le tri depuis le menu déroulant stylisé', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getDemandeDetail).mockResolvedValue({
+      demande: { id: 12, adresseProjet: { ville: 'Nantes' } },
+      propositions: [
+        { id: 41, bureauEtudeId: 8, prix: 1800, statut: 'EN_ATTENTE', bureauEtude: { id: 8, raisonSociale: 'Bureau A' } },
+        { id: 43, bureauEtudeId: 9, prix: 1600, statut: 'EN_ATTENTE', bureauEtude: { id: 9, raisonSociale: 'Bureau B' } },
+      ],
+      bureauEtudeId: null,
+    });
+
+    renderPage();
+
+    const trigger = await screen.findByRole('combobox', { name: 'Trier les offres' });
+    await user.click(trigger);
+    const option = screen.getByRole('option', { name: 'Prix croissant' });
+    expect(option).toHaveAttribute('aria-selected', 'false');
+    await user.click(option);
+    expect(screen.getByRole('combobox', { name: 'Trier les offres' })).toHaveTextContent('Prix croissant');
+    expect(screen.queryByRole('listbox', { name: 'Tri des offres' })).toBeNull();
+  });
+
   it('affiche les caractéristiques cadastrales du projet', async () => {
     const user = userEvent.setup();
     vi.mocked(getDemandeDetail).mockResolvedValue({ demande: {
